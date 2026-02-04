@@ -5,13 +5,13 @@ import (
 	"strconv"
 	"strings"
 	"sync"
-	"app/cau_hinh"
+	// "app/cau_hinh" <-- ĐÃ XÓA DÒNG NÀY
 	"app/mo_hinh"
 )
 
 var mtxNV sync.Mutex // Khóa an toàn
 
-// 1. Tìm nhân viên theo Cookie (Giữ nguyên)
+// 1. Tìm nhân viên theo Cookie
 func TimNhanVienTheoCookie(cookie string) (*mo_hinh.NhanVien, bool) {
 	for _, nv := range CacheNhanVien.DuLieu {
 		if nv.Cookie == cookie {
@@ -21,7 +21,7 @@ func TimNhanVienTheoCookie(cookie string) (*mo_hinh.NhanVien, bool) {
 	return nil, false
 }
 
-// 2. Tìm nhân viên theo Tên Đăng Nhập (Giữ nguyên)
+// 2. Tìm nhân viên theo Tên Đăng Nhập
 func TimNhanVienTheoUsername(username string) (*mo_hinh.NhanVien, bool) {
 	for _, nv := range CacheNhanVien.DuLieu {
 		if nv.TenDangNhap == username {
@@ -31,7 +31,7 @@ func TimNhanVienTheoUsername(username string) (*mo_hinh.NhanVien, bool) {
 	return nil, false
 }
 
-// --- [MỚI] Hàm kiểm tra trùng User hoặc Email ---
+// --- Hàm kiểm tra trùng User hoặc Email ---
 func KiemTraTonTaiUserOrEmail(username string, email string) bool {
 	for _, nv := range CacheNhanVien.DuLieu {
 		if nv.TenDangNhap == username || (email != "" && nv.Email == email) {
@@ -41,7 +41,7 @@ func KiemTraTonTaiUserOrEmail(username string, email string) bool {
 	return false
 }
 
-// --- [MỚI] Hàm sinh Mã Nhân Viên tự động (NV_0001 -> NV_0002) ---
+// --- Hàm sinh Mã Nhân Viên tự động (NV_0001 -> NV_0002) ---
 func TaoMaNhanVienMoi() string {
 	maxID := 0
 	
@@ -60,7 +60,7 @@ func TaoMaNhanVienMoi() string {
 	return fmt.Sprintf("NV_%04d", maxID+1)
 }
 
-// 3. Cập nhật Phiên làm việc (Giữ nguyên)
+// 3. Cập nhật Phiên làm việc
 func CapNhatPhienDangNhap(maNV string, newCookie string, newExpired int64) {
 	mtxNV.Lock()
 	defer mtxNV.Unlock()
@@ -75,7 +75,7 @@ func CapNhatPhienDangNhap(maNV string, newCookie string, newExpired int64) {
 	ThemVaoHangCho(CacheNhanVien.SpreadsheetID, "NHAN_VIEN", nv.DongTrongSheet, mo_hinh.CotNV_CookieExpired, newExpired)
 }
 
-// 4. Gia hạn Cookie (Giữ nguyên)
+// 4. Gia hạn Cookie
 func CapNhatHanCookieRAM(maNV string, newExpired int64) {
 	mtxNV.Lock()
 	defer mtxNV.Unlock()
@@ -85,7 +85,7 @@ func CapNhatHanCookieRAM(maNV string, newExpired int64) {
 	ThemVaoHangCho(CacheNhanVien.SpreadsheetID, "NHAN_VIEN", nv.DongTrongSheet, mo_hinh.CotNV_CookieExpired, newExpired)
 }
 
-// 5. Thêm Nhân Viên Mới (Đã nâng cấp FULL trường)
+// 5. Thêm Nhân Viên Mới (Đăng Ký)
 func ThemNhanVienMoi(nv *mo_hinh.NhanVien) {
 	mtxNV.Lock()
 	defer mtxNV.Unlock()
@@ -109,11 +109,11 @@ func ThemNhanVienMoi(nv *mo_hinh.NhanVien) {
 
 	ThemVaoHangCho(sID, sName, newRow, mo_hinh.CotNV_MaNhanVien, nv.MaNhanVien)
 	ThemVaoHangCho(sID, sName, newRow, mo_hinh.CotNV_TenDangNhap, nv.TenDangNhap)
-	ThemVaoHangCho(sID, sName, newRow, mo_hinh.CotNV_Email, nv.Email)           // Cột C
+	ThemVaoHangCho(sID, sName, newRow, mo_hinh.CotNV_Email, nv.Email)
 	ThemVaoHangCho(sID, sName, newRow, mo_hinh.CotNV_MatKhauHash, nv.MatKhauHash)
 	ThemVaoHangCho(sID, sName, newRow, mo_hinh.CotNV_HoTen, nv.HoTen)
-	ThemVaoHangCho(sID, sName, newRow, mo_hinh.CotNV_ChucVu, nv.ChucVu)         // Cột F
-	ThemVaoHangCho(sID, sName, newRow, mo_hinh.CotNV_MaPin, nv.MaPin)           // Cột G
+	ThemVaoHangCho(sID, sName, newRow, mo_hinh.CotNV_ChucVu, nv.ChucVu)
+	ThemVaoHangCho(sID, sName, newRow, mo_hinh.CotNV_MaPin, nv.MaPin)
 	ThemVaoHangCho(sID, sName, newRow, mo_hinh.CotNV_Cookie, nv.Cookie)
 	ThemVaoHangCho(sID, sName, newRow, mo_hinh.CotNV_CookieExpired, nv.CookieExpired)
 	ThemVaoHangCho(sID, sName, newRow, mo_hinh.CotNV_VaiTroQuyenHan, nv.VaiTroQuyenHan)
@@ -121,12 +121,12 @@ func ThemNhanVienMoi(nv *mo_hinh.NhanVien) {
 	ThemVaoHangCho(sID, sName, newRow, mo_hinh.CotNV_LanDangNhapCuoi, nv.LanDangNhapCuoi)
 }
 
-// 6. Đếm số lượng (Giữ nguyên)
+// 6. Đếm số lượng
 func DemSoLuongNhanVien() int {
 	return len(CacheNhanVien.DuLieu)
 }
 
-// 7. Lấy dòng (Giữ nguyên)
+// 7. Lấy dòng
 func LayDongNhanVien(maNV string) int {
 	if nv, ok := CacheNhanVien.DuLieu[maNV]; ok {
 		return nv.DongTrongSheet

@@ -130,25 +130,26 @@ func ThemKhachHangMoi(kh *mo_hinh.KhachHang) {
 	newRow := maxRow + 1
 	kh.DongTrongSheet = newRow
 
-	// Lưu RAM
 	CacheKhachHang.DuLieu[kh.MaKhachHang] = kh
 	khoa.Unlock()
 
-	// Ghi Sheet
 	sID := cau_hinh.BienCauHinh.IdFileSheet
 	sName := "KHACH_HANG"
 
 	ThemVaoHangCho(sID, sName, newRow, mo_hinh.CotKH_MaKhachHang, kh.MaKhachHang)
-	// [CHUẨN] Dùng CotKH_TenDangNhap
+	
+	// [CHUẨN] Map đúng TenDangNhap
 	ThemVaoHangCho(sID, sName, newRow, mo_hinh.CotKH_TenDangNhap, kh.TenDangNhap)
-	// [CHUẨN] Dùng CotKH_MatKhauHash
+	
+	// [CHUẨN] Map đúng MatKhauHash
 	ThemVaoHangCho(sID, sName, newRow, mo_hinh.CotKH_MatKhauHash, kh.MatKhauHash) 
+	
 	ThemVaoHangCho(sID, sName, newRow, mo_hinh.CotKH_Cookie, kh.Cookie)
 	ThemVaoHangCho(sID, sName, newRow, mo_hinh.CotKH_CookieExpired, kh.CookieExpired)
 	ThemVaoHangCho(sID, sName, newRow, mo_hinh.CotKH_MaPinHash, kh.MaPinHash)
 	ThemVaoHangCho(sID, sName, newRow, mo_hinh.CotKH_LoaiKhachHang, kh.LoaiKhachHang)
 	
-	// [CHUẨN] Dùng CotKH_TenKhachHang
+	// [CHUẨN] Map đúng TenKhachHang
 	ThemVaoHangCho(sID, sName, newRow, mo_hinh.CotKH_TenKhachHang, kh.TenKhachHang)
 	
 	ThemVaoHangCho(sID, sName, newRow, mo_hinh.CotKH_DienThoai, kh.DienThoai)
@@ -168,7 +169,8 @@ func ThemKhachHangMoi(kh *mo_hinh.KhachHang) {
 	ThemVaoHangCho(sID, sName, newRow, mo_hinh.CotKH_TrangThai, kh.TrangThai)
 	ThemVaoHangCho(sID, sName, newRow, mo_hinh.CotKH_GhiChu, kh.GhiChu)
 	ThemVaoHangCho(sID, sName, newRow, mo_hinh.CotKH_NguoiTao, kh.NguoiTao)
-	ThemVaoHangCho(sID, sName, newRow, mo_hinh.CotKH_NgayTao, kh.NgayTao) // Dùng đúng biến NgayTao
+	ThemVaoHangCho(sID, sName, newRow, mo_hinh.CotKH_NgayTao, kh.NgayTao)
+	ThemVaoHangCho(sID, sName, newRow, mo_hinh.CotKH_NgayCapNhat, kh.NgayCapNhat)
 }
 
 func CapNhatHanCookieRAM(maKH string, newExpired int64) {

@@ -21,7 +21,7 @@ func TimKhachHangTheoCookie(cookie string) (*mo_hinh.KhachHang, bool) {
 
 	for _, kh := range CacheKhachHang.DuLieu {
 		if kh.Cookie == cookie {
-			return kh, true // Trả về con trỏ
+			return kh, true 
 		}
 	}
 	return nil, false
@@ -33,7 +33,6 @@ func TimKhachHangTheoUserOrEmail(input string) (*mo_hinh.KhachHang, bool) {
 	defer khoa.RUnlock()
 
 	for _, kh := range CacheKhachHang.DuLieu {
-		// [SỬA] Dùng TenDangNhap thay vì UserName
 		if kh.TenDangNhap == input || kh.Email == input {
 			return kh, true
 		}
@@ -41,21 +40,21 @@ func TimKhachHangTheoUserOrEmail(input string) (*mo_hinh.KhachHang, bool) {
 	return nil, false
 }
 
-func KiemTraTonTaiUserEmailPhone(user, email, phone string) bool {
+// [ĐÃ SỬA] Chỉ kiểm tra User và Email, bỏ tham số phone
+func KiemTraTonTaiUserEmail(user, email string) bool {
 	khoa := BoQuanLyKhoa.LayKhoa(CacheKhachHang.TenKey)
 	khoa.RLock()
 	defer khoa.RUnlock()
 
 	for _, kh := range CacheKhachHang.DuLieu {
-		// [SỬA] Dùng TenDangNhap
 		if kh.TenDangNhap == user { return true }
 		if email != "" && kh.Email == email { return true }
-		if phone != "" && kh.DienThoai == phone { return true }
+		// Đã xóa dòng check DienThoai
 	}
 	return false
 }
 
-// 2. SINH MÃ & ĐẾM
+// 2. SINH MÃ & ĐẾM (Giữ nguyên)
 func DemSoLuongKhachHang() int {
 	khoa := BoQuanLyKhoa.LayKhoa(CacheKhachHang.TenKey)
 	khoa.RLock()
@@ -94,12 +93,11 @@ func LayDongKhachHang(maKH string) int {
 	return 0
 }
 
-// 3. GHI & CẬP NHẬT
+// 3. GHI & CẬP NHẬT (Giữ nguyên)
 func CapNhatPhienDangNhapKH(maKH string, newCookie string, newExpired int64) {
 	mtxKH.Lock()
 	defer mtxKH.Unlock()
 
-	// Update RAM
 	khoa := BoQuanLyKhoa.LayKhoa(CacheKhachHang.TenKey)
 	khoa.Lock() 
 	kh, ok := CacheKhachHang.DuLieu[maKH]
@@ -110,7 +108,6 @@ func CapNhatPhienDangNhapKH(maKH string, newCookie string, newExpired int64) {
 	khoa.Unlock()
 
 	if ok {
-		// Update Sheet
 		sID := cau_hinh.BienCauHinh.IdFileSheet
 		ThemVaoHangCho(sID, "KHACH_HANG", kh.DongTrongSheet, mo_hinh.CotKH_Cookie, newCookie)
 		ThemVaoHangCho(sID, "KHACH_HANG", kh.DongTrongSheet, mo_hinh.CotKH_CookieExpired, newExpired)
@@ -124,7 +121,6 @@ func ThemKhachHangMoi(kh *mo_hinh.KhachHang) {
 	khoa := BoQuanLyKhoa.LayKhoa(CacheKhachHang.TenKey)
 	khoa.Lock()
 	
-	// 1. Tìm dòng trống
 	maxRow := mo_hinh.DongBatDauDuLieu - 1
 	for _, item := range CacheKhachHang.DuLieu {
 		if item.DongTrongSheet > maxRow {
@@ -134,18 +130,14 @@ func ThemKhachHangMoi(kh *mo_hinh.KhachHang) {
 	newRow := maxRow + 1
 	kh.DongTrongSheet = newRow
 
-	// 2. Lưu RAM
 	CacheKhachHang.DuLieu[kh.MaKhachHang] = kh
 	khoa.Unlock()
 
-	// 3. Ghi Sheet
 	sID := cau_hinh.BienCauHinh.IdFileSheet
 	sName := "KHACH_HANG"
 
 	ThemVaoHangCho(sID, sName, newRow, mo_hinh.CotKH_MaKhachHang, kh.MaKhachHang)
-	// [SỬA] Dùng CotKH_TenDangNhap và kh.TenDangNhap
 	ThemVaoHangCho(sID, sName, newRow, mo_hinh.CotKH_TenDangNhap, kh.TenDangNhap)
-	// [SỬA] Dùng CotKH_MatKhauHash và kh.MatKhauHash
 	ThemVaoHangCho(sID, sName, newRow, mo_hinh.CotKH_MatKhauHash, kh.MatKhauHash) 
 	ThemVaoHangCho(sID, sName, newRow, mo_hinh.CotKH_Cookie, kh.Cookie)
 	ThemVaoHangCho(sID, sName, newRow, mo_hinh.CotKH_CookieExpired, kh.CookieExpired)
@@ -161,7 +153,6 @@ func ThemKhachHangMoi(kh *mo_hinh.KhachHang) {
 	ThemVaoHangCho(sID, sName, newRow, mo_hinh.CotKH_NgayTao, time.Now().Format("2006-01-02 15:04:05"))
 }
 
-// Hàm gia hạn cookie cho middleware
 func CapNhatHanCookieRAM(maKH string, newExpired int64) {
 	khoa := BoQuanLyKhoa.LayKhoa(CacheKhachHang.TenKey)
 	khoa.Lock()

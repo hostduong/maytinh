@@ -45,7 +45,7 @@ func main() {
 	// Nhóm WEB (Trả về Giao diện HTML)
 	// Khi vào trang chủ, gọi hàm TrangChu để hiển thị giao diện
 	router.GET("/", chuc_nang.TrangChu)
-
+    router.GET("/san-pham/:id", chuc_nang.ChiTietSanPham)
 	// 5. Bấm nút CHẠY
 	port := cau_hinh.BienCauHinh.CongChayWeb
 	if port == "" {

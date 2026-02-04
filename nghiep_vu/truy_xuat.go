@@ -58,10 +58,12 @@ func LayDanhSachNhaCungCap() map[string]mo_hinh.NhaCungCap {
 	return kq
 }
 
-func LayThongTinKhachHang(maKH string) (mo_hinh.KhachHang, bool) {
+func LayThongTinKhachHang(maKH string) (*mo_hinh.KhachHang, bool) {
 	khoa := BoQuanLyKhoa.LayKhoa(CacheKhachHang.TenKey)
 	khoa.RLock()
 	defer khoa.RUnlock()
+	
+	// Map DuLieu giờ lưu con trỏ, nên lấy ra dùng luôn
 	kh, tonTai := CacheKhachHang.DuLieu[maKH]
 	return kh, tonTai
 }

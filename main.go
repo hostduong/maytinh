@@ -27,7 +27,47 @@ func main() {
 	router := gin.Default()
 	// ... (Các config router giữ nguyên) ...
 	
-	// ... (Đoạn router.Run cũ XÓA ĐI hoặc comment lại) ...
+func main() {
+    // ... (Phần khởi tạo bên trên giữ nguyên) ...
+
+    router := gin.Default()
+    router.LoadHTMLGlob("giao_dien/**/*")
+
+    // ------------------------------------------
+    // 1. NHÓM PUBLIC (Ai cũng vào được)
+    // ------------------------------------------
+    router.GET("/", chuc_nang.TrangChu)
+    router.GET("/san-pham/:id", chuc_nang.ChiTietSanPham)
+    
+    // Login & Logout
+    router.GET("/login", chuc_nang.TrangDangNhap)
+    router.POST("/login", chuc_nang.XuLyDangNhap)
+    router.GET("/logout", chuc_nang.DangXuat)
+
+    // Công cụ tạo Hash mật khẩu (Dùng tạm để lấy chuỗi Hash bỏ vào Sheet)
+    router.GET("/tool/hash/:pass", func(c *gin.Context) {
+        pass := c.Param("pass")
+        hash, _ := bao_mat.HashMatKhau(pass)
+        c.String(200, "Mật khẩu: %s\nHash: %s", pass, hash)
+    })
+
+    // ------------------------------------------
+    // 2. NHÓM ADMIN (Phải đăng nhập mới vào được)
+    // ------------------------------------------
+    admin := router.Group("/admin")
+    admin.Use(chuc_nang.KiemTraQuyenHan) // <--- CÀI NGƯỜI GÁC CỔNG Ở ĐÂY
+    {
+        // Sau này ta sẽ thêm các trang quản trị vào đây
+        admin.GET("/tong-quan", func(c *gin.Context) {
+            c.String(200, "Chào mừng Sếp! Đây là trang quản trị (Đã bảo mật).")
+        })
+        
+        // Nút Reload dữ liệu (Chỉ admin mới được bấm)
+        admin.GET("/reload", chuc_nang.API_NapLaiDuLieu)
+    }
+
+    // ... (Phần chạy server bên dưới giữ nguyên) ...
+}
 	
 	// --- [MỚI] CHẠY SERVER VỚI CƠ CHẾ GRACEFUL SHUTDOWN ---
 	port := cau_hinh.BienCauHinh.CongChayWeb

@@ -65,13 +65,15 @@ func main() {
 			 c.Redirect(http.StatusFound, "/login")
 			 return
 		}
-		if nv, ok := nghiep_vu.TimNhanVienTheoCookie(cookie); ok {
+		
+		// [SỬA] Đổi sang TimKhachHang
+		if kh, ok := nghiep_vu.TimKhachHangTheoCookie(cookie); ok {
 			 c.HTML(http.StatusOK, "ho_so", gin.H{
 			 	"TieuDe":       "Hồ sơ của bạn",
-			 	"NhanVien":     nv,
+			 	"NhanVien":     kh,              // Truyền object KhachHang vào key NhanVien để template dùng
 			 	"DaDangNhap":   true,
-			 	"TenNguoiDung": nv.HoTen,
-			 	"QuyenHan":     nv.VaiTroQuyenHan,
+			 	"TenNguoiDung": kh.TenKhachHang, // [SỬA] Dùng TenKhachHang
+			 	"QuyenHan":     kh.VaiTroQuyenHan,
 			 })
 		} else {
 			 c.Redirect(http.StatusFound, "/login")
@@ -91,13 +93,15 @@ func main() {
 	{
 		admin.GET("/tong-quan", func(c *gin.Context) {
 			userID, _ := c.Get("USER_ID")
-			nv, _ := nghiep_vu.TimNhanVienTheoCookie(mustGetCookie(c))
+			// [SỬA] Đổi sang TimKhachHang
+			kh, _ := nghiep_vu.TimKhachHangTheoCookie(mustGetCookie(c))
+			
 			c.HTML(http.StatusOK, "quan_tri", gin.H{
 				"TieuDe":       "Quản trị hệ thống",
-				"NhanVien":     nv,
+				"NhanVien":     kh,              // Truyền object KhachHang
 				"DaDangNhap":   true,
-				"TenNguoiDung": nv.HoTen,
-				"QuyenHan":     nv.VaiTroQuyenHan,
+				"TenNguoiDung": kh.TenKhachHang, // [SỬA] Dùng TenKhachHang
+				"QuyenHan":     kh.VaiTroQuyenHan,
 				"UserID":       userID,
 			})
 		})

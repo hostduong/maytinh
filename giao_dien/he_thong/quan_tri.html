@@ -1,0 +1,37 @@
+{{ define "quan_tri" }}
+    {{ template "header" . }}
+
+    <div class="mb-8 flex items-center justify-between">
+        <div>
+            <h1 class="text-3xl font-bold text-gray-800">Tổng Quan Hệ Thống</h1>
+            <p class="text-gray-500 mt-1">Chào mừng quay lại, <span class="text-blue-600 font-bold">{{ .NhanVien.HoTen }}</span>!</p>
+        </div>
+        <a href="/admin/reload" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg shadow flex items-center gap-2 transition">
+            🔄 Nạp lại dữ liệu
+        </a>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+            <div class="text-gray-500 text-sm font-medium uppercase">Sản phẩm</div>
+            <div class="text-3xl font-bold text-gray-900 mt-2">120</div>
+            <div class="text-green-500 text-xs mt-1">↑ Đang kinh doanh</div>
+        </div>
+        <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+            <div class="text-gray-500 text-sm font-medium uppercase">Đơn hàng mới</div>
+            <div class="text-3xl font-bold text-blue-600 mt-2">5</div>
+            <div class="text-gray-400 text-xs mt-1">Hôm nay</div>
+        </div>
+        <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+            <div class="text-gray-500 text-sm font-medium uppercase">Doanh thu</div>
+            <div class="text-3xl font-bold text-gray-900 mt-2">15.2M</div>
+            <div class="text-gray-400 text-xs mt-1">Tháng này</div>
+        </div>
+    </div>
+
+    <div class="bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded text-yellow-800">
+        <strong>⚠️ Lưu ý:</strong> Các tính năng quản lý chi tiết (Nhập kho, Bán hàng) đang được phát triển.
+    </div>
+
+    {{ template "footer" . }}
+{{ end }}

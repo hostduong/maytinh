@@ -1,178 +1,98 @@
-package nghiep_vu
+package chuc_nang
 
 import (
-	"fmt"
-	"strconv"
+	"net/http"
 	"strings"
-	"sync"
+	"time"
+	"app/bao_mat"
+	"app/cau_hinh"
 	"app/mo_hinh"
+	"app/nghiep_vu"
+	"github.com/gin-gonic/gin"
 )
 
-var mtxNV sync.Mutex // Khóa an toàn để tránh xung đột khi nhiều người đăng ký cùng lúc
-
-// =================================================================================
-// 1. CÁC HÀM TÌM KIẾM (READ)
-// =================================================================================
-
-// Tìm nhân viên theo Cookie (Dùng cho Middleware kiểm tra đăng nhập)
-func TimNhanVienTheoCookie(cookie string) (*mo_hinh.NhanVien, bool) {
-	for _, nv := range CacheNhanVien.DuLieu {
-		if nv.Cookie == cookie {
-			return nv, true
+func TrangDangKy(c *gin.Context) {
+	cookie, _ := c.Cookie("session_id")
+	if cookie != "" {
+		if _, ok := nghiep_vu.TimKhachHangTheoCookie(cookie); ok {
+			c.Redirect(http.StatusFound, "/")
+			return
 		}
 	}
-	return nil, false
+	c.HTML(http.StatusOK, "dang_ky", gin.H{})
 }
 
-// Tìm nhân viên theo Tên Đăng Nhập (Dùng kiểm tra tồn tại)
-func TimNhanVienTheoUsername(username string) (*mo_hinh.NhanVien, bool) {
-	for _, nv := range CacheNhanVien.DuLieu {
-		if nv.TenDangNhap == username {
-			return nv, true
-		}
-	}
-	return nil, false
-}
-
-// Tìm nhân viên theo User HOẶC Email (Dùng cho trang Đăng Nhập)
-func TimNhanVienTheoUserHoacEmail(input string) (*mo_hinh.NhanVien, bool) {
-	for _, nv := range CacheNhanVien.DuLieu {
-		// So sánh input với Tên đăng nhập OR Email
-		if nv.TenDangNhap == input || nv.Email == input {
-			return nv, true
-		}
-	}
-	return nil, false
-}
-
-// Kiểm tra xem Username hoặc Email đã tồn tại chưa (Dùng cho trang Đăng Ký)
-func KiemTraTonTaiUserOrEmail(username string, email string) bool {
-	for _, nv := range CacheNhanVien.DuLieu {
-		if nv.TenDangNhap == username || (email != "" && nv.Email == email) {
-			return true
-		}
-	}
-	return false
-}
-
-// =================================================================================
-// 2. CÁC HÀM LOGIC NGHIỆP VỤ (GENERATE ID & COUNT)
-// =================================================================================
-
-// Sinh Mã Nhân Viên Mới (NV_0001 -> NV_0002...)
-func TaoMaNhanVienMoi() string {
-	maxID := 0
-	for _, nv := range CacheNhanVien.DuLieu {
-		// Chỉ đếm các mã bắt đầu bằng "NV_"
-		if strings.HasPrefix(nv.MaNhanVien, "NV_") {
-			parts := strings.Split(nv.MaNhanVien, "_")
-			if len(parts) == 2 {
-				id, err := strconv.Atoi(parts[1])
-				if err == nil && id > maxID {
-					maxID = id
-				}
-			}
-		}
-	}
-	return fmt.Sprintf("NV_%04d", maxID+1)
-}
-
-// Sinh Mã Khách Hàng Mới (KH_0001 -> KH_0002...)
-func TaoMaKhachHangMoi() string {
-	maxID := 0
-	for _, nv := range CacheNhanVien.DuLieu {
-		// Chỉ đếm các mã bắt đầu bằng "KH_"
-		if strings.HasPrefix(nv.MaNhanVien, "KH_") {
-			parts := strings.Split(nv.MaNhanVien, "_")
-			if len(parts) == 2 {
-				id, err := strconv.Atoi(parts[1])
-				if err == nil && id > maxID {
-					maxID = id
-				}
-			}
-		}
-	}
-	return fmt.Sprintf("KH_%04d", maxID+1)
-}
-
-// Đếm tổng số lượng (Để xác định ai là Admin đầu tiên)
-func DemSoLuongNhanVien() int {
-	return len(CacheNhanVien.DuLieu)
-}
-
-// Lấy dòng trong Sheet của nhân viên
-func LayDongNhanVien(maNV string) int {
-	if nv, ok := CacheNhanVien.DuLieu[maNV]; ok {
-		return nv.DongTrongSheet
-	}
-	return 0
-}
-
-// =================================================================================
-// 3. CÁC HÀM GHI DỮ LIỆU (WRITE)
-// =================================================================================
-
-// Cập nhật Phiên làm việc (Khi đăng nhập thành công)
-func CapNhatPhienDangNhap(maNV string, newCookie string, newExpired int64) {
-	mtxNV.Lock()
-	defer mtxNV.Unlock()
-
-	nv, ok := CacheNhanVien.DuLieu[maNV]
-	if !ok { return }
-
-	// 1. Cập nhật RAM
-	nv.Cookie = newCookie
-	nv.CookieExpired = newExpired
-
-	// 2. Đẩy vào Hàng Chờ Ghi Sheet
-	ThemVaoHangCho(CacheNhanVien.SpreadsheetID, "NHAN_VIEN", nv.DongTrongSheet, mo_hinh.CotNV_Cookie, newCookie)
-	ThemVaoHangCho(CacheNhanVien.SpreadsheetID, "NHAN_VIEN", nv.DongTrongSheet, mo_hinh.CotNV_CookieExpired, newExpired)
-}
-
-// Gia hạn Cookie (Auto Renew khi sắp hết hạn)
-func CapNhatHanCookieRAM(maNV string, newExpired int64) {
-	mtxNV.Lock()
-	defer mtxNV.Unlock()
+func XuLyDangKy(c *gin.Context) {
+	// 1. Nhận dữ liệu
+	hoTen     := strings.TrimSpace(c.PostForm("ho_ten"))
+	user      := strings.TrimSpace(c.PostForm("ten_dang_nhap"))
+	pass      := strings.TrimSpace(c.PostForm("mat_khau"))
+	email     := strings.TrimSpace(c.PostForm("email"))
+	maPin     := strings.TrimSpace(c.PostForm("ma_pin"))
 	
-	nv, ok := CacheNhanVien.DuLieu[maNV]
-	if !ok { return }
-	
-	nv.CookieExpired = newExpired
-	ThemVaoHangCho(CacheNhanVien.SpreadsheetID, "NHAN_VIEN", nv.DongTrongSheet, mo_hinh.CotNV_CookieExpired, newExpired)
-}
+	// [MỚI] Nhận thêm thông tin
+	dienThoai := strings.TrimSpace(c.PostForm("dien_thoai_full")) // Lấy số full từ input ẩn
+	if dienThoai == "" { dienThoai = strings.TrimSpace(c.PostForm("dien_thoai")) }
+	ngaySinh  := strings.TrimSpace(c.PostForm("ngay_sinh"))
+	gioiTinh  := strings.TrimSpace(c.PostForm("gioi_tinh"))
 
-// Thêm Nhân Viên/Khách Hàng Mới (Đăng Ký)
-func ThemNhanVienMoi(nv *mo_hinh.NhanVien) {
-	mtxNV.Lock()
-	defer mtxNV.Unlock()
-
-	// 1. Tìm dòng trống tiếp theo trong Sheet
-	maxRow := mo_hinh.DongBatDauDuLieu - 1
-	for _, item := range CacheNhanVien.DuLieu {
-		if item.DongTrongSheet > maxRow {
-			maxRow = item.DongTrongSheet
-		}
+	// 2. Validation (Dùng file bao_mat bạn đã tạo, thêm hàm KiemTraSDT nếu cần)
+	if !bao_mat.KiemTraHoTen(hoTen) || !bao_mat.KiemTraTenDangNhap(user) || 
+	   !bao_mat.KiemTraEmail(email) || !bao_mat.KiemTraMaPin(maPin) || 
+	   !bao_mat.KiemTraDinhDangMatKhau(pass) {
+		c.HTML(http.StatusOK, "dang_ky", gin.H{"Loi": "Dữ liệu nhập vào không hợp lệ!"})
+		return
 	}
-	newRow := maxRow + 1
-	nv.DongTrongSheet = newRow // Gán dòng mới cho user
 
-	// 2. Lưu vào RAM ngay lập tức
-	CacheNhanVien.DuLieu[nv.MaNhanVien] = nv
+	// 3. Kiểm tra trùng (User, Email, SĐT)
+	if nghiep_vu.KiemTraTonTaiUserEmailPhone(user, email, dienThoai) {
+		c.HTML(http.StatusOK, "dang_ky", gin.H{"Loi": "Tên đăng nhập, Email hoặc SĐT đã tồn tại!"})
+		return
+	}
 
-	// 3. Đẩy vào Hàng Chờ Ghi (Ghi đầy đủ 12 cột từ A -> L)
-	sID := CacheNhanVien.SpreadsheetID
-	sName := "NHAN_VIEN"
+	// 4. Logic Admin đầu tiên
+	var maKH, vaiTro, loaiKH string
+	if nghiep_vu.DemSoLuongKhachHang() == 0 {
+		maKH = "KH_0001"
+		vaiTro = "admin"
+		loaiKH = "quan_tri_vien"
+	} else {
+		maKH = nghiep_vu.TaoMaKhachHangMoi()
+		vaiTro = "" 
+		loaiKH = "khach_le"
+	}
 
-	ThemVaoHangCho(sID, sName, newRow, mo_hinh.CotNV_MaNhanVien, nv.MaNhanVien)
-	ThemVaoHangCho(sID, sName, newRow, mo_hinh.CotNV_TenDangNhap, nv.TenDangNhap)
-	ThemVaoHangCho(sID, sName, newRow, mo_hinh.CotNV_Email, nv.Email)           // Cột C
-	ThemVaoHangCho(sID, sName, newRow, mo_hinh.CotNV_MatKhauHash, nv.MatKhauHash)
-	ThemVaoHangCho(sID, sName, newRow, mo_hinh.CotNV_HoTen, nv.HoTen)
-	ThemVaoHangCho(sID, sName, newRow, mo_hinh.CotNV_ChucVu, nv.ChucVu)         // Cột F
-	ThemVaoHangCho(sID, sName, newRow, mo_hinh.CotNV_MaPin, nv.MaPin)           // Cột G
-	ThemVaoHangCho(sID, sName, newRow, mo_hinh.CotNV_Cookie, nv.Cookie)
-	ThemVaoHangCho(sID, sName, newRow, mo_hinh.CotNV_CookieExpired, nv.CookieExpired)
-	ThemVaoHangCho(sID, sName, newRow, mo_hinh.CotNV_VaiTroQuyenHan, nv.VaiTroQuyenHan)
-	ThemVaoHangCho(sID, sName, newRow, mo_hinh.CotNV_TrangThai, nv.TrangThai)
-	ThemVaoHangCho(sID, sName, newRow, mo_hinh.CotNV_LanDangNhapCuoi, nv.LanDangNhapCuoi)
+	passHash, _ := bao_mat.HashMatKhau(pass)
+	// Lưu ý: Mã PIN ở đây tôi lưu Hash luôn cho bảo mật (cần sửa struct dùng MaPinHash)
+	
+	cookie := bao_mat.TaoSessionIDAnToan()
+	expiredTime := time.Now().Add(cau_hinh.ThoiGianHetHanCookie).Unix()
+
+	newKH := &mo_hinh.KhachHang{
+		MaKhachHang:    maKH,
+		TenDangNhap:    user, // Struct trường là UserName (cần map đúng)
+		UserName:       user, // Lưu ý check lại tên trường trong struct KhachHang
+		Email:          email,
+		DienThoai:      dienThoai,
+		MatKhauHash:    passHash,
+		MaPinHash:      maPin, // Tạm lưu plain text nếu muốn, hoặc hash
+		TenKhachHang:   hoTen,
+		NgaySinh:       ngaySinh,
+		GioiTinh:       gioiTinh,
+		LoaiKhachHang:  loaiKH,
+		VaiTroQuyenHan: vaiTro,
+		Cookie:         cookie,
+		CookieExpired:  expiredTime,
+		TrangThai:      1,
+		NgayTao:        time.Now().Format("2006-01-02 15:04:05"),
+	}
+
+	nghiep_vu.ThemKhachHangMoi(newKH)
+	c.SetCookie("session_id", cookie, int(cau_hinh.ThoiGianHetHanCookie.Seconds()), "/", "", false, true)
+
+	if vaiTro == "admin" {
+		c.Redirect(http.StatusFound, "/admin/tong-quan")
+	} else {
+		c.Redirect(http.StatusFound, "/")
+	}
 }

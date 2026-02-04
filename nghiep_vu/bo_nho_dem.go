@@ -6,7 +6,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
-	"time" // Dùng để sleep tránh rate limit
+	"time"
 
 	"app/cau_hinh"
 	"app/kho_du_lieu"
@@ -15,7 +15,6 @@ import (
 
 // =================================================================================
 // 1. ĐỊNH NGHĨA KHO DỮ LIỆU (STORE STRUCTS)
-// Mỗi bảng sẽ có một struct Store riêng để quản lý dữ liệu và Key lock
 // =================================================================================
 
 type KhoSanPhamStore struct {
@@ -39,10 +38,15 @@ type KhoKhachHangStore struct {
 	DuLieu map[string]mo_hinh.KhachHang
 	TenKey string
 }
+
+// --- [QUAN TRỌNG: ĐÃ SỬA LẠI STRUCT NÀY] ---
 type KhoNhanVienStore struct {
-	DuLieu map[string]mo_hinh.NhanVien
-	TenKey string
+	DuLieu        map[string]*mo_hinh.NhanVien // <--- Có dấu sao (*)
+	TenKey        string
+	SpreadsheetID string                       // <--- Đã thêm trường này
 }
+// -------------------------------------------
+
 type KhoPhieuNhapStore struct {
 	DuLieu   map[string]mo_hinh.PhieuNhap
 	DanhSach []mo_hinh.PhieuNhap
@@ -93,7 +97,7 @@ type KhoCauHinhWebStore struct {
 }
 
 // =================================================================================
-// 2. BIẾN TOÀN CỤC (GLOBAL CACHE) - ĐỦ 17 BẢNG
+// 2. BIẾN TOÀN CỤC
 // =================================================================================
 var (
 	CacheSanPham         *KhoSanPhamStore
@@ -115,25 +119,21 @@ var (
 	CacheCauHinhWeb      *KhoCauHinhWebStore
 )
 
-// Hàm tạo Key chuẩn: SpreadsheetID__SheetName
 func TaoKeyCache(tenSheet string) string {
 	idSheet := cau_hinh.BienCauHinh.IdFileSheet
 	return fmt.Sprintf("%s__%s", strings.TrimSpace(idSheet), tenSheet)
 }
 
 // =================================================================================
-// 3. KHỞI TẠO VÀ NẠP DỮ LIỆU (INITIALIZE & LOAD)
+// 3. KHỞI TẠO VÀ NẠP DỮ LIỆU
 // =================================================================================
 func KhoiTaoBoNho() {
 	log.Println("--- [CACHE] Bắt đầu khởi tạo bộ nhớ cho 17 bảng ---")
 	
-	// Bước 1: Khởi tạo Struct rỗng và Key
 	khoiTaoCacStore()
 
-	// Bước 2: Nạp dữ liệu (Chia làm 3 đợt để tránh Google chặn API)
 	var wg sync.WaitGroup
 
-	// --- ĐỢT 1: Master Data (Danh mục, Thương hiệu, SP, KH, NCC, NV, Cấu hình) ---
 	log.Println(">> Đợt 1: Nạp Master Data...")
 	wg.Add(7)
 	go func() { defer wg.Done(); napDanhMuc() }()
@@ -145,9 +145,8 @@ func KhoiTaoBoNho() {
 	go func() { defer wg.Done(); napCauHinhWeb() }()
 	wg.Wait()
 	
-	time.Sleep(1 * time.Second) // Nghỉ 1 xíu
+	time.Sleep(1 * time.Second)
 
-	// --- ĐỢT 2: Transaction Chính (Nhập, Xuất, Serial, Khuyến mãi) ---
 	log.Println(">> Đợt 2: Nạp Giao dịch chính...")
 	wg.Add(6)
 	go func() { defer wg.Done(); napPhieuNhap() }()
@@ -160,7 +159,6 @@ func KhoiTaoBoNho() {
 
 	time.Sleep(1 * time.Second)
 
-	// --- ĐỢT 3: Tài chính & CSKH (Hóa đơn, Thu chi, Bảo hành) ---
 	log.Println(">> Đợt 3: Nạp Tài chính & CSKH...")
 	wg.Add(4)
 	go func() { defer wg.Done(); napHoaDon() }()
@@ -178,8 +176,13 @@ func khoiTaoCacStore() {
 	CacheThuongHieu = &KhoThuongHieuStore{DuLieu: make(map[string]mo_hinh.ThuongHieu), TenKey: TaoKeyCache("THUONG_HIEU")}
 	CacheNhaCungCap = &KhoNhaCungCapStore{DuLieu: make(map[string]mo_hinh.NhaCungCap), TenKey: TaoKeyCache("NHA_CUNG_CAP")}
 	CacheKhachHang = &KhoKhachHangStore{DuLieu: make(map[string]mo_hinh.KhachHang), TenKey: TaoKeyCache("KHACH_HANG")}
-	CacheNhanVien = &KhoNhanVienStore{DuLieu: make(map[string]mo_hinh.NhanVien), TenKey: TaoKeyCache("NHAN_VIEN")}
 	
+	// --- [QUAN TRỌNG] Khởi tạo với Map con trỏ (*) ---
+	CacheNhanVien = &KhoNhanVienStore{
+		DuLieu: make(map[string]*mo_hinh.NhanVien), 
+		TenKey: TaoKeyCache("NHAN_VIEN"),
+	}
+
 	CachePhieuNhap = &KhoPhieuNhapStore{DuLieu: make(map[string]mo_hinh.PhieuNhap), TenKey: TaoKeyCache("PHIEU_NHAP")}
 	CacheChiTietNhap = &KhoChiTietPhieuNhapStore{TenKey: TaoKeyCache("CHI_TIET_PHIEU_NHAP")}
 	
@@ -197,22 +200,17 @@ func khoiTaoCacStore() {
 }
 
 // =================================================================================
-// 4. CÁC HÀM NẠP DỮ LIỆU CHI TIẾT (IMPLEMENTATION)
+// 4. CÁC HÀM NẠP DỮ LIỆU
 // =================================================================================
 
-// --- Helper nạp chung (để giảm lặp code) ---
 func loadSheetData(sheetName string, keyCache string) ([][]interface{}, error) {
-	// log.Printf("Đang đọc: %s...", sheetName)
 	duLieu, err := kho_du_lieu.DocToanBoSheet(sheetName)
 	if err != nil {
 		log.Printf("LỖI ĐỌC %s: %v", sheetName, err)
 		return nil, err
 	}
-	
-	// Khóa GHI trước khi nạp
 	khoa := BoQuanLyKhoa.LayKhoa(keyCache)
 	khoa.Lock()
-	// Lưu ý: Unlock sẽ được gọi ở hàm cha sau khi xử lý xong
 	return duLieu, nil
 }
 
@@ -346,27 +344,24 @@ func napNhaCungCap() {
 	}
 }
 
-// 6. NHAN_VIEN (Đã cập nhật chuẩn)
+// 6. NHAN_VIEN (Đã sửa để dùng Con Trỏ & SpreadsheetID)
 func napNhanVien() {
-	// Cập nhật ID Sheet
+	// Gán ID Sheet để WriteQueue biết đường ghi
 	CacheNhanVien.SpreadsheetID = cau_hinh.BienCauHinh.IdFileSheet
 
 	raw, err := loadSheetData("NHAN_VIEN", CacheNhanVien.TenKey)
 	if err != nil { return }
 	defer BoQuanLyKhoa.LayKhoa(CacheNhanVien.TenKey).Unlock()
 
-	// Reset map với kiểu con trỏ (*)
+	// Reset map với kiểu con trỏ
 	CacheNhanVien.DuLieu = make(map[string]*mo_hinh.NhanVien)
 
 	for i, r := range raw {
-		// Bỏ qua dòng tiêu đề. Lưu ý: DongBatDauDuLieu = 11.
 		if i < mo_hinh.DongBatDauDuLieu { continue }
-		
 		if len(r) <= mo_hinh.CotNV_MaNhanVien || layString(r, mo_hinh.CotNV_MaNhanVien) == "" { continue }
 		
-		item := &mo_hinh.NhanVien{ // <--- Có dấu & (Địa chỉ bộ nhớ)
-			DongTrongSheet:  i + 1, 
-			
+		item := &mo_hinh.NhanVien{ // Dùng dấu & để lấy địa chỉ
+			DongTrongSheet:  i + 1,
 			MaNhanVien:      layString(r, mo_hinh.CotNV_MaNhanVien),
 			TenDangNhap:     layString(r, mo_hinh.CotNV_TenDangNhap),
 			Email:           layString(r, mo_hinh.CotNV_Email),
@@ -383,9 +378,9 @@ func napNhanVien() {
 		
 		CacheNhanVien.DuLieu[item.MaNhanVien] = item
 	}
-    log.Printf("   -> Đã nạp %d nhân viên.", len(CacheNhanVien.DuLieu))
 }
-// 7. PHIEU_XUAT (ĐƠN HÀNG)
+
+// 7. PHIEU_XUAT
 func napPhieuXuat() {
 	raw, err := loadSheetData("PHIEU_XUAT", CachePhieuXuat.TenKey)
 	if err != nil { return }
@@ -636,21 +631,19 @@ func napPhieuBaoHanh() {
 	}
 }
 
-// --------------------------------------------------------
-// HELPER FUNCTIONS (TIỆN ÍCH - Dán vào cuối file)
-// --------------------------------------------------------
+// =================================================================================
+// 5. HELPER FUNCTIONS
+// =================================================================================
 
 func layString(dong []interface{}, index int) string {
 	if index >= len(dong) || dong[index] == nil { return "" }
 	return fmt.Sprintf("%v", dong[index])
 }
 
-// Hàm xử lý số nguyên thông minh (Hiểu được cả 1.000)
 func layInt(dong []interface{}, index int) int {
 	str := layString(dong, index)
 	if str == "" { return 0 }
 	
-	// Xóa các ký tự phân cách (VD: 1.000 -> 1000)
 	str = strings.ReplaceAll(str, ".", "")
 	str = strings.ReplaceAll(str, ",", "")
 	str = strings.ReplaceAll(str, " ", "")
@@ -659,24 +652,17 @@ func layInt(dong []interface{}, index int) int {
 	return val
 }
 
-// Hàm xử lý tiền tệ/số thực thông minh (Hiểu được cả 1.500.000 đ)
 func layFloat(dong []interface{}, index int) float64 {
 	str := layString(dong, index)
 	if str == "" { return 0 }
 
-	// 1. Xóa ký tự tiền tệ và khoảng trắng (VD: "1.200.000 đ" -> "1.200.000")
 	str = strings.ReplaceAll(str, "đ", "")
 	str = strings.ReplaceAll(str, "USD", "")
 	str = strings.ReplaceAll(str, " ", "")
 	
-	// 2. Xóa dấu chấm phân cách ngàn (Kiểu Việt Nam: 1.000.000 -> 1000000)
 	str = strings.ReplaceAll(str, ".", "")
-
-	// 3. Xóa dấu phẩy (Kiểu Mỹ: 1,000,000 -> 1000000)
 	str = strings.ReplaceAll(str, ",", "")
 
-	// 4. Parse sang số
 	val, _ := strconv.ParseFloat(str, 64)
 	return val
 }
-

@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"app/cau_hinh"
+	"app/mo_hinh" // [MỚI] Import để lấy index cột
 	"app/nghiep_vu"
 
 	"github.com/gin-gonic/gin"
@@ -56,8 +57,8 @@ func KiemTraQuyenHan(c *gin.Context) {
 		return
 	}
 
-	// Tìm trong RAM xem Cookie có tồn tại không
-	nhanVien, timThay := nghiep_vu.TimNhanVienTheoCookie(cookie)
+	// [SỬA] Tìm trong RAM KHÁCH HÀNG
+	khachHang, timThay := nghiep_vu.TimKhachHangTheoCookie(cookie)
 
 	if !timThay {
 		// Cookie rác -> Xóa cookie trình duyệt
@@ -67,7 +68,7 @@ func KiemTraQuyenHan(c *gin.Context) {
 	}
 
 	// 3. LOGIC GIA HẠN THÔNG MINH (Auto-Renew)
-	thoiGianHetHan := nhanVien.CookieExpired // Dạng int64 (Unix timestamp)
+	thoiGianHetHan := khachHang.CookieExpired // Dạng int64
 	now := time.Now().Unix()
 
 	// Nếu đã hết hạn -> Đá ra
@@ -84,18 +85,18 @@ func KiemTraQuyenHan(c *gin.Context) {
 		// A. Tính thời gian mới (+30 phút)
 		newExp := time.Now().Add(cau_hinh.ThoiGianHetHanCookie).Unix()
 		
-		// B. Cập nhật vào RAM ngay (để các request sau ko trigger nữa)
-		nghiep_vu.CapNhatHanCookieRAM(nhanVien.MaNhanVien, newExp)
+		// B. Cập nhật vào RAM ngay (Vì khachHang là con trỏ nên cập nhật trực tiếp được)
+		khachHang.CookieExpired = newExp
 
 		// C. Đẩy vào Hàng Chờ Ghi (WriteQueue) -> Worker sẽ ghi xuống Sheet sau
-		rowID := nghiep_vu.LayDongNhanVien(nhanVien.MaNhanVien)
+		rowID := nghiep_vu.LayDongKhachHang(khachHang.MaKhachHang)
 		if rowID > 0 {
 			nghiep_vu.ThemVaoHangCho(
-				nghiep_vu.CacheNhanVien.SpreadsheetID, // ID file sheet
-				"NHAN_VIEN",                           // Tên sheet
-				rowID,                                 // Dòng
-				cau_hinh.CotNV_CookieExpired,          // Cột I
-				newExp,                                // Giá trị mới
+				cau_hinh.BienCauHinh.IdFileSheet, // ID file sheet
+				"KHACH_HANG",                     // [SỬA] Tên sheet mới
+				rowID,                            // Dòng
+				mo_hinh.CotKH_CookieExpired,      // [SỬA] Cột E trong struct KhachHang
+				newExp,                           // Giá trị mới
 			)
 		}
 
@@ -104,10 +105,10 @@ func KiemTraQuyenHan(c *gin.Context) {
 	}
 
 	// Lưu thông tin user vào Context để Controller dùng
-	c.Set("USER_ID", nhanVien.MaNhanVien)
+	c.Set("USER_ID", khachHang.MaKhachHang)
 	
-	// --- [ĐÃ SỬA LỖI TẠI ĐÂY] ---
-	c.Set("USER_ROLE", nhanVien.VaiTroQuyenHan) // Dùng đúng tên biến VaiTroQuyenHan
+	// Check quyền
+	c.Set("USER_ROLE", khachHang.VaiTroQuyenHan)
 	
 	c.Next()
 }

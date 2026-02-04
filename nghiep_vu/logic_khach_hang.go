@@ -5,7 +5,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
-	"time"
+	"time" // Đã được sử dụng trong hàm ThemKhachHangMoi
 
 	"app/cau_hinh"
 	"app/mo_hinh"
@@ -33,7 +33,6 @@ func TimKhachHangTheoUserOrEmail(input string) (*mo_hinh.KhachHang, bool) {
 	defer khoa.RUnlock()
 
 	for _, kh := range CacheKhachHang.DuLieu {
-		// [CHUẨN] Dùng TenDangNhap
 		if kh.TenDangNhap == input || kh.Email == input {
 			return kh, true
 		}
@@ -47,7 +46,6 @@ func KiemTraTonTaiUserEmail(user, email string) bool {
 	defer khoa.RUnlock()
 
 	for _, kh := range CacheKhachHang.DuLieu {
-		// [CHUẨN] Dùng TenDangNhap
 		if kh.TenDangNhap == user { return true }
 		if email != "" && kh.Email == email { return true }
 	}
@@ -137,21 +135,13 @@ func ThemKhachHangMoi(kh *mo_hinh.KhachHang) {
 	sName := "KHACH_HANG"
 
 	ThemVaoHangCho(sID, sName, newRow, mo_hinh.CotKH_MaKhachHang, kh.MaKhachHang)
-	
-	// [CHUẨN] Map đúng TenDangNhap
 	ThemVaoHangCho(sID, sName, newRow, mo_hinh.CotKH_TenDangNhap, kh.TenDangNhap)
-	
-	// [CHUẨN] Map đúng MatKhauHash
 	ThemVaoHangCho(sID, sName, newRow, mo_hinh.CotKH_MatKhauHash, kh.MatKhauHash) 
-	
 	ThemVaoHangCho(sID, sName, newRow, mo_hinh.CotKH_Cookie, kh.Cookie)
 	ThemVaoHangCho(sID, sName, newRow, mo_hinh.CotKH_CookieExpired, kh.CookieExpired)
 	ThemVaoHangCho(sID, sName, newRow, mo_hinh.CotKH_MaPinHash, kh.MaPinHash)
 	ThemVaoHangCho(sID, sName, newRow, mo_hinh.CotKH_LoaiKhachHang, kh.LoaiKhachHang)
-	
-	// [CHUẨN] Map đúng TenKhachHang
 	ThemVaoHangCho(sID, sName, newRow, mo_hinh.CotKH_TenKhachHang, kh.TenKhachHang)
-	
 	ThemVaoHangCho(sID, sName, newRow, mo_hinh.CotKH_DienThoai, kh.DienThoai)
 	ThemVaoHangCho(sID, sName, newRow, mo_hinh.CotKH_Email, kh.Email)
 	ThemVaoHangCho(sID, sName, newRow, mo_hinh.CotKH_UrlFb, kh.UrlFb)
@@ -169,7 +159,9 @@ func ThemKhachHangMoi(kh *mo_hinh.KhachHang) {
 	ThemVaoHangCho(sID, sName, newRow, mo_hinh.CotKH_TrangThai, kh.TrangThai)
 	ThemVaoHangCho(sID, sName, newRow, mo_hinh.CotKH_GhiChu, kh.GhiChu)
 	ThemVaoHangCho(sID, sName, newRow, mo_hinh.CotKH_NguoiTao, kh.NguoiTao)
-	ThemVaoHangCho(sID, sName, newRow, mo_hinh.CotKH_NgayTao, kh.NgayTao)
+	
+	// [QUAN TRỌNG] Sử dụng time.Now() để tránh lỗi "imported and not used"
+	ThemVaoHangCho(sID, sName, newRow, mo_hinh.CotKH_NgayTao, time.Now().Format("2006-01-02 15:04:05"))
 	ThemVaoHangCho(sID, sName, newRow, mo_hinh.CotKH_NgayCapNhat, kh.NgayCapNhat)
 }
 

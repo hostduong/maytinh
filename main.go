@@ -40,6 +40,7 @@ func main() {
 		api.GET("/san-pham", chuc_nang.API_LayDanhSachSanPham)
 		api.GET("/san-pham/:id", chuc_nang.API_ChiTietSanPham)
 		api.GET("/cau-hinh", chuc_nang.API_LayMenu)
+		api.GET("/admin/reload", chuc_nang.API_NapLaiDuLieu)
 	}
 
 	// Nhóm WEB (Trả về Giao diện HTML)

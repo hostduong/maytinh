@@ -2,12 +2,11 @@ package chuc_nang
 
 import (
 	"net/http"
-	"strconv"
 	"sync"
 	"time"
 
 	"app/cau_hinh"
-	"app/nghiep_vu" // Để gọi Hàng chờ ghi
+	"app/nghiep_vu"
 
 	"github.com/gin-gonic/gin"
 )
@@ -52,18 +51,12 @@ func KiemTraQuyenHan(c *gin.Context) {
 	}
 
 	// 2. KIỂM TRA ĐĂNG NHẬP (AUTH)
-	// API Public không cần check (Ví dụ: trang login, trang chủ xem hàng)
-	// Ở đây ta tạm thời cho qua hết, chỉ check các API có prefix /admin hoặc /api/private
-	// (Logic routing cụ thể sẽ cài ở main.go)
-	
 	if cookie == "" {
-		// Chưa đăng nhập -> Cho qua (để vào Controller xử lý tiếp hoặc chặn tùy Route)
 		c.Next()
 		return
 	}
 
 	// Tìm trong RAM xem Cookie có tồn tại không
-	// (Giả sử bạn đã có map CacheNhanVien trong nghiep_vu.BoNho)
 	nhanVien, timThay := nghiep_vu.TimNhanVienTheoCookie(cookie)
 
 	if !timThay {
@@ -95,8 +88,7 @@ func KiemTraQuyenHan(c *gin.Context) {
 		nghiep_vu.CapNhatHanCookieRAM(nhanVien.MaNhanVien, newExp)
 
 		// C. Đẩy vào Hàng Chờ Ghi (WriteQueue) -> Worker sẽ ghi xuống Sheet sau
-		// Ghi vào Sheet NHAN_VIEN, dòng tương ứng, cột CookieExpired
-		rowID := nghiep_vu.LayDongNhanVien(nhanVien.MaNhanVien) // Cần hàm này
+		rowID := nghiep_vu.LayDongNhanVien(nhanVien.MaNhanVien)
 		if rowID > 0 {
 			nghiep_vu.ThemVaoHangCho(
 				nghiep_vu.CacheNhanVien.SpreadsheetID, // ID file sheet
@@ -113,7 +105,9 @@ func KiemTraQuyenHan(c *gin.Context) {
 
 	// Lưu thông tin user vào Context để Controller dùng
 	c.Set("USER_ID", nhanVien.MaNhanVien)
-	c.Set("USER_ROLE", nhanVien.VaiTro)
+	
+	// --- [ĐÃ SỬA LỖI TẠI ĐÂY] ---
+	c.Set("USER_ROLE", nhanVien.VaiTroQuyenHan) // Dùng đúng tên biến VaiTroQuyenHan
 	
 	c.Next()
 }

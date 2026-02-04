@@ -22,7 +22,7 @@ func main() {
 
 	// --- [MỚI] KHỞI ĐỘNG WORKER GHI SHEET ---
 	nghiep_vu.KhoiTaoWorkerGhiSheet()
-
+    chuc_nang.KhoiTaoBoDemRateLimit() // Worker reset bộ đếm request
 	// 4. Khởi tạo Web Server
 	router := gin.Default()
 	// ... (Các config router giữ nguyên) ...

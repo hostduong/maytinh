@@ -3,43 +3,39 @@ package kho_du_lieu
 import (
 	"context"
 	"log"
-	"os"
-
-	"app/cau_hinh" // Chú ý: import "app/..."
-
+	
 	"golang.org/x/oauth2/google"
 	"google.golang.org/api/option"
 	"google.golang.org/api/sheets/v4"
 )
 
-// --- ĐÂY LÀ BIẾN MÀ TRÌNH BIÊN DỊCH ĐANG TÌM ---
 var DichVuSheet *sheets.Service 
 
-// KhoiTaoKetNoiGoogle : Hàm kết nối API
 func KhoiTaoKetNoiGoogle() {
-	ngu_canh := context.Background()
+	ctx := context.Background()
 
-	// 1. Đọc file JSON Key
-	du_lieu_file, loi := os.ReadFile(cau_hinh.BienCauHinh.FileChungThuc)
-	if loi != nil {
-		log.Fatalf("LỖI CHÊT NGƯỜI: Không đọc được file %s. Hãy tải file JSON từ Google Cloud về và đổi tên lại.\nChi tiết: %v", cau_hinh.BienCauHinh.FileChungThuc, loi)
+	// CÁCH MỚI: Tự động tìm Credential (File, Env Var, hoặc Cloud Run Identity)
+	// Scope: Full quyền đọc/ghi
+	creds, err := google.FindDefaultCredentials(ctx, "https://www.googleapis.com/auth/spreadsheets")
+	
+	var srv *sheets.Service
+	var errService error
+
+	if err == nil {
+		// Trường hợp 1: Tìm thấy Credential (JSON hoặc Cloud Run)
+		log.Println("--- [AUTH] Tìm thấy Credential hợp lệ. Đang kết nối... ---")
+		srv, errService = sheets.NewService(ctx, option.WithCredentials(creds))
+	} else {
+		// Trường hợp 2: Không tìm thấy (Dùng cho Public Sheet - Không xác thực)
+		// Lưu ý: Cách này chỉ ĐỌC được, GHI có thể bị lỗi 401/403 tùy config Sheet
+		log.Println("--- [AUTH] Cảnh báo: Không tìm thấy Credential. Chạy chế độ No-Auth... ---")
+		srv, errService = sheets.NewService(ctx, option.WithHTTPClient(nil)) // Client rỗng
 	}
 
-	// 2. Tạo cấu hình JWT từ JSON
-	cau_hinh_jwt, loi := google.JWTConfigFromJSON(du_lieu_file, "https://www.googleapis.com/auth/spreadsheets")
-	if loi != nil {
-		log.Fatalf("LỖI: File JSON không đúng định dạng Google: %v", loi)
+	if errService != nil {
+		log.Fatalf("LỖI: Không thể khởi tạo dịch vụ Sheets: %v", errService)
 	}
 
-	// 3. Tạo Client HTTP
-	client := cau_hinh_jwt.Client(ngu_canh)
-
-	// 4. Khởi tạo Dịch vụ Google Sheets
-	dich_vu, loi := sheets.NewService(ngu_canh, option.WithHTTPClient(client))
-	if loi != nil {
-		log.Fatalf("LỖI: Không thể khởi tạo dịch vụ Sheets: %v", loi)
-	}
-
-	DichVuSheet = dich_vu
+	DichVuSheet = srv
 	log.Println("--- [KẾT NỐI] Đã kết nối thành công với Google Sheets API ---")
 }

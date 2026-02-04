@@ -78,6 +78,25 @@ func main() {
 		c.String(200, "Pass: %s\nHash: %s", pass, hash)
 	})
 
+    
+    // --- [MỚI] QUÊN MẬT KHẨU ---
+    router.GET("/forgot-password", chuc_nang.TrangQuenMatKhau)
+    router.POST("/api/auth/reset-by-pin", chuc_nang.XuLyQuenPassBangPIN)
+    router.POST("/api/auth/send-otp", chuc_nang.XuLyGuiOTPEmail)
+    router.POST("/api/auth/reset-by-otp", chuc_nang.XuLyQuenPassBangOTP)
+
+    // --- [MỚI] API NGƯỜI DÙNG (Yêu cầu Login) ---
+    userGroup := router.Group("/api/user")
+    // Tạm thời check login thủ công trong hàm hoặc viết middleware riêng
+    // Ở đây ta tái sử dụng code trong Controller để check cookie
+    {
+        userGroup.POST("/update-info", chuc_nang.API_DoiThongTin)
+        userGroup.POST("/change-pass", chuc_nang.API_DoiMatKhau)
+        userGroup.POST("/change-pin", chuc_nang.API_DoiMaPin)
+    }
+
+
+	
 	// --- NHÓM ADMIN (Phải Login + Có quyền Admin) ---
 	admin := router.Group("/admin")
 	admin.Use(chuc_nang.KiemTraQuyenHan) // Middleware bảo vệ

@@ -393,7 +393,7 @@ func napPhieuXuat() {
 			TongTienPhieu:    layFloat(r, mo_hinh.CotPX_TongTienPhieu),
 			DaThu:            layFloat(r, mo_hinh.CotPX_DaThu),
 			ConNo:            layFloat(r, mo_hinh.CotPX_ConNo),
-			PhuongThucTT:     layString(r, mo_hinh.CotPX_PhuongThucThanhToan),
+			PhuongThucThanhToan:     layString(r, mo_hinh.CotPX_PhuongThucThanhToan),
 			PhiVanChuyen:     layFloat(r, mo_hinh.CotPX_PhiVanChuyen),
 			NguonDonHang:     layString(r, mo_hinh.CotPX_NguonDonHang),
 			ThongTinGiaoHang: layString(r, mo_hinh.CotPX_ThongTinGiaoHang),

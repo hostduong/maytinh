@@ -32,12 +32,17 @@
                     <span class="bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full absolute -top-1 -right-2">0</span>
                 </a>
 
-                {{ if .DaDangNhap }}
+{{ if .DaDangNhap }}
                     <div class="flex items-center gap-3 border-l pl-6 ml-2 border-gray-300">
                         <div class="text-right hidden sm:block">
-                            <div class="text-gray-900">Hi, {{ .TenNguoiDung }}</div>
+                            <a href="/tai-khoan" class="text-gray-900 font-bold hover:text-blue-600 transition">
+                                Hi, {{ .TenNguoiDung }}
+                            </a>
+                            
                             {{ if eq .QuyenHan "admin" }}
-                                <a href="/admin/tong-quan" class="text-xs text-blue-600 hover:underline">Vào trang quản trị</a>
+                                <div class="text-xs">
+                                    <a href="/admin/tong-quan" class="text-blue-600 hover:underline">Vào trang quản trị</a>
+                                </div>
                             {{ end }}
                         </div>
                         <a href="/logout" class="bg-gray-100 hover:bg-red-50 text-red-600 px-3 py-2 rounded-lg transition" title="Đăng xuất">
@@ -45,6 +50,7 @@
                         </a>
                     </div>
                 {{ else }}
+                
                     <div class="flex items-center gap-2 border-l pl-4 ml-2 border-gray-300">
                         <a href="/login" class="text-gray-600 hover:text-blue-600">Đăng nhập</a>
                         <span class="text-gray-300">|</span>

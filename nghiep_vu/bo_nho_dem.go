@@ -644,3 +644,24 @@ func layInt(dong []interface{}, index int) int {
 	val, _ := strconv.Atoi(str)
 	return val
 }
+
+// Hàm này nằm ở cuối file nghiep_vu/bo_nho_dem.go
+func layFloat(dong []interface{}, index int) float64 {
+	str := layString(dong, index)
+	if str == "" { return 0 }
+
+	// 1. Xóa ký tự tiền tệ và khoảng trắng (VD: "1.200.000 đ" -> "1.200.000")
+	str = strings.ReplaceAll(str, "đ", "")
+	str = strings.ReplaceAll(str, "USD", "")
+	str = strings.ReplaceAll(str, " ", "")
+	
+	// 2. Xóa dấu chấm phân cách ngàn (Kiểu Việt Nam: 1.000.000 -> 1000000)
+	str = strings.ReplaceAll(str, ".", "")
+
+	// 3. Xóa dấu phẩy (Kiểu Mỹ: 1,000,000 -> 1000000)
+	str = strings.ReplaceAll(str, ",", "")
+
+	// 4. Parse sang số
+	val, _ := strconv.ParseFloat(str, 64)
+	return val
+}

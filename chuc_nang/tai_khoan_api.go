@@ -1,7 +1,6 @@
 package chuc_nang
 
 import (
-	"net/http"
 	"strings"
 
 	"app/bao_mat"
@@ -47,6 +46,8 @@ func API_DoiMatKhau(c *gin.Context) {
 		nghiep_vu.ThemVaoHangCho(nghiep_vu.CacheNhanVien.SpreadsheetID, "NHAN_VIEN", nv.DongTrongSheet, mo_hinh.CotNV_MatKhauHash, hashMoi)
 		
 		c.JSON(200, gin.H{"status": "ok", "msg": "Đổi mật khẩu thành công!"})
+	} else {
+		c.JSON(401, gin.H{"status": "error", "msg": "Phiên đăng nhập hết hạn"})
 	}
 }
 
@@ -57,7 +58,7 @@ func API_DoiMaPin(c *gin.Context) {
 	cookie, _ := c.Cookie("session_id")
 
 	if nv, ok := nghiep_vu.TimNhanVienTheoCookie(cookie); ok {
-		// 1. Check PIN Cũ (So sánh chuỗi bình thường)
+		// 1. Check PIN Cũ
 		if nv.MaPin != pinCu {
 			c.JSON(200, gin.H{"status": "error", "msg": "Mã PIN cũ không đúng!"})
 			return
@@ -67,5 +68,7 @@ func API_DoiMaPin(c *gin.Context) {
 		nghiep_vu.ThemVaoHangCho(nghiep_vu.CacheNhanVien.SpreadsheetID, "NHAN_VIEN", nv.DongTrongSheet, mo_hinh.CotNV_MaPin, pinMoi)
 		
 		c.JSON(200, gin.H{"status": "ok", "msg": "Đổi mã PIN thành công!"})
+	} else {
+		c.JSON(401, gin.H{"status": "error", "msg": "Phiên đăng nhập hết hạn"})
 	}
 }

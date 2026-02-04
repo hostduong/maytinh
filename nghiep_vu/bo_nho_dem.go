@@ -35,11 +35,11 @@ type KhoNhaCungCapStore struct {
 	TenKey string
 }
 
-// [QUAN TRỌNG] Kho Khách Hàng (Lưu con trỏ *KhachHang để update RAM được)
+// Kho Khách Hàng (Lưu con trỏ *KhachHang)
 type KhoKhachHangStore struct {
 	DuLieu        map[string]*mo_hinh.KhachHang
 	TenKey        string
-	SpreadsheetID string // ID file sheet để WriteQueue dùng
+	SpreadsheetID string
 }
 
 type KhoPhieuNhapStore struct {
@@ -100,7 +100,7 @@ var (
 	CacheThuongHieu      *KhoThuongHieuStore
 	CacheNhaCungCap      *KhoNhaCungCapStore
 	CacheKhachHang       *KhoKhachHangStore
-	// Đã xóa CacheNhanVien
+	// Xóa CacheNhanVien
 	CachePhieuNhap       *KhoPhieuNhapStore
 	CacheChiTietNhap     *KhoChiTietPhieuNhapStore
 	CachePhieuXuat       *KhoPhieuXuatStore
@@ -130,7 +130,7 @@ func KhoiTaoBoNho() {
 	var wg sync.WaitGroup
 
 	log.Println(">> Đợt 1: Nạp Master Data...")
-	wg.Add(6) // Giảm còn 6 vì bỏ NhanVien
+	wg.Add(6)
 	go func() { defer wg.Done(); napDanhMuc() }()
 	go func() { defer wg.Done(); napThuongHieu() }()
 	go func() { defer wg.Done(); napSanPham() }()
@@ -170,7 +170,6 @@ func khoiTaoCacStore() {
 	CacheThuongHieu = &KhoThuongHieuStore{DuLieu: make(map[string]mo_hinh.ThuongHieu), TenKey: TaoKeyCache("THUONG_HIEU")}
 	CacheNhaCungCap = &KhoNhaCungCapStore{DuLieu: make(map[string]mo_hinh.NhaCungCap), TenKey: TaoKeyCache("NHA_CUNG_CAP")}
 	
-	// [QUAN TRỌNG] Khởi tạo KhachHangStore dùng con trỏ và ID Sheet
 	CacheKhachHang = &KhoKhachHangStore{
 		DuLieu:        make(map[string]*mo_hinh.KhachHang), 
 		TenKey:        TaoKeyCache("KHACH_HANG"),
@@ -201,7 +200,7 @@ func loadSheetData(sheetName string, keyCache string) ([][]interface{}, error) {
 	return duLieu, nil
 }
 
-// 1. KHACH_HANG (Thay thế cho NhanVien cũ)
+// 1. KHACH_HANG (Đã sửa lại map đúng cột)
 func napKhachHang() {
 	raw, err := loadSheetData("KHACH_HANG", CacheKhachHang.TenKey)
 	if err != nil { return }
@@ -211,13 +210,12 @@ func napKhachHang() {
 		if i < mo_hinh.DongBatDauDuLieu { continue }
 		if len(r) <= mo_hinh.CotKH_MaKhachHang || layString(r, mo_hinh.CotKH_MaKhachHang) == "" { continue }
 
-		// Tạo con trỏ struct
 		item := &mo_hinh.KhachHang{
 			DongTrongSheet: i + 1,
 			MaKhachHang:    layString(r, mo_hinh.CotKH_MaKhachHang),
-			UserName:       layString(r, mo_hinh.CotKH_UserName), // Tên đăng nhập
-			TenDangNhap:    layString(r, mo_hinh.CotKH_UserName), // Map luôn vào TenDangNhap cho an toàn
-			MatKhauHash:    layString(r, mo_hinh.CotKH_PasswordHash),
+			// [SỬA LẠI CHO KHỚP MO_HINH CỦA BẠN]
+			TenDangNhap:    layString(r, mo_hinh.CotKH_TenDangNhap), // Dùng TenDangNhap
+			MatKhauHash:    layString(r, mo_hinh.CotKH_MatKhauHash), // Dùng MatKhauHash
 			Cookie:         layString(r, mo_hinh.CotKH_Cookie),
 			CookieExpired:  int64(layFloat(r, mo_hinh.CotKH_CookieExpired)),
 			MaPinHash:      layString(r, mo_hinh.CotKH_MaPinHash),
@@ -243,7 +241,6 @@ func napKhachHang() {
 			NgayTao:        layString(r, mo_hinh.CotKH_NgayTao),
 			NgayCapNhat:    layString(r, mo_hinh.CotKH_NgayCapNhat),
 		}
-		// Lưu con trỏ vào map
 		CacheKhachHang.DuLieu[item.MaKhachHang] = item
 	}
 }

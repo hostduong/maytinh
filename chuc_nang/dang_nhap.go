@@ -4,15 +4,18 @@ import (
 	"net/http"
 	"strings"
 	"time"
+
 	"app/bao_mat"
 	"app/cau_hinh"
 	"app/nghiep_vu"
+
 	"github.com/gin-gonic/gin"
 )
 
 func TrangDangNhap(c *gin.Context) {
 	cookie, _ := c.Cookie("session_id")
 	if cookie != "" {
+		// [SỬA] TimKhachHangTheoCookie
 		if _, ok := nghiep_vu.TimKhachHangTheoCookie(cookie); ok {
 			c.Redirect(http.StatusFound, "/") 
 			return
@@ -25,14 +28,14 @@ func XuLyDangNhap(c *gin.Context) {
 	inputTaiKhoan := strings.TrimSpace(c.PostForm("ten_dang_nhap"))
 	pass          := strings.TrimSpace(c.PostForm("mat_khau"))
 
-	// Tìm Khách Hàng thay vì Nhân Viên
+	// [SỬA] TimKhachHangTheoUserOrEmail
 	kh, ok := nghiep_vu.TimKhachHangTheoUserOrEmail(inputTaiKhoan)
 	if !ok {
 		c.HTML(http.StatusOK, "dang_nhap", gin.H{"Loi": "Tài khoản không tồn tại!"})
 		return
 	}
 
-	if !bao_mat.KiemTraMatKhau(pass, kh.MatKhauHash) { // Kiểm tra với MatKhauHash của KH
+	if !bao_mat.KiemTraMatKhau(pass, kh.MatKhauHash) {
 		c.HTML(http.StatusOK, "dang_nhap", gin.H{"Loi": "Sai mật khẩu!"})
 		return
 	}
@@ -40,7 +43,7 @@ func XuLyDangNhap(c *gin.Context) {
 	sessionID := bao_mat.TaoSessionIDAnToan()
 	expiredTime := time.Now().Add(cau_hinh.ThoiGianHetHanCookie).Unix()
 
-	// Cập nhật phiên cho Khách Hàng
+	// [SỬA] CapNhatPhienDangNhapKH
 	nghiep_vu.CapNhatPhienDangNhapKH(kh.MaKhachHang, sessionID, expiredTime)
 
 	c.SetCookie("session_id", sessionID, int(cau_hinh.ThoiGianHetHanCookie.Seconds()), "/", "", false, true)
@@ -50,4 +53,9 @@ func XuLyDangNhap(c *gin.Context) {
 	} else {
 		c.Redirect(http.StatusFound, "/")
 	}
+}
+
+func DangXuat(c *gin.Context) {
+	c.SetCookie("session_id", "", -1, "/", "", false, true)
+	c.Redirect(http.StatusFound, "/login")
 }

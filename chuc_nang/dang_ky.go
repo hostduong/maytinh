@@ -77,7 +77,6 @@ func XuLyDangKy(c *gin.Context) {
 	// [SỬA] Struct KhachHang
 	newKH := &mo_hinh.KhachHang{
 		MaKhachHang:    maKH,
-		UserName:       user,
 		TenDangNhap:    user,
 		Email:          email,
 		DienThoai:      dienThoai,

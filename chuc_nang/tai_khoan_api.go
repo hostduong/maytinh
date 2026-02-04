@@ -4,6 +4,7 @@ import (
 	"strings"
 
 	"app/bao_mat"
+	"app/cau_hinh" // [ĐÃ THÊM IMPORT NÀY]
 	"app/mo_hinh"
 	"app/nghiep_vu"
 
@@ -20,10 +21,9 @@ func API_DoiThongTin(c *gin.Context) {
 		return
 	}
 
-	// [SỬA] TimKhachHangTheoCookie
 	if kh, ok := nghiep_vu.TimKhachHangTheoCookie(cookie); ok {
-		kh.TenKhachHang = hoTenMoi // Sửa field TenKhachHang
-		// [SỬA] Ghi vào sheet KHACH_HANG
+		kh.TenKhachHang = hoTenMoi 
+		// [SỬA] Dùng IdFileSheet từ cau_hinh
 		nghiep_vu.ThemVaoHangCho(cau_hinh.BienCauHinh.IdFileSheet, "KHACH_HANG", kh.DongTrongSheet, mo_hinh.CotKH_TenKhachHang, hoTenMoi)
 		c.JSON(200, gin.H{"status": "ok", "msg": "Cập nhật tên thành công!"})
 	} else {
@@ -42,7 +42,6 @@ func API_DoiMatKhau(c *gin.Context) {
 		return
 	}
 
-	// [SỬA] TimKhachHangTheoCookie
 	if kh, ok := nghiep_vu.TimKhachHangTheoCookie(cookie); ok {
 		if !bao_mat.KiemTraMatKhau(passCu, kh.MatKhauHash) {
 			c.JSON(200, gin.H{"status": "error", "msg": "Mật khẩu cũ không đúng!"})
@@ -50,7 +49,6 @@ func API_DoiMatKhau(c *gin.Context) {
 		}
 		hashMoi, _ := bao_mat.HashMatKhau(passMoi)
 		kh.MatKhauHash = hashMoi
-		// [SỬA] Ghi vào sheet KHACH_HANG
 		nghiep_vu.ThemVaoHangCho(cau_hinh.BienCauHinh.IdFileSheet, "KHACH_HANG", kh.DongTrongSheet, mo_hinh.CotKH_MatKhauHash, hashMoi)
 		c.JSON(200, gin.H{"status": "ok", "msg": "Đổi mật khẩu thành công!"})
 	} else {
@@ -69,15 +67,12 @@ func API_DoiMaPin(c *gin.Context) {
 		return
 	}
 
-	// [SỬA] TimKhachHangTheoCookie
 	if kh, ok := nghiep_vu.TimKhachHangTheoCookie(cookie); ok {
-		// Lưu ý: Nếu mã PIN lưu Hash thì phải so sánh Hash
-		if kh.MaPinHash != pinCu { 
+		if kh.MaPinHash != pinCu {
 			c.JSON(200, gin.H{"status": "error", "msg": "Mã PIN cũ không đúng!"})
 			return
 		}
 		kh.MaPinHash = pinMoi
-		// [SỬA] Ghi vào sheet KHACH_HANG
 		nghiep_vu.ThemVaoHangCho(cau_hinh.BienCauHinh.IdFileSheet, "KHACH_HANG", kh.DongTrongSheet, mo_hinh.CotKH_MaPinHash, pinMoi)
 		c.JSON(200, gin.H{"status": "ok", "msg": "Đổi mã PIN thành công!"})
 	} else {

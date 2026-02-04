@@ -5,7 +5,7 @@ import (
 	"strings"
 	"time"
 
-	"app/bao_mat" // <--- Đảm bảo đã import
+	"app/bao_mat"
 	"app/cau_hinh"
 	"app/mo_hinh"
 	"app/nghiep_vu"
@@ -13,7 +13,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// GET /register (Giữ nguyên)
+// GET /register
 func TrangDangKy(c *gin.Context) {
 	cookie, _ := c.Cookie("session_id")
 	if cookie != "" {
@@ -27,14 +27,13 @@ func TrangDangKy(c *gin.Context) {
 
 // POST /register
 func XuLyDangKy(c *gin.Context) {
-	// 1. Nhận dữ liệu & Cắt khoảng trắng
 	hoTen := strings.TrimSpace(c.PostForm("ho_ten"))
 	user  := strings.TrimSpace(c.PostForm("ten_dang_nhap"))
 	pass  := strings.TrimSpace(c.PostForm("mat_khau"))
 	email := strings.TrimSpace(c.PostForm("email"))
 	maPin := strings.TrimSpace(c.PostForm("ma_pin"))
 
-	// 2. [MỚI] VALIDATION - KIỂM TRA ĐẦU VÀO CHẶT CHẼ
+	// VALIDATION
 	if !bao_mat.KiemTraHoTen(hoTen) {
 		c.HTML(http.StatusOK, "dang_ky", gin.H{"Loi": "Họ tên phải từ 6-50 ký tự, chỉ chứa chữ cái!"})
 		return
@@ -51,18 +50,18 @@ func XuLyDangKy(c *gin.Context) {
 		c.HTML(http.StatusOK, "dang_ky", gin.H{"Loi": "Mã PIN phải là 8 chữ số!"})
 		return
 	}
-	if !bao_mat.KiemTraMatKhau(pass) {
+	
+	// [ĐÃ SỬA] Gọi hàm KiemTraDinhDangMatKhau
+	if !bao_mat.KiemTraDinhDangMatKhau(pass) {
 		c.HTML(http.StatusOK, "dang_ky", gin.H{"Loi": "Mật khẩu 8-30 ký tự, không chứa dấu cách, ' \" < >"})
 		return
 	}
 
-	// 3. Kiểm tra trùng lặp (Giữ nguyên)
 	if nghiep_vu.KiemTraTonTaiUserOrEmail(user, email) {
 		c.HTML(http.StatusOK, "dang_ky", gin.H{"Loi": "Tên đăng nhập hoặc Email đã tồn tại!"})
 		return
 	}
 
-	// 4. Mã hóa & Logic tạo user (Giữ nguyên đoạn dưới...)
 	passHash, _ := bao_mat.HashMatKhau(pass)
 
 	var maDinhDanh, quyenHan, chucVu string

@@ -49,7 +49,6 @@ func XuLyGuiOTPEmail(c *gin.Context) {
 	
 	if !ok {
 		// Bảo mật: Không báo lỗi "Email không tồn tại" để tránh hacker dò user
-		// Cứ báo là đã gửi (Fake success)
 		c.JSON(200, gin.H{"status": "ok", "msg": "Nếu email đúng, mã OTP đã được gửi đi!"})
 		return
 	}
@@ -60,12 +59,11 @@ func XuLyGuiOTPEmail(c *gin.Context) {
 
 	// 2. Gọi API Giả Lập (Mock)
 	go func() {
-		// Giả vờ gọi API bên thứ 3
-		log.Printf(">>> [MOCK MAIL API] Gửi đến: %s | Nội dung: Mã xác thực của bạn là %s", email, otp)
-		// Thực tế: http.Post("https://url.com/send-mail", ...)
+		// Giả vờ gọi API bên thứ 3 (Xem trong Log Server của Cloud Run để lấy mã)
+		log.Printf(">>> [EMAIL MOCK] Gửi đến: %s | Mã OTP: %s", email, otp)
 	}()
 
-	c.JSON(200, gin.H{"status": "ok", "msg": "Mã OTP đã được gửi vào email (Check Console Log Server)!"})
+	c.JSON(200, gin.H{"status": "ok", "msg": "Mã OTP đã được gửi vào email (Xem Log Server)!"})
 }
 
 // Xác nhận OTP và Đổi pass

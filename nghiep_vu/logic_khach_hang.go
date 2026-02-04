@@ -33,8 +33,8 @@ func TimKhachHangTheoUserOrEmail(input string) (*mo_hinh.KhachHang, bool) {
 	defer khoa.RUnlock()
 
 	for _, kh := range CacheKhachHang.DuLieu {
-		// So sánh với UserName hoặc Email
-		if kh.UserName == input || kh.Email == input {
+		// [SỬA] Dùng TenDangNhap thay vì UserName
+		if kh.TenDangNhap == input || kh.Email == input {
 			return kh, true
 		}
 	}
@@ -47,7 +47,8 @@ func KiemTraTonTaiUserEmailPhone(user, email, phone string) bool {
 	defer khoa.RUnlock()
 
 	for _, kh := range CacheKhachHang.DuLieu {
-		if kh.UserName == user { return true }
+		// [SỬA] Dùng TenDangNhap
+		if kh.TenDangNhap == user { return true }
 		if email != "" && kh.Email == email { return true }
 		if phone != "" && kh.DienThoai == phone { return true }
 	}
@@ -99,7 +100,6 @@ func CapNhatPhienDangNhapKH(maKH string, newCookie string, newExpired int64) {
 	defer mtxKH.Unlock()
 
 	// Update RAM
-	// Cần lock map khi ghi
 	khoa := BoQuanLyKhoa.LayKhoa(CacheKhachHang.TenKey)
 	khoa.Lock() 
 	kh, ok := CacheKhachHang.DuLieu[maKH]
@@ -143,8 +143,10 @@ func ThemKhachHangMoi(kh *mo_hinh.KhachHang) {
 	sName := "KHACH_HANG"
 
 	ThemVaoHangCho(sID, sName, newRow, mo_hinh.CotKH_MaKhachHang, kh.MaKhachHang)
-	ThemVaoHangCho(sID, sName, newRow, mo_hinh.CotKH_UserName, kh.UserName)
-	ThemVaoHangCho(sID, sName, newRow, mo_hinh.CotKH_PasswordHash, kh.MatKhauHash) // Lưu ý: struct dùng MatKhauHash
+	// [SỬA] Dùng CotKH_TenDangNhap và kh.TenDangNhap
+	ThemVaoHangCho(sID, sName, newRow, mo_hinh.CotKH_TenDangNhap, kh.TenDangNhap)
+	// [SỬA] Dùng CotKH_MatKhauHash và kh.MatKhauHash
+	ThemVaoHangCho(sID, sName, newRow, mo_hinh.CotKH_MatKhauHash, kh.MatKhauHash) 
 	ThemVaoHangCho(sID, sName, newRow, mo_hinh.CotKH_Cookie, kh.Cookie)
 	ThemVaoHangCho(sID, sName, newRow, mo_hinh.CotKH_CookieExpired, kh.CookieExpired)
 	ThemVaoHangCho(sID, sName, newRow, mo_hinh.CotKH_MaPinHash, kh.MaPinHash)

@@ -2,13 +2,11 @@ package kho_du_lieu
 
 import (
 	"fmt"
-	// Thay đường dẫn này bằng tên module thật của bạn
-	"app/cau_hinh" 
+	"app/cau_hinh" // Đã đổi thành "app"
+	"google.golang.org/api/sheets/v4"
 )
 
 // DocToanBoSheet : Đọc tất cả dữ liệu text từ 1 sheet
-// Input: Tên Sheet (VD: "SAN_PHAM")
-// Output: Mảng 2 chiều chứa dữ liệu
 func DocToanBoSheet(tenSheet string) ([][]interface{}, error) {
 	// Lấy ID Sheet từ cấu hình
 	idFile := cau_hinh.BienCauHinh.IdFileSheet
@@ -16,7 +14,7 @@ func DocToanBoSheet(tenSheet string) ([][]interface{}, error) {
 	// Phạm vi đọc: Từ A1 đến cột cuối cùng (Z)
 	phamViDoc := tenSheet + "!A:Z" 
 
-	// Gọi API Google
+	// Gọi API Google (Sử dụng biến toàn cục DichVuSheet bên file ket_noi_sheet.go)
 	ket_qua, loi := DichVuSheet.Spreadsheets.Values.Get(idFile, phamViDoc).Do()
 	if loi != nil {
 		return nil, fmt.Errorf("không thể đọc dữ liệu từ sheet %s: %v", tenSheet, loi)
@@ -27,12 +25,10 @@ func DocToanBoSheet(tenSheet string) ([][]interface{}, error) {
 }
 
 // GhiDongMoi : Thêm 1 dòng dữ liệu vào cuối Sheet
-// Input: Tên Sheet, Mảng dữ liệu 1 chiều (1 dòng)
 func GhiDongMoi(tenSheet string, dongDuLieu []interface{}) error {
 	idFile := cau_hinh.BienCauHinh.IdFileSheet
 	phamViGhi := tenSheet + "!A1" // Google tự tìm dòng cuối để append
 
-	// Tạo đối tượng giá trị
 	doiTuongGiaTri := &sheets.ValueRange{
 		Values: [][]interface{}{dongDuLieu}, // API yêu cầu mảng 2 chiều
 	}
@@ -48,7 +44,7 @@ func GhiDongMoi(tenSheet string, dongDuLieu []interface{}) error {
 }
 
 // CapNhatDong : Sửa dữ liệu tại 1 dòng cụ thể
-// Input: Tên Sheet, Số dòng (bắt đầu từ 1), Dữ liệu mới
+// Input: soDong (Lưu ý: dòng trong Excel bắt đầu từ 1, không phải 0)
 func CapNhatDong(tenSheet string, soDong int, duLieuMoi []interface{}) error {
 	idFile := cau_hinh.BienCauHinh.IdFileSheet
 	

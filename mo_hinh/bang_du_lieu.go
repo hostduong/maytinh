@@ -201,28 +201,36 @@ type HoaDonChiTiet struct {
 // 10. BẢNG: KHÁCH HÀNG (KHACH_HANG)
 // ========================================================
 type KhachHang struct {
-	MaKhachHang   string  `json:"ma_khach_hang"`   // Cột A
-	UserName      string  `json:"user_name"`       // Cột B
-	PasswordHash  string  `json:"-"`               // Cột C (Ẩn JSON)
-	LoaiKhachHang string  `json:"loai_khach_hang"` // Cột D
-	TenKhachHang  string  `json:"ten_khach_hang"`  // Cột E
-	DienThoai     string  `json:"dien_thoai"`      // Cột F
-	Email         string  `json:"email"`           // Cột G
-	UrlFb         string  `json:"url_fb"`          // Cột H
-	Zalo          string  `json:"zalo"`            // Cột I
-	UrlTele       string  `json:"url_tele"`        // Cột J
-	UrlTiktok     string  `json:"url_tiktok"`      // Cột K
-	DiaChi        string  `json:"dia_chi"`         // Cột L
-	NgaySinh      string  `json:"ngay_sinh"`       // Cột M
-	GioiTinh      string  `json:"gioi_tinh"`       // Cột N
-	MaSoThue      string  `json:"ma_so_thue"`      // Cột O
-	DangNo        float64 `json:"dang_no"`         // Cột P
-	TongMua       float64 `json:"tong_mua"`        // Cột Q
-	TrangThai     int     `json:"trang_thai"`      // Cột R
-	GhiChu        string  `json:"ghi_chu"`         // Cột S
-	NguoiTao      string  `json:"nguoi_tao"`       // Cột T
-	NgayTao       string  `json:"ngay_tao"`        // Cột U
-	NgayCapNhat   string  `json:"ngay_cap_nhat"`   // Cột V
+	// Trường phục vụ xử lý nội bộ (RAM), không lưu vào JSON
+	DongTrongSheet int `json:"-"`
+
+	MaKhachHang      string  `json:"ma_khach_hang"`       // Cột A
+	TenDangNhap      string  `json:"ten_dang_nhap"`       // Cột B
+	MatKhauHash      string  `json:"-"`                   // Cột C (Ẩn)
+	Cookie           string  `json:"-"`                   // Cột D (Ẩn)
+	CookieExpired    int64   `json:"cookie_expired"`      // Cột E (Lưu timestamp)
+	MaPinHash        string  `json:"-"`                   // Cột F (Ẩn - Trước là MaPin plain text, giờ nên gọi là Hash hoặc lưu thẳng)
+	LoaiKhachHang    string  `json:"loai_khach_hang"`     // Cột G
+	TenKhachHang     string  `json:"ten_khach_hang"`      // Cột H
+	DienThoai        string  `json:"dien_thoai"`          // Cột I
+	Email            string  `json:"email"`               // Cột J
+	UrlFb            string  `json:"url_fb"`              // Cột K
+	Zalo             string  `json:"zalo"`                // Cột L
+	UrlTele          string  `json:"url_tele"`            // Cột M
+	UrlTiktok        string  `json:"url_tiktok"`          // Cột N
+	DiaChi           string  `json:"dia_chi"`             // Cột O
+	NgaySinh         string  `json:"ngay_sinh"`           // Cột P
+	GioiTinh         string  `json:"gioi_tinh"`           // Cột Q
+	MaSoThue         string  `json:"ma_so_thue"`          // Cột R
+	DangNo           float64 `json:"dang_no"`             // Cột S
+	TongMua          float64 `json:"tong_mua"`            // Cột T
+	ChucVu           string  `json:"chuc_vu"`             // Cột U
+	VaiTroQuyenHan   string  `json:"vai_tro_quyen_han"`   // Cột V (admin, sale, kho...)
+	TrangThai        int     `json:"trang_thai"`          // Cột W
+	GhiChu           string  `json:"ghi_chu"`             // Cột X
+	NguoiTao         string  `json:"nguoi_tao"`           // Cột Y
+	NgayTao          string  `json:"ngay_tao"`            // Cột Z
+	NgayCapNhat      string  `json:"ngay_cap_nhat"`       // Cột AA
 }
 
 // ========================================================
@@ -295,32 +303,9 @@ type ThuongHieu struct {
 	LogoUrl       string `json:"logo_url"`        // Cột C
 }
 
-// ========================================================
-// 15. BẢNG: NHÂN VIÊN (NHAN_VIEN)
-// ========================================================
-type NhanVien struct {
-    // --- Thêm dòng này để phục vụ WriteQueue (RAM only) ---
-    DongTrongSheet  int    `json:"-"` 
-
-    MaNhanVien      string `json:"ma_nhan_vien"`       // Cột A
-    TenDangNhap     string `json:"ten_dang_nhap"`      // Cột B
-    Email           string `json:"email"`              // Cột C
-    MatKhauHash     string `json:"-"`                  // Cột D (Ẩn JSON)
-    HoTen           string `json:"ho_ten"`             // Cột E
-    ChucVu          string `json:"chuc_vu"`            // Cột F
-    MaPin           string `json:"-"`                  // Cột G (Ẩn JSON)
-    Cookie          string `json:"-"`                  // Cột H (Ẩn JSON)
-    
-    // --- Sửa String thành Int64 để tính toán thời gian ---
-    CookieExpired   int64  `json:"cookie_expired"`     // Cột I
-    
-    VaiTroQuyenHan  string `json:"vai_tro_quyen_han"`  // Cột J
-    TrangThai       int    `json:"trang_thai"`         // Cột K
-    LanDangNhapCuoi string `json:"lan_dang_nhap_cuoi"` // Cột L
-}
 
 // ========================================================
-// 16. BẢNG: KHUYẾN MÃI (KHUYEN_MAI)
+// 15. BẢNG: KHUYẾN MÃI (KHUYEN_MAI)
 // ========================================================
 type KhuyenMai struct {
 	MaVoucher      string  `json:"ma_voucher"`       // Cột A
@@ -335,7 +320,7 @@ type KhuyenMai struct {
 }
 
 // ========================================================
-// 17. BẢNG: CẤU HÌNH WEB (CAU_HINH_WEB)
+// 16. BẢNG: CẤU HÌNH WEB (CAU_HINH_WEB)
 // ========================================================
 type CauHinhWeb struct {
 	MaCauHinh string `json:"ma_cau_hinh"` // Cột A

@@ -1,309 +1,339 @@
 package models
 
+// GHI CHÚ CHUNG:
+// - PK (Primary Key): Khóa chính, định danh duy nhất.
+// - FK (Foreign Key): Khóa ngoại, liên kết sang bảng khác.
+// - Enum: Các giá trị cố định (VD: 0, 1, 2).
+// - Snapshot: Dữ liệu sao chép tại thời điểm tạo, không đổi theo Master Data.
+
 // =================================================================================
-// 1. SẢN PHẨM (Master Data)
+// 1. SẢN PHẨM (Master Data) - Quản lý danh mục hàng hóa
 // =================================================================================
 type SanPham struct {
-	MaSanPham    string  `json:"ma_san_pham"`    // Col A
-	TenSanPham   string  `json:"ten_san_pham"`   // Col B
-	TenRutGon    string  `json:"ten_rut_gon"`    // Col C
-	Sku          string  `json:"sku"`            // Col D
-	MaDanhMuc    string  `json:"ma_danh_muc"`    // Col E
-	MaThuongHieu string  `json:"ma_thuong_hieu"` // Col F
-	DonVi        string  `json:"don_vi"`         // Col G
-	MauSac       string  `json:"mau_sac"`        // Col H
-	UrlHinhAnh   string  `json:"url_hinh_anh"`   // Col I
-	ThongSo      string  `json:"thong_so"`       // Col J
-	MoTaChiTiet  string  `json:"mo_ta_chi_tiet"` // Col K
-	BaoHanhThang int     `json:"bao_hanh_thang"` // Col L
-	TinhTrang    string  `json:"tinh_trang"`     // Col M
-	TrangThai    int     `json:"trang_thai"`     // Col N
-	GiaBanLe     float64 `json:"gia_ban_le"`     // Col O
-	GhiChu       string  `json:"ghi_chu"`        // Col P
-	NguoiTao     string  `json:"nguoi_tao"`      // Col Q
-	NgayTao      string  `json:"ngay_tao"`       // Col R
-	NgayCapNhat  string  `json:"ngay_cap_nhat"`  // Col S
+	MaSanPham    string  `json:"ma_san_pham"`    // Cột A (PK): Mã duy nhất (VD: SP001).
+	TenSanPham   string  `json:"ten_san_pham"`   // Cột B: Tên hiển thị đầy đủ.
+	TenRutGon    string  `json:"ten_rut_gon"`    // Cột C: Slug cho SEO (VD: iphone-15-pro-max).
+	Sku          string  `json:"sku"`            // Cột D: Mã vạch/Barcode in trên tem.
+	MaDanhMuc    string  `json:"ma_danh_muc"`    // Cột E (FK): Link sang sheet DANH_MUC.
+	MaThuongHieu string  `json:"ma_thuong_hieu"` // Cột F (FK): Link sang sheet THUONG_HIEU.
+	DonVi        string  `json:"don_vi"`         // Cột G: Cái, Hộp, Bộ...
+	MauSac       string  `json:"mau_sac"`        // Cột H: Màu sắc (Text).
+	UrlHinhAnh   string  `json:"url_hinh_anh"`   // Cột I: Link ảnh đại diện (hoặc chuỗi JSON nhiều ảnh).
+	ThongSo      string  `json:"thong_so"`       // Cột J: Tóm tắt cấu hình ngắn.
+	MoTaChiTiet  string  `json:"mo_ta_chi_tiet"` // Cột K: Nội dung HTML bài viết.
+	BaoHanhThang int     `json:"bao_hanh_thang"` // Cột L: Số tháng bảo hành mặc định.
+	TinhTrang    string  `json:"tinh_trang"`     // Cột M: Mới / Cũ (99%) / Like New.
+	TrangThai    int     `json:"trang_thai"`     // Cột N: 1=Đang bán, 0=Ngừng kinh doanh.
+	GiaBanLe     float64 `json:"gia_ban_le"`     // Cột O: Giá niêm yết hiện tại.
+	GhiChu       string  `json:"ghi_chu"`        // Cột P: Ghi chú nội bộ.
+	NguoiTao     string  `json:"nguoi_tao"`      // Cột Q: User tạo SP.
+	NgayTao      string  `json:"ngay_tao"`       // Cột R: Thời gian tạo.
+	NgayCapNhat  string  `json:"ngay_cap_nhat"`  // Cột S: Thời gian sửa cuối.
 }
 
 // =================================================================================
-// 2. NHẬP KHO (Import)
+// 2. PHIẾU NHẬP (Import Header) - Quản lý hóa đơn nhập mua
 // =================================================================================
 type PhieuNhap struct {
-	MaPhieuNhap        string  `json:"ma_phieu_nhap"`         // Col A
-	MaNhaCungCap       string  `json:"ma_nha_cung_cap"`       // Col B
-	MaKho              string  `json:"ma_kho"`                // Col C
-	NgayNhap           string  `json:"ngay_nhap"`             // Col D
-	TrangThai          string  `json:"trang_thai"`            // Col E
-	SoHoaDon           string  `json:"so_hoa_don"`            // Col F
-	NgayHoaDon         string  `json:"ngay_hoa_don"`          // Col G
-	UrlChungTu         string  `json:"url_chung_tu"`          // Col H
-	TongTienPhieu      float64 `json:"tong_tien_phieu"`       // Col I
-	DaThanhToan        float64 `json:"da_thanh_toan"`         // Col J
-	ConNo              float64 `json:"con_no"`                // Col K
-	PhuongThucTT       string  `json:"phuong_thuc_thanh_toan"`// Col L
-	TrangThaiThanhToan string  `json:"trang_thai_thanh_toan"` // Col M
-	GhiChu             string  `json:"ghi_chu"`               // Col N
-	NguoiTao           string  `json:"nguoi_tao"`             // Col O
-	NgayTao            string  `json:"ngay_tao"`              // Col P
-	NgayCapNhat        string  `json:"ngay_cap_nhat"`         // Col Q
+	MaPhieuNhap        string  `json:"ma_phieu_nhap"`         // Cột A (PK): Mã phiếu (VD: PN2410-001).
+	MaNhaCungCap       string  `json:"ma_nha_cung_cap"`       // Cột B (FK): Link sang NHA_CUNG_CAP.
+	MaKho              string  `json:"ma_kho"`                // Cột C: Nhập vào kho nào.
+	NgayNhap           string  `json:"ngay_nhap"`             // Cột D: Ngày hạch toán kế toán.
+	TrangThai          string  `json:"trang_thai"`            // Cột E: NEW (Mới), DONE (Đã nhập kho), CANCEL (Hủy).
+	SoHoaDon           string  `json:"so_hoa_don"`            // Cột F: Số hóa đơn đỏ của NCC gửi.
+	NgayHoaDon         string  `json:"ngay_hoa_don"`          // Cột G: Ngày trên hóa đơn đỏ.
+	UrlChungTu         string  `json:"url_chung_tu"`          // Cột H: Link ảnh chụp phiếu/hóa đơn.
+	TongTienPhieu      float64 `json:"tong_tien_phieu"`       // Cột I: = SUM(ThanhTienDong) bên ChiTiet.
+	DaThanhToan        float64 `json:"da_thanh_toan"`         // Cột J: Số tiền đã trả cho NCC đợt này.
+	ConNo              float64 `json:"con_no"`                // Cột K: = TongTienPhieu - DaThanhToan.
+	PhuongThucTT       string  `json:"phuong_thuc_thanh_toan"`// Cột L: TM (Tiền mặt), CK (Chuyển khoản).
+	TrangThaiThanhToan string  `json:"trang_thai_thanh_toan"` // Cột M: UNPAID, PARTIAL, PAID.
+	GhiChu             string  `json:"ghi_chu"`               // Cột N: Note chung.
+	NguoiTao           string  `json:"nguoi_tao"`             // Cột O.
+	NgayTao            string  `json:"ngay_tao"`              // Cột P.
+	NgayCapNhat        string  `json:"ngay_cap_nhat"`         // Cột Q.
 }
 
+// =================================================================================
+// 3. CHI TIẾT PHIẾU NHẬP (Import Details) - Danh sách hàng hóa
+// =================================================================================
 type ChiTietPhieuNhap struct {
-	MaPhieuNhap   string  `json:"ma_phieu_nhap"`   // Col A
-	MaSanPham     string  `json:"ma_san_pham"`     // Col B
-	TenSanPham    string  `json:"ten_san_pham"`    // Col C
-	DonVi         string  `json:"don_vi"`          // Col D
-	SoLuong       int     `json:"so_luong"`        // Col E
-	DonGiaNhap    float64 `json:"don_gia_nhap"`    // Col F
-	VatPercent    float64 `json:"vat_percent"`     // Col G
-	GiaSauVat     float64 `json:"gia_sau_vat"`     // Col H
-	ChietKhauDong float64 `json:"chiet_khau_dong"` // Col I
-	ThanhTienDong float64 `json:"thanh_tien_dong"` // Col J
-	GiaVonThucTe  float64 `json:"gia_von_thuc_te"` // Col K
-	BaoHanhThang  int     `json:"bao_hanh_thang"`  // Col L
-	GhiChuDong    string  `json:"ghi_chu_dong"`    // Col M
+	MaPhieuNhap    string  `json:"ma_phieu_nhap"`   // Cột A (FK): Link về Header PHIEU_NHAP.
+	MaSanPham      string  `json:"ma_san_pham"`     // Cột B (FK): Link về SAN_PHAM.
+	TenSanPham     string  `json:"ten_san_pham"`    // Cột C (Snapshot): Lưu cứng tên lúc nhập.
+	DonVi          string  `json:"don_vi"`          // Cột D: Đơn vị tính.
+	SoLuong        int     `json:"so_luong"`        // Cột E: Số lượng nhập.
+	DonGiaNhap     float64 `json:"don_gia_nhap"`    // Cột F: Giá nhập gốc (Chưa VAT).
+	VatPercent     float64 `json:"vat_percent"`     // Cột G: % Thuế (0, 5, 8, 10).
+	GiaSauVat      float64 `json:"gia_sau_vat"`     // Cột H: = DonGiaNhap * (1 + VAT/100).
+	ChietKhauDong  float64 `json:"chiet_khau_dong"` // Cột I: Tiền giảm giá riêng cho dòng này.
+	ThanhTienDong  float64 `json:"thanh_tien_dong"` // Cột J: = (SoLuong * GiaSauVat) - ChietKhauDong.
+	GiaVonThucTe   float64 `json:"gia_von_thuc_te"` // Cột K: Giá sau khi phân bổ chi phí vận chuyển (nếu có logic tính).
+	BaoHanhThang   int     `json:"bao_hanh_thang"`  // Cột L: Bảo hành áp dụng cho lô hàng này.
+	GhiChuDong     string  `json:"ghi_chu_dong"`    // Cột M: Ghi chú chi tiết dòng.
 }
 
+// =================================================================================
+// 4. NHÀ CUNG CẤP (Suppliers) - Đối tác & Công nợ phải trả
+// =================================================================================
 type NhaCungCap struct {
-	MaNhaCungCap string  `json:"ma_nha_cung_cap"` // Col A
-	TenNhaCungCap string `json:"ten_nha_cung_cap"`// Col B
-	DienThoai    string  `json:"dien_thoai"`      // Col C
-	Email        string  `json:"email"`           // Col D
-	DiaChi       string  `json:"dia_chi"`         // Col E
-	MaSoThue     string  `json:"ma_so_thue"`      // Col F
-	NguoiLienHe  string  `json:"nguoi_lien_he"`   // Col G
-	NganHang     string  `json:"ngan_hang"`       // Col H
-	NoCanTra     float64 `json:"no_can_tra"`      // Col I
-	TongMua      float64 `json:"tong_mua"`        // Col J
-	HanMucCongNo float64 `json:"han_muc_cong_no"` // Col K
-	TrangThai    int     `json:"trang_thai"`      // Col L
-	GhiChu       string  `json:"ghi_chu"`         // Col M
-	NguoiTao     string  `json:"nguoi_tao"`       // Col N
-	NgayTao      string  `json:"ngay_tao"`        // Col O
-	NgayCapNhat  string  `json:"ngay_cap_nhat"`   // Col P
+	MaNhaCungCap string  `json:"ma_nha_cung_cap"` // Cột A (PK).
+	TenNhaCungCap string `json:"ten_nha_cung_cap"`// Cột B.
+	DienThoai    string  `json:"dien_thoai"`      // Cột C.
+	Email        string  `json:"email"`           // Cột D.
+	DiaChi       string  `json:"dia_chi"`         // Cột E.
+	MaSoThue     string  `json:"ma_so_thue"`      // Cột F.
+	NguoiLienHe  string  `json:"nguoi_lien_he"`   // Cột G.
+	NganHang     string  `json:"ngan_hang"`       // Cột H: Số tài khoản ngân hàng.
+	NoCanTra     float64 `json:"no_can_tra"`      // Cột I: Tổng nợ hiện tại (= Sum PhieuNhap.ConNo).
+	TongMua      float64 `json:"tong_mua"`        // Cột J: Tổng doanh số đã mua.
+	HanMucCongNo float64 `json:"han_muc_cong_no"` // Cột K: Giới hạn nợ cho phép.
+	TrangThai    int     `json:"trang_thai"`      // Cột L: 1=Active, 0=Block.
+	GhiChu       string  `json:"ghi_chu"`         // Cột M.
+	NguoiTao     string  `json:"nguoi_tao"`       // Cột N.
+	NgayTao      string  `json:"ngay_tao"`        // Cột O.
+	NgayCapNhat  string  `json:"ngay_cap_nhat"`   // Cột P.
 }
 
 // =================================================================================
-// 3. XUẤT KHO & BÁN HÀNG (Export & Sales)
-// =================================================================================
-type PhieuXuat struct {
-	MaPhieuXuat        string  `json:"ma_phieu_xuat"`         // Col A
-	LoaiXuat           string  `json:"loai_xuat"`             // Col B
-	NgayXuat           string  `json:"ngay_xuat"`             // Col C
-	MaKho              string  `json:"ma_kho"`                // Col D
-	MaKhachHang        string  `json:"ma_khach_hang"`         // Col E
-	TrangThai          string  `json:"trang_thai"`            // Col F
-	MaVoucher          string  `json:"ma_voucher"`            // Col G
-	TienGiamVoucher    float64 `json:"tien_giam_voucher"`     // Col H
-	TongTienPhieu      float64 `json:"tong_tien_phieu"`       // Col I
-	LinkChungTu        string  `json:"link_chung_tu"`         // Col J
-	DaThu              float64 `json:"da_thu"`                // Col K
-	ConNo              float64 `json:"con_no"`                // Col L
-	PhuongThucTT       string  `json:"phuong_thuc_thanh_toan"`// Col M
-	TrangThaiTT        string  `json:"trang_thai_thanh_toan"` // Col N
-	PhiVanChuyen       float64 `json:"phi_van_chuyen"`        // Col O
-	NguonDonHang       string  `json:"nguon_don_hang"`        // Col P
-	ThongTinGiaoHang   string  `json:"thong_tin_giao_hang"`   // Col Q
-	GhiChu             string  `json:"ghi_chu"`               // Col R
-	NguoiTao           string  `json:"nguoi_tao"`             // Col S
-	NgayTao            string  `json:"ngay_tao"`              // Col T
-	NgayCapNhat        string  `json:"ngay_cap_nhat"`         // Col U
-}
-
-type ChiTietPhieuXuat struct {
-	MaPhieuXuat   string  `json:"ma_phieu_xuat"`   // Col A
-	MaSanPham     string  `json:"ma_san_pham"`     // Col B
-	TenSanPham    string  `json:"ten_san_pham"`    // Col C
-	DonVi         string  `json:"don_vi"`          // Col D
-	SoLuong       int     `json:"so_luong"`        // Col E
-	DonGiaBan     float64 `json:"don_gia_ban"`     // Col F
-	VatPercent    float64 `json:"vat_percent"`     // Col G
-	GiaSauVat     float64 `json:"gia_sau_vat"`     // Col H
-	ChietKhauDong float64 `json:"chiet_khau_dong"` // Col I
-	ThanhTienDong float64 `json:"thanh_tien_dong"` // Col J
-	GiaVon        float64 `json:"gia_von"`         // Col K
-	BaoHanhThang  int     `json:"bao_hanh_thang"`  // Col L
-	GhiChuDong    string  `json:"ghi_chu_dong"`    // Col M
-}
-
-// =================================================================================
-// 4. KHO & BẢO HÀNH (WMS & Warranty)
+// 5. SERIAL / IMEI (Tracking) - Quản lý từng sản phẩm & Bảo hành
 // =================================================================================
 type SerialSanPham struct {
-	SerialImei           string `json:"serial_imei"`              // Col A
-	MaSanPham            string `json:"ma_san_pham"`              // Col B
-	MaNhaCungCap         string `json:"ma_nha_cung_cap"`          // Col C
-	MaPhieuNhap          string `json:"ma_phieu_nhap"`            // Col D
-	MaPhieuXuat          string `json:"ma_phieu_xuat"`            // Col E
-	TrangThai            int    `json:"trang_thai"`               // Col F
-	BaoHanhNhaCungCap    int    `json:"bao_hanh_nha_cung_cap"`    // Col G
-	HanBaoHanhNhaCungCap string `json:"han_bao_hanh_nha_cung_cap"`// Col H
-	MaKhachHangHienTai   string `json:"ma_khach_hang_hien_tai"`   // Col I
-	NgayXuatKho          string `json:"ngay_xuat_kho"`            // Col J
-	KichHoatBaoHanhKhach string `json:"kich_hoat_bao_hanh_khach"` // Col K
-	HanBaoHanhKhach      string `json:"han_bao_hanh_khach"`       // Col L
-	MaKho                string `json:"ma_kho"`                   // Col M
-	GhiChu               string `json:"ghi_chu"`                  // Col N
-	NgayCapNhat          string `json:"ngay_cap_nhat"`            // Col O
-}
-
-type PhieuBaoHanh struct {
-	MaPhieuBaoHanh    string  `json:"ma_phieu_bao_hanh"`   // Col A
-	LoaiPhieu         string  `json:"loai_phieu"`          // Col B
-	SerialImei        string  `json:"serial_imei"`         // Col C
-	MaSanPham         string  `json:"ma_san_pham"`         // Col D
-	MaKhachHang       string  `json:"ma_khach_hang"`       // Col E
-	TenNguoiGui       string  `json:"ten_nguoi_gui"`       // Col F
-	SdtNguoiGui       string  `json:"sdt_nguoi_gui"`       // Col G
-	NgayNhan          string  `json:"ngay_nhan"`           // Col H
-	TinhTrangLoi      string  `json:"tinh_trang_loi"`      // Col I
-	HinhThuc          string  `json:"hinh_thuc"`           // Col J
-	TrangThai         int     `json:"trang_thai"`          // Col K
-	NgayTraDuKien     string  `json:"ngay_tra_du_kien"`    // Col L
-	NgayTraThucTe     string  `json:"ngay_tra_thuc_te"`    // Col M
-	ChiPhiSua         float64 `json:"chi_phi_sua"`         // Col N
-	PhiThuKhach       float64 `json:"phi_thu_khach"`       // Col O
-	KetQuaSuaChua     string  `json:"ket_qua_sua_chua"`    // Col P
-	LinhKienThayThe   string  `json:"linh_kien_thay_the"`  // Col Q
-	MaNhanVienKyThuat string  `json:"ma_nhan_vien_ky_thuat"`// Col R
-	GhiChu            string  `json:"ghi_chu"`             // Col S
-	NguoiTao          string  `json:"nguoi_tao"`           // Col T
-	NgayTao           string  `json:"ngay_tao"`            // Col U
-	NgayCapNhat       string  `json:"ngay_cap_nhat"`       // Col V
+	SerialImei           string `json:"serial_imei"`              // Cột A (PK): Số Serial/IMEI duy nhất.
+	MaSanPham            string `json:"ma_san_pham"`              // Cột B (FK).
+	MaNhaCungCap         string `json:"ma_nha_cung_cap"`          // Cột C (FK): Để biết bảo hành đầu vào ở đâu.
+	MaPhieuNhap          string `json:"ma_phieu_nhap"`            // Cột D (FK).
+	MaPhieuXuat          string `json:"ma_phieu_xuat"`            // Cột E (FK): Rỗng nếu chưa bán.
+	TrangThai            int    `json:"trang_thai"`               // Cột F: 0=Kho, 1=Đã bán, 2=Lỗi, 3=Chuyển kho.
+	BaoHanhNhaCungCap    int    `json:"bao_hanh_nha_cung_cap"`    // Cột G: Số tháng NCC bảo hành.
+	HanBaoHanhNhaCungCap string `json:"han_bao_hanh_nha_cung_cap"`// Cột H: Ngày hết hạn bảo hành gốc.
+	MaKhachHangHienTai   string `json:"ma_khach_hang_hien_tai"`   // Cột I: Người đang sở hữu máy.
+	NgayXuatKho          string `json:"ngay_xuat_kho"`            // Cột J: Ngày bán thực tế.
+	KichHoatBaoHanhKhach string `json:"kich_hoat_bao_hanh_khach"` // Cột K: Ngày bắt đầu tính BH cho khách.
+	HanBaoHanhKhach      string `json:"han_bao_hanh_khach"`       // Cột L: Ngày hết trách nhiệm với khách.
+	MaKho                string `json:"ma_kho"`                   // Cột M: Vị trí hiện tại.
+	GhiChu               string `json:"ghi_chu"`                  // Cột N.
+	NgayCapNhat          string `json:"ngay_cap_nhat"`            // Cột O.
 }
 
 // =================================================================================
-// 5. TÀI CHÍNH & HÓA ĐƠN (Accounting)
+// 6. PHIẾU XUẤT (Sales Order) - Đơn bán hàng / Web Order
+// =================================================================================
+type PhieuXuat struct {
+	MaPhieuXuat        string  `json:"ma_phieu_xuat"`         // Cột A (PK): VD: PX2410-001.
+	LoaiXuat           string  `json:"loai_xuat"`             // Cột B: BAN_LE, BAN_BUON, XUAT_HUY.
+	NgayXuat           string  `json:"ngay_xuat"`             // Cột C.
+	MaKho              string  `json:"ma_kho"`                // Cột D.
+	MaKhachHang        string  `json:"ma_khach_hang"`         // Cột E (FK).
+	TrangThai          string  `json:"trang_thai"`            // Cột F: MOI, DANG_GIAO, HOAN_THANH, HUY.
+	MaVoucher          string  `json:"ma_voucher"`            // Cột G (FK): Mã giảm giá khách dùng.
+	TienGiamVoucher    float64 `json:"tien_giam_voucher"`     // Cột H: Số tiền được giảm.
+	TongTienPhieu      float64 `json:"tong_tien_phieu"`       // Cột I: = Tổng hàng + Ship - Voucher.
+	LinkChungTu        string  `json:"link_chung_tu"`         // Cột J.
+	DaThu              float64 `json:"da_thu"`                // Cột K: Khách đã trả.
+	ConNo              float64 `json:"con_no"`                // Cột L: = TongTien - DaThu.
+	PhuongThucTT       string  `json:"phuong_thuc_thanh_toan"`// Cột M: COD, BANK, MOMO.
+	TrangThaiTT        string  `json:"trang_thai_thanh_toan"` // Cột N.
+	PhiVanChuyen       float64 `json:"phi_van_chuyen"`        // Cột O: Phí ship thu của khách.
+	NguonDonHang       string  `json:"nguon_don_hang"`        // Cột P: WEB, POS, SOCIAL.
+	ThongTinGiaoHang   string  `json:"thong_tin_giao_hang"`   // Cột Q (JSON): {Ten, SDT, DiaChi} người nhận.
+	GhiChu             string  `json:"ghi_chu"`               // Cột R.
+	NguoiTao           string  `json:"nguoi_tao"`             // Cột S.
+	NgayTao            string  `json:"ngay_tao"`              // Cột T.
+	NgayCapNhat        string  `json:"ngay_cap_nhat"`         // Cột U.
+}
+
+// =================================================================================
+// 7. CHI TIẾT PHIẾU XUẤT (Sales Details)
+// =================================================================================
+type ChiTietPhieuXuat struct {
+	MaPhieuXuat   string  `json:"ma_phieu_xuat"`   // Cột A (FK).
+	MaSanPham     string  `json:"ma_san_pham"`     // Cột B (FK).
+	TenSanPham    string  `json:"ten_san_pham"`    // Cột C (Snapshot).
+	DonVi         string  `json:"don_vi"`          // Cột D.
+	SoLuong       int     `json:"so_luong"`        // Cột E.
+	DonGiaBan     float64 `json:"don_gia_ban"`     // Cột F: Giá bán ra (Chưa VAT).
+	VatPercent    float64 `json:"vat_percent"`     // Cột G.
+	GiaSauVat     float64 `json:"gia_sau_vat"`     // Cột H.
+	ChietKhauDong float64 `json:"chiet_khau_dong"` // Cột I.
+	ThanhTienDong float64 `json:"thanh_tien_dong"` // Cột J: = (SL * GiaSauVat) - CK.
+	GiaVon        float64 `json:"gia_von"`         // Cột K: Giá vốn tại thời điểm bán (để tính lãi).
+	BaoHanhThang  int     `json:"bao_hanh_thang"`  // Cột L: Cam kết BH cho đơn này.
+	GhiChuDong    string  `json:"ghi_chu_dong"`    // Cột M.
+}
+
+// =================================================================================
+// 8. HÓA ĐƠN ĐIỆN TỬ (VAT Invoice) - Dữ liệu xuất thuế
 // =================================================================================
 type HoaDon struct {
-	MaHoaDon           string  `json:"ma_hoa_don"`            // Col A
-	MaTraCuu           string  `json:"ma_tra_cuu"`            // Col B
-	XmlUrl             string  `json:"xml_url"`               // Col C
-	LoaiHoaDon         string  `json:"loai_hoa_don"`          // Col D
-	MaPhieuXuat        string  `json:"ma_phieu_xuat"`         // Col E
-	MaKhachHang        string  `json:"ma_khach_hang"`         // Col F
-	NgayHoaDon         string  `json:"ngay_hoa_don"`          // Col G
-	KyHieu             string  `json:"ky_hieu"`               // Col H
-	SoHoaDon           string  `json:"so_hoa_don"`            // Col I
-	MauSo              string  `json:"mau_so"`                // Col J
-	LinkChungTu        string  `json:"link_chung_tu"`         // Col K
-	TongTienPhieu      float64 `json:"tong_tien_phieu"`       // Col L
-	TongVat            float64 `json:"tong_vat"`              // Col M
-	TongTienSauVat     float64 `json:"tong_tien_sau_vat"`     // Col N
-	TrangThai          string  `json:"trang_thai"`            // Col O
-	TrangThaiThanhToan string  `json:"trang_thai_thanh_toan"` // Col P
-	GhiChu             string  `json:"ghi_chu"`               // Col Q
-	NguoiTao           string  `json:"nguoi_tao"`             // Col R
-	NgayTao            string  `json:"ngay_tao"`              // Col S
-	NgayCapNhat        string  `json:"ngay_cap_nhat"`         // Col T
+	MaHoaDon           string  `json:"ma_hoa_don"`            // Cột A (PK).
+	MaTraCuu           string  `json:"ma_tra_cuu"`            // Cột B: Mã bí mật để khách tra cứu.
+	XmlUrl             string  `json:"xml_url"`               // Cột C: Link file XML pháp lý.
+	LoaiHoaDon         string  `json:"loai_hoa_don"`          // Cột D: GTGT, TRUC_TIEP.
+	MaPhieuXuat        string  `json:"ma_phieu_xuat"`         // Cột E (FK): Link về đơn hàng gốc.
+	MaKhachHang        string  `json:"ma_khach_hang"`         // Cột F.
+	NgayHoaDon         string  `json:"ngay_hoa_don"`          // Cột G.
+	KyHieu             string  `json:"ky_hieu"`               // Cột H: VD: 1C24TYY.
+	SoHoaDon           string  `json:"so_hoa_don"`            // Cột I: VD: 0001234.
+	MauSo              string  `json:"mau_so"`                // Cột J: VD: 1/001.
+	LinkChungTu        string  `json:"link_chung_tu"`         // Cột K: Bản thể hiện PDF.
+	TongTienPhieu      float64 `json:"tong_tien_phieu"`       // Cột L: Tổng chưa thuế.
+	TongVat            float64 `json:"tong_vat"`              // Cột M: Tổng tiền thuế.
+	TongTienSauVat     float64 `json:"tong_tien_sau_vat"`     // Cột N: Tổng thanh toán.
+	TrangThai          string  `json:"trang_thai"`            // Cột O: PENDING, SIGNED (Đã ký), CANCEL.
+	TrangThaiThanhToan string  `json:"trang_thai_thanh_toan"` // Cột P.
+	GhiChu             string  `json:"ghi_chu"`               // Cột Q.
+	NguoiTao           string  `json:"nguoi_tao"`             // Cột R.
+	NgayTao            string  `json:"ngay_tao"`              // Cột S.
+	NgayCapNhat        string  `json:"ngay_cap_nhat"`         // Cột T.
 }
 
 type HoaDonChiTiet struct {
-	MaHoaDon   string  `json:"ma_hoa_don"`   // Col A
-	MaSanPham  string  `json:"ma_san_pham"`  // Col B
-	TenSanPham string  `json:"ten_san_pham"` // Col C
-	DonVi      string  `json:"don_vi"`       // Col D
-	SoLuong    int     `json:"so_luong"`     // Col E
-	DonGiaBan  float64 `json:"don_gia_ban"`  // Col F
-	VatPercent float64 `json:"vat_percent"`  // Col G
-	TienVat    float64 `json:"tien_vat"`     // Col H
-	ThanhTien  float64 `json:"thanh_tien"`   // Col I
-}
-
-type PhieuThuChi struct {
-	MaPhieuThuChi      string  `json:"ma_phieu_thu_chi"`      // Col A
-	NgayTaoPhieu       string  `json:"ngay_tao_phieu"`        // Col B
-	LoaiPhieu          string  `json:"loai_phieu"`            // Col C
-	DoiTuongLoai       string  `json:"doi_tuong_loai"`        // Col D
-	DoiTuongID         string  `json:"doi_tuong_id"`          // Col E
-	HangMucThuChi      string  `json:"hang_muc_thu_chi"`      // Col F
-	CoHoaDonDo         bool    `json:"co_hoa_don_do"`         // Col G
-	MaChungTuThamChieu string  `json:"ma_chung_tu_tham_chieu"`// Col H
-	SoTien             float64 `json:"so_tien"`               // Col I
-	PhuongThucTT       string  `json:"phuong_thuc_thanh_toan"`// Col J
-	TrangThaiDuyet     int     `json:"trang_thai_duyet"`      // Col K
-	NguoiDuyet         string  `json:"nguoi_duyet"`           // Col L
-	GhiChu             string  `json:"ghi_chu"`               // Col M
-	NguoiTao           string  `json:"nguoi_tao"`             // Col N
-	NgayTao            string  `json:"ngay_tao"`              // Col O
-	NgayCapNhat        string  `json:"ngay_cap_nhat"`         // Col P
+	MaHoaDon   string  `json:"ma_hoa_don"`   // Cột A.
+	MaSanPham  string  `json:"ma_san_pham"`  // Cột B.
+	TenSanPham string  `json:"ten_san_pham"` // Cột C.
+	DonVi      string  `json:"don_vi"`       // Cột D.
+	SoLuong    int     `json:"so_luong"`     // Cột E.
+	DonGiaBan  float64 `json:"don_gia_ban"`  // Cột F.
+	VatPercent float64 `json:"vat_percent"`  // Cột G.
+	TienVat    float64 `json:"tien_vat"`     // Cột H.
+	ThanhTien  float64 `json:"thanh_tien"`   // Cột I.
 }
 
 // =================================================================================
-// 6. KHÁCH HÀNG & NHÂN VIÊN (CRM & HR)
+// 10. KHÁCH HÀNG (CRM) - Thông tin người mua
 // =================================================================================
 type KhachHang struct {
-	MaKhachHang   string  `json:"ma_khach_hang"`   // Col A
-	UserName      string  `json:"user_name"`       // Col B
-	PasswordHash  string  `json:"-"`               // Col C
-	LoaiKhachHang string  `json:"loai_khach_hang"` // Col D
-	TenKhachHang  string  `json:"ten_khach_hang"`  // Col E
-	DienThoai     string  `json:"dien_thoai"`      // Col F
-	Email         string  `json:"email"`           // Col G
-	UrlFb         string  `json:"url_fb"`          // Col H
-	Zalo          string  `json:"zalo"`            // Col I
-	UrlTele       string  `json:"url_tele"`        // Col J
-	UrlTiktok     string  `json:"url_tiktok"`      // Col K
-	DiaChi        string  `json:"dia_chi"`         // Col L
-	NgaySinh      string  `json:"ngay_sinh"`       // Col M
-	GioiTinh      string  `json:"gioi_tinh"`       // Col N
-	MaSoThue      string  `json:"ma_so_thue"`      // Col O
-	DangNo        float64 `json:"dang_no"`         // Col P
-	TongMua       float64 `json:"tong_mua"`        // Col Q
-	TrangThai     int     `json:"trang_thai"`      // Col R
-	GhiChu        string  `json:"ghi_chu"`         // Col S
-	NguoiTao      string  `json:"nguoi_tao"`       // Col T
-	NgayTao       string  `json:"ngay_tao"`        // Col U
-	NgayCapNhat   string  `json:"ngay_cap_nhat"`   // Col V
-}
-
-type NhanVien struct {
-	MaNhanVien      string `json:"ma_nhan_vien"`       // Col A
-	TenDangNhap     string `json:"ten_dang_nhap"`      // Col B
-	Email           string `json:"email"`              // Col C
-	MatKhauHash     string `json:"-"`                  // Col D
-	HoTen           string `json:"ho_ten"`             // Col E
-	ChucVu          string `json:"chuc_vu"`            // Col F
-	MaPin           string `json:"-"`                  // Col G
-	Cookie          string `json:"-"`                  // Col H
-	CookieExpired   string `json:"cookie_expired"`     // Col I
-	VaiTroQuyenHan  string `json:"vai_tro_quyen_han"`  // Col J
-	TrangThai       int    `json:"trang_thai"`         // Col K
-	LanDangNhapCuoi string `json:"lan_dang_nhap_cuoi"` // Col L
+	MaKhachHang   string  `json:"ma_khach_hang"`   // Cột A (PK).
+	UserName      string  `json:"user_name"`       // Cột B: Tài khoản đăng nhập Web.
+	PasswordHash  string  `json:"-"`               // Cột C: Mật khẩu mã hóa (Không trả về JSON).
+	LoaiKhachHang string  `json:"loai_khach_hang"` // Cột D: LE, DAI_LY, VIP.
+	TenKhachHang  string  `json:"ten_khach_hang"`  // Cột E.
+	DienThoai     string  `json:"dien_thoai"`      // Cột F.
+	Email         string  `json:"email"`           // Cột G.
+	UrlFb         string  `json:"url_fb"`          // Cột H.
+	Zalo          string  `json:"zalo"`            // Cột I.
+	UrlTele       string  `json:"url_tele"`        // Cột J.
+	UrlTiktok     string  `json:"url_tiktok"`      // Cột K.
+	DiaChi        string  `json:"dia_chi"`         // Cột L.
+	NgaySinh      string  `json:"ngay_sinh"`       // Cột M: YYYY-MM-DD.
+	GioiTinh      string  `json:"gioi_tinh"`       // Cột N: NAM, NU, KHAC.
+	MaSoThue      string  `json:"ma_so_thue"`      // Cột O: Nếu là khách doanh nghiệp.
+	DangNo        float64 `json:"dang_no"`         // Cột P: Tiền khách đang nợ mình.
+	TongMua       float64 `json:"tong_mua"`        // Cột Q: Tổng tiền đã mua (để xếp hạng VIP).
+	TrangThai     int     `json:"trang_thai"`      // Cột R.
+	GhiChu        string  `json:"ghi_chu"`         // Cột S.
+	NguoiTao      string  `json:"nguoi_tao"`       // Cột T.
+	NgayTao       string  `json:"ngay_tao"`        // Cột U.
+	NgayCapNhat   string  `json:"ngay_cap_nhat"`   // Cột V.
 }
 
 // =================================================================================
-// 7. CẤU HÌNH & DANH MỤC (Settings)
+// 11. PHIẾU THU CHI (Cashbook) - Sổ quỹ & Hạch toán lãi lỗ
+// =================================================================================
+type PhieuThuChi struct {
+	MaPhieuThuChi      string  `json:"ma_phieu_thu_chi"`      // Cột A (PK).
+	NgayTaoPhieu       string  `json:"ngay_tao_phieu"`        // Cột B.
+	LoaiPhieu          string  `json:"loai_phieu"`            // Cột C: THU (In), CHI (Out).
+	DoiTuongLoai       string  `json:"doi_tuong_loai"`        // Cột D: KHACH_HANG, NCC, NHAN_VIEN, KHAC.
+	DoiTuongID         string  `json:"doi_tuong_id"`          // Cột E: ID đối tượng tương ứng.
+	HangMucThuChi      string  `json:"hang_muc_thu_chi"`      // Cột F: THANH_TOAN_HANG, DIEN_NUOC, LUONG, THUE...
+	CoHoaDonDo         bool    `json:"co_hoa_don_do"`         // Cột G: True (Có VAT đầu vào), False.
+	MaChungTuThamChieu string  `json:"ma_chung_tu_tham_chieu"`// Cột H: Link tới Mã Phiếu Nhập/Xuất.
+	SoTien             float64 `json:"so_tien"`               // Cột I.
+	PhuongThucTT       string  `json:"phuong_thuc_thanh_toan"`// Cột J.
+	TrangThaiDuyet     int     `json:"trang_thai_duyet"`      // Cột K: 0 (Chờ), 1 (Đã duyệt).
+	NguoiDuyet         string  `json:"nguoi_duyet"`           // Cột L: Admin nào duyệt.
+	GhiChu             string  `json:"ghi_chu"`               // Cột M.
+	NguoiTao           string  `json:"nguoi_tao"`             // Cột N.
+	NgayTao            string  `json:"ngay_tao"`              // Cột O.
+	NgayCapNhat        string  `json:"ngay_cap_nhat"`         // Cột P.
+}
+
+// =================================================================================
+// 12. PHIẾU BẢO HÀNH (Warranty) - Dịch vụ sửa chữa
+// =================================================================================
+type PhieuBaoHanh struct {
+	MaPhieuBaoHanh    string  `json:"ma_phieu_bao_hanh"`   // Cột A (PK).
+	LoaiPhieu         string  `json:"loai_phieu"`          // Cột B: BAO_HANH (Free), SUA_CHUA (Tính phí).
+	SerialImei        string  `json:"serial_imei"`         // Cột C (FK).
+	MaSanPham         string  `json:"ma_san_pham"`         // Cột D (FK).
+	MaKhachHang       string  `json:"ma_khach_hang"`       // Cột E (FK).
+	TenNguoiGui       string  `json:"ten_nguoi_gui"`       // Cột F: Người mang máy đến.
+	SdtNguoiGui       string  `json:"sdt_nguoi_gui"`       // Cột G.
+	NgayNhan          string  `json:"ngay_nhan"`           // Cột H.
+	TinhTrangLoi      string  `json:"tinh_trang_loi"`      // Cột I: Mô tả lỗi (Vỡ màn, không lên nguồn...).
+	HinhThuc          string  `json:"hinh_thuc"`           // Cột J: Tai cua hang / Gui buu dien.
+	TrangThai         int     `json:"trang_thai"`          // Cột K: 0:Mới, 1:Đang sửa, 2:Xong, 3:Đã trả.
+	NgayTraDuKien     string  `json:"ngay_tra_du_kien"`    // Cột L.
+	NgayTraThucTe     string  `json:"ngay_tra_thuc_te"`    // Cột M.
+	ChiPhiSua         float64 `json:"chi_phi_sua"`         // Cột N: Chi phí nội bộ (linh kiện + công).
+	PhiThuKhach       float64 `json:"phi_thu_khach"`       // Cột O: Tiền thu của khách.
+	KetQuaSuaChua     string  `json:"ket_qua_sua_chua"`    // Cột P: Kết luận kỹ thuật.
+	LinhKienThayThe   string  `json:"linh_kien_thay_the"`  // Cột Q: Danh sách SKU linh kiện đã dùng (JSON).
+	MaNhanVienKyThuat string  `json:"ma_nhan_vien_ky_thuat"`// Cột R: Ai sửa.
+	GhiChu            string  `json:"ghi_chu"`             // Cột S.
+	NguoiTao          string  `json:"nguoi_tao"`           // Cột T.
+	NgayTao           string  `json:"ngay_tao"`            // Cột U.
+	NgayCapNhat       string  `json:"ngay_cap_nhat"`       // Cột V.
+}
+
+// =================================================================================
+// 13, 14. DANH MỤC & THƯƠNG HIỆU (Categories & Brands)
 // =================================================================================
 type DanhMuc struct {
-	MaDanhMuc    string `json:"ma_danh_muc"`     // Col A
-	ThuTuHienThi int    `json:"thu_tu_hien_thi"` // Col B
-	TenDanhMuc   string `json:"ten_danh_muc"`    // Col C
-	Slug         string `json:"slug"`            // Col D
-	MaDanhMucCha string `json:"ma_danh_muc_cha"` // Col E
+	MaDanhMuc    string `json:"ma_danh_muc"`     // Cột A (PK).
+	ThuTuHienThi int    `json:"thu_tu_hien_thi"` // Cột B: Số nhỏ hiện trước (0, 1, 2...).
+	TenDanhMuc   string `json:"ten_danh_muc"`    // Cột C.
+	Slug         string `json:"slug"`            // Cột D: URL thân thiện.
+	MaDanhMucCha string `json:"ma_danh_muc_cha"` // Cột E: Parent ID (cho menu đa cấp).
 }
 
 type ThuongHieu struct {
-	MaThuongHieu  string `json:"ma_thuong_hieu"`  // Col A
-	TenThuongHieu string `json:"ten_thuong_hieu"` // Col B
-	LogoUrl       string `json:"logo_url"`        // Col C
+	MaThuongHieu  string `json:"ma_thuong_hieu"`  // Cột A (PK).
+	TenThuongHieu string `json:"ten_thuong_hieu"` // Cột B.
+	LogoUrl       string `json:"logo_url"`        // Cột C.
 }
 
+// =================================================================================
+// 15. NHÂN VIÊN (Staff) - Quản trị nội bộ
+// =================================================================================
+type NhanVien struct {
+	MaNhanVien      string `json:"ma_nhan_vien"`       // Cột A (PK).
+	TenDangNhap     string `json:"ten_dang_nhap"`      // Cột B.
+	Email           string `json:"email"`              // Cột C.
+	MatKhauHash     string `json:"-"`                  // Cột D: Mật khẩu Admin/POS.
+	HoTen           string `json:"ho_ten"`             // Cột E.
+	ChucVu          string `json:"chuc_vu"`            // Cột F: ADMIN, SALE, KHO, KETOAN.
+	MaPin           string `json:"-"`                  // Cột G: Mã số nhanh cho POS.
+	Cookie          string `json:"-"`                  // Cột H: Token phiên đăng nhập.
+	CookieExpired   string `json:"cookie_expired"`     // Cột I.
+	VaiTroQuyenHan  string `json:"vai_tro_quyen_han"`  // Cột J: JSON chi tiết quyền (VD: {"can_view_report": true}).
+	TrangThai       int    `json:"trang_thai"`         // Cột K.
+	LanDangNhapCuoi string `json:"lan_dang_nhap_cuoi"` // Cột L: Log bảo mật.
+}
+
+// =================================================================================
+// 16. KHUYẾN MÃI (Voucher)
+// =================================================================================
 type KhuyenMai struct {
-	MaVoucher      string  `json:"ma_voucher"`       // Col A
-	TenChuongTrinh string  `json:"ten_chuong_trinh"` // Col B
-	LoaiGiam       string  `json:"loai_giam"`        // Col C
-	GiaTriGiam     float64 `json:"gia_tri_giam"`     // Col D
-	DonToThieu     float64 `json:"don_to_thieu"`     // Col E
-	NgayBatDau     string  `json:"ngay_bat_dau"`     // Col F
-	NgayKetThuc    string  `json:"ngay_ket_thuc"`    // Col G
-	SoLuongConLai  int     `json:"so_luong_con_lai"` // Col H
-	TrangThai      int     `json:"trang_thai"`       // Col I
+	MaVoucher      string  `json:"ma_voucher"`       // Cột A (PK): Mã nhập (VD: SALE50).
+	TenChuongTrinh string  `json:"ten_chuong_trinh"` // Cột B.
+	LoaiGiam       string  `json:"loai_giam"`        // Cột C: PERCENT (%), AMOUNT (Số tiền).
+	GiaTriGiam     float64 `json:"gia_tri_giam"`     // Cột D: Giá trị (VD: 10 (%), 50000 (VND)).
+	DonToThieu     float64 `json:"don_to_thieu"`     // Cột E: Giá trị đơn tối thiểu để áp dụng.
+	NgayBatDau     string  `json:"ngay_bat_dau"`     // Cột F.
+	NgayKetThuc    string  `json:"ngay_ket_thuc"`    // Cột G.
+	SoLuongConLai  int     `json:"so_luong_con_lai"` // Cột H: Giảm dần khi có người dùng.
+	TrangThai      int     `json:"trang_thai"`       // Cột I.
 }
 
+// =================================================================================
+// 17. CẤU HÌNH WEB (Settings) - Banner, Popup...
+// =================================================================================
 type CauHinhWeb struct {
-	MaCauHinh string `json:"ma_cau_hinh"` // Col A
-	GiaTri    string `json:"gia_tri"`     // Col B
-	MoTa      string `json:"mo_ta"`       // Col C
-	TrangThai int    `json:"trang_thai"`  // Col D
+	MaCauHinh string `json:"ma_cau_hinh"` // Cột A (PK): VD: BANNER_HOME.
+	GiaTri    string `json:"gia_tri"`     // Cột B: URL ảnh hoặc JSON Config.
+	MoTa      string `json:"mo_ta"`       // Cột C.
+	TrangThai int    `json:"trang_thai"`  // Cột D.
 }

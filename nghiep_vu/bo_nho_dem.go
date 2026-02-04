@@ -346,27 +346,26 @@ func napNhaCungCap() {
 	}
 }
 
-// 6. NHAN_VIEN (Đã cập nhật cho Auth & WriteQueue)
+// 6. NHAN_VIEN (Đã cập nhật chuẩn)
 func napNhanVien() {
-	// Cập nhật ID Sheet (Lấy từ Config chung)
+	// Cập nhật ID Sheet
 	CacheNhanVien.SpreadsheetID = cau_hinh.BienCauHinh.IdFileSheet
 
 	raw, err := loadSheetData("NHAN_VIEN", CacheNhanVien.TenKey)
 	if err != nil { return }
 	defer BoQuanLyKhoa.LayKhoa(CacheNhanVien.TenKey).Unlock()
 
-	// Reset map với kiểu con trỏ
+	// Reset map với kiểu con trỏ (*)
 	CacheNhanVien.DuLieu = make(map[string]*mo_hinh.NhanVien)
 
 	for i, r := range raw {
-		// Bỏ qua dòng tiêu đề. Lưu ý: DongBatDauDuLieu = 11. 
-		// Nếu Sheet Nhân viên bạn nhập từ dòng 2 thì sửa logic này hoặc nhập liệu từ dòng 11.
+		// Bỏ qua dòng tiêu đề. Lưu ý: DongBatDauDuLieu = 11.
 		if i < mo_hinh.DongBatDauDuLieu { continue }
 		
 		if len(r) <= mo_hinh.CotNV_MaNhanVien || layString(r, mo_hinh.CotNV_MaNhanVien) == "" { continue }
 		
-		item := &mo_hinh.NhanVien{
-			DongTrongSheet:  i + 1, // Quan trọng: Lưu vị trí dòng Excel (Index + 1)
+		item := &mo_hinh.NhanVien{ // <--- Có dấu & (Địa chỉ bộ nhớ)
+			DongTrongSheet:  i + 1, 
 			
 			MaNhanVien:      layString(r, mo_hinh.CotNV_MaNhanVien),
 			TenDangNhap:     layString(r, mo_hinh.CotNV_TenDangNhap),
@@ -376,20 +375,16 @@ func napNhanVien() {
 			ChucVu:          layString(r, mo_hinh.CotNV_ChucVu),
 			MaPin:           layString(r, mo_hinh.CotNV_MaPin),
 			Cookie:          layString(r, mo_hinh.CotNV_Cookie),
-			
-			// Quan trọng: Parse thời gian hết hạn
 			CookieExpired:   int64(layFloat(r, mo_hinh.CotNV_CookieExpired)),
-			
 			VaiTroQuyenHan:  layString(r, mo_hinh.CotNV_VaiTroQuyenHan),
 			TrangThai:       layInt(r, mo_hinh.CotNV_TrangThai),
 			LanDangNhapCuoi: layString(r, mo_hinh.CotNV_LanDangNhapCuoi),
 		}
 		
-		// Lưu vào Cache
 		CacheNhanVien.DuLieu[item.MaNhanVien] = item
 	}
+    log.Printf("   -> Đã nạp %d nhân viên.", len(CacheNhanVien.DuLieu))
 }
-
 // 7. PHIEU_XUAT (ĐƠN HÀNG)
 func napPhieuXuat() {
 	raw, err := loadSheetData("PHIEU_XUAT", CachePhieuXuat.TenKey)
@@ -685,64 +680,3 @@ func layFloat(dong []interface{}, index int) float64 {
 	return val
 }
 
-// -------------------------------------------------------------
-// BIẾN TOÀN CỤC CHO NHÂN VIÊN
-// -------------------------------------------------------------
-var CacheNhanVien = struct {
-	DuLieu        map[string]*mo_hinh.NhanVien
-	SpreadsheetID string
-	TenKey        string
-}{
-	DuLieu: make(map[string]*mo_hinh.NhanVien),
-	TenKey: "NHAN_VIEN",
-}
-
-// -------------------------------------------------------------
-// HÀM NẠP NHÂN VIÊN (Dùng chuẩn mo_hinh.CotNV_...)
-// -------------------------------------------------------------
-func napNhanVien() {
-	// 1. Lấy ID Sheet (Giả sử chung với cấu hình chính)
-	CacheNhanVien.SpreadsheetID = cau_hinh.BienCauHinh.IdGoogleSheet
-
-	// 2. Tải dữ liệu thô
-	raw, err := loadSheetData("NHAN_VIEN", CacheNhanVien.TenKey)
-	if err != nil { return }
-	
-	// 3. Reset map cũ
-	CacheNhanVien.DuLieu = make(map[string]*mo_hinh.NhanVien)
-
-	for i, r := range raw {
-		// Bỏ qua dòng tiêu đề (Dòng < 11 theo quy ước DongBatDauDuLieu = 11)
-		// Nhưng lưu ý: Với Sheet Nhân viên thường ít dòng, ta hay để tiêu đề dòng 1.
-		// Tạm thời tôi theo logic chung là check DongBatDauDuLieu
-		if i < mo_hinh.DongBatDauDuLieu { continue }
-		
-		// Cần có Mã NV (Cột 0) để làm Key
-		maNV := layString(r, mo_hinh.CotNV_MaNhanVien)
-		if maNV == "" { continue }
-
-		// Map dữ liệu vào Struct
-		nv := &mo_hinh.NhanVien{
-			DongTrongSheet:  i + 1, // Lưu lại vị trí dòng (Excel index start 1)
-			
-			MaNhanVien:      maNV,
-			TenDangNhap:     layString(r, mo_hinh.CotNV_TenDangNhap),
-			Email:           layString(r, mo_hinh.CotNV_Email),
-			MatKhauHash:     layString(r, mo_hinh.CotNV_MatKhauHash),
-			HoTen:           layString(r, mo_hinh.CotNV_HoTen),
-			ChucVu:          layString(r, mo_hinh.CotNV_ChucVu),
-			MaPin:           layString(r, mo_hinh.CotNV_MaPin),
-			Cookie:          layString(r, mo_hinh.CotNV_Cookie),
-			
-			// Convert số từ Sheet sang int64
-			CookieExpired:   int64(layFloat(r, mo_hinh.CotNV_CookieExpired)),
-			
-			VaiTroQuyenHan:  layString(r, mo_hinh.CotNV_VaiTroQuyenHan),
-			TrangThai:       layInt(r, mo_hinh.CotNV_TrangThai),
-			LanDangNhapCuoi: layString(r, mo_hinh.CotNV_LanDangNhapCuoi),
-		}
-
-		CacheNhanVien.DuLieu[maNV] = nv
-	}
-	log.Printf("   -> Đã nạp %d nhân viên.", len(CacheNhanVien.DuLieu))
-}

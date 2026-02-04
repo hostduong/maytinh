@@ -27,24 +27,24 @@ func main() {
 	// Cấu hình Proxy (Quan trọng khi chạy trên Cloud Run)
 	router.SetTrustedProxies(nil)
 
+	// --- [QUAN TRỌNG] CẤU HÌNH GIAO DIỆN HTML ---
+	// Lệnh này sẽ tìm tất cả file .html nằm trong thư mục giao_dien và các thư mục con
+	// Nếu Cloud Build báo lỗi dòng này, hãy kiểm tra xem bạn đã tạo thư mục "giao_dien" trên GitHub chưa
+	router.LoadHTMLGlob("giao_dien/**/*.html")
+
 	// --- ĐỊNH NGHĨA CÁC ĐƯỜNG DẪN (ROUTES) ---
 	
-	// Nhóm API Public (Ai cũng xem được)
+	// Nhóm API (Trả về JSON - Dùng cho App hoặc AJAX)
 	api := router.Group("/api")
 	{
 		api.GET("/san-pham", chuc_nang.API_LayDanhSachSanPham)
 		api.GET("/san-pham/:id", chuc_nang.API_ChiTietSanPham)
 		api.GET("/cau-hinh", chuc_nang.API_LayMenu)
-		// Bạn sẽ thêm API đặt hàng vào đây sau
 	}
 
-	// Trang chủ (Test server sống hay chết)
-	router.GET("/", func(c *gin.Context) {
-		c.JSON(200, gin.H{
-			"trang_thai": "Hoat dong tot",
-			"thong_diep": "Hệ thống bán hàng Golang + Google Sheet đang chạy!",
-		})
-	})
+	// Nhóm WEB (Trả về Giao diện HTML)
+	// Khi vào trang chủ, gọi hàm TrangChu để hiển thị giao diện
+	router.GET("/", chuc_nang.TrangChu)
 
 	// 5. Bấm nút CHẠY
 	port := cau_hinh.BienCauHinh.CongChayWeb

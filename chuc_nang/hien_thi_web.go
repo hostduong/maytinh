@@ -18,3 +18,24 @@ func TrangChu(c *gin.Context) {
 		"DanhSachSanPham": danhSachSP,
 	})
 }
+
+// ChiTietSanPham : Hiển thị trang chi tiết
+func ChiTietSanPham(c *gin.Context) {
+	// 1. Lấy ID từ đường dẫn (VD: /san-pham/SP001 -> id = SP001)
+	id := c.Param("id")
+
+	// 2. Tìm trong RAM
+	sp, tonTai := nghiep_vu.LayChiTietSanPham(id)
+
+	if !tonTai {
+		// Nếu không thấy thì báo lỗi 404 (Sau này làm trang 404 đẹp sau)
+		c.String(http.StatusNotFound, "Không tìm thấy sản phẩm này!")
+		return
+	}
+
+	// 3. Trả về HTML
+	c.HTML(http.StatusOK, "khung_giao_dien", gin.H{
+		"TieuDe":  sp.TenSanPham,
+		"SanPham": sp,
+	})
+}

@@ -16,13 +16,15 @@ func API_DoiThongTin(c *gin.Context) {
 	cookie, _ := c.Cookie("session_id")
 
 	if !bao_mat.KiemTraHoTen(hoTenMoi) {
-		c.JSON(200, gin.H{"status": "error", "msg": "Tên không hợp lệ (6-50 ký tự, chỉ chứa chữ)!"})
+		c.JSON(200, gin.H{"status": "error", "msg": "Tên không hợp lệ!"})
 		return
 	}
 
-	if nv, ok := nghiep_vu.TimNhanVienTheoCookie(cookie); ok {
-		nv.HoTen = hoTenMoi
-		nghiep_vu.ThemVaoHangCho(nghiep_vu.CacheNhanVien.SpreadsheetID, "NHAN_VIEN", nv.DongTrongSheet, mo_hinh.CotNV_HoTen, hoTenMoi)
+	// [SỬA] TimKhachHangTheoCookie
+	if kh, ok := nghiep_vu.TimKhachHangTheoCookie(cookie); ok {
+		kh.TenKhachHang = hoTenMoi // Sửa field TenKhachHang
+		// [SỬA] Ghi vào sheet KHACH_HANG
+		nghiep_vu.ThemVaoHangCho(cau_hinh.BienCauHinh.IdFileSheet, "KHACH_HANG", kh.DongTrongSheet, mo_hinh.CotKH_TenKhachHang, hoTenMoi)
 		c.JSON(200, gin.H{"status": "ok", "msg": "Cập nhật tên thành công!"})
 	} else {
 		c.JSON(401, gin.H{"status": "error", "msg": "Phiên đăng nhập hết hạn"})
@@ -35,21 +37,21 @@ func API_DoiMatKhau(c *gin.Context) {
 	passMoi := strings.TrimSpace(c.PostForm("pass_moi"))
 	cookie, _ := c.Cookie("session_id")
 
-	// [ĐÃ SỬA] Gọi hàm KiemTraDinhDangMatKhau (Validate format)
 	if !bao_mat.KiemTraDinhDangMatKhau(passMoi) {
-		c.JSON(200, gin.H{"status": "error", "msg": "Mật khẩu mới không an toàn (8-30 ký tự, không chứa ký tự cấm)!"})
+		c.JSON(200, gin.H{"status": "error", "msg": "Mật khẩu mới không an toàn!"})
 		return
 	}
 
-	if nv, ok := nghiep_vu.TimNhanVienTheoCookie(cookie); ok {
-		// Hàm này vẫn giữ nguyên (KiemTraMatKhau trong ma_hoa.go để so khớp hash)
-		if !bao_mat.KiemTraMatKhau(passCu, nv.MatKhauHash) {
+	// [SỬA] TimKhachHangTheoCookie
+	if kh, ok := nghiep_vu.TimKhachHangTheoCookie(cookie); ok {
+		if !bao_mat.KiemTraMatKhau(passCu, kh.MatKhauHash) {
 			c.JSON(200, gin.H{"status": "error", "msg": "Mật khẩu cũ không đúng!"})
 			return
 		}
 		hashMoi, _ := bao_mat.HashMatKhau(passMoi)
-		nv.MatKhauHash = hashMoi
-		nghiep_vu.ThemVaoHangCho(nghiep_vu.CacheNhanVien.SpreadsheetID, "NHAN_VIEN", nv.DongTrongSheet, mo_hinh.CotNV_MatKhauHash, hashMoi)
+		kh.MatKhauHash = hashMoi
+		// [SỬA] Ghi vào sheet KHACH_HANG
+		nghiep_vu.ThemVaoHangCho(cau_hinh.BienCauHinh.IdFileSheet, "KHACH_HANG", kh.DongTrongSheet, mo_hinh.CotKH_MatKhauHash, hashMoi)
 		c.JSON(200, gin.H{"status": "ok", "msg": "Đổi mật khẩu thành công!"})
 	} else {
 		c.JSON(401, gin.H{"status": "error", "msg": "Phiên đăng nhập hết hạn"})
@@ -67,13 +69,16 @@ func API_DoiMaPin(c *gin.Context) {
 		return
 	}
 
-	if nv, ok := nghiep_vu.TimNhanVienTheoCookie(cookie); ok {
-		if nv.MaPin != pinCu {
+	// [SỬA] TimKhachHangTheoCookie
+	if kh, ok := nghiep_vu.TimKhachHangTheoCookie(cookie); ok {
+		// Lưu ý: Nếu mã PIN lưu Hash thì phải so sánh Hash
+		if kh.MaPinHash != pinCu { 
 			c.JSON(200, gin.H{"status": "error", "msg": "Mã PIN cũ không đúng!"})
 			return
 		}
-		nv.MaPin = pinMoi
-		nghiep_vu.ThemVaoHangCho(nghiep_vu.CacheNhanVien.SpreadsheetID, "NHAN_VIEN", nv.DongTrongSheet, mo_hinh.CotNV_MaPin, pinMoi)
+		kh.MaPinHash = pinMoi
+		// [SỬA] Ghi vào sheet KHACH_HANG
+		nghiep_vu.ThemVaoHangCho(cau_hinh.BienCauHinh.IdFileSheet, "KHACH_HANG", kh.DongTrongSheet, mo_hinh.CotKH_MaPinHash, pinMoi)
 		c.JSON(200, gin.H{"status": "ok", "msg": "Đổi mã PIN thành công!"})
 	} else {
 		c.JSON(401, gin.H{"status": "error", "msg": "Phiên đăng nhập hết hạn"})

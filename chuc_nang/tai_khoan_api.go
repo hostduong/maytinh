@@ -15,7 +15,6 @@ func API_DoiThongTin(c *gin.Context) {
 	hoTenMoi := strings.TrimSpace(c.PostForm("ho_ten_moi"))
 	cookie, _ := c.Cookie("session_id")
 
-	// [MỚI] Validate
 	if !bao_mat.KiemTraHoTen(hoTenMoi) {
 		c.JSON(200, gin.H{"status": "error", "msg": "Tên không hợp lệ (6-50 ký tự, chỉ chứa chữ)!"})
 		return
@@ -36,13 +35,14 @@ func API_DoiMatKhau(c *gin.Context) {
 	passMoi := strings.TrimSpace(c.PostForm("pass_moi"))
 	cookie, _ := c.Cookie("session_id")
 
-	// [MỚI] Validate
-	if !bao_mat.KiemTraMatKhau(passMoi) {
+	// [ĐÃ SỬA] Gọi hàm KiemTraDinhDangMatKhau (Validate format)
+	if !bao_mat.KiemTraDinhDangMatKhau(passMoi) {
 		c.JSON(200, gin.H{"status": "error", "msg": "Mật khẩu mới không an toàn (8-30 ký tự, không chứa ký tự cấm)!"})
 		return
 	}
 
 	if nv, ok := nghiep_vu.TimNhanVienTheoCookie(cookie); ok {
+		// Hàm này vẫn giữ nguyên (KiemTraMatKhau trong ma_hoa.go để so khớp hash)
 		if !bao_mat.KiemTraMatKhau(passCu, nv.MatKhauHash) {
 			c.JSON(200, gin.H{"status": "error", "msg": "Mật khẩu cũ không đúng!"})
 			return
@@ -62,7 +62,6 @@ func API_DoiMaPin(c *gin.Context) {
 	pinMoi := strings.TrimSpace(c.PostForm("pin_moi"))
 	cookie, _ := c.Cookie("session_id")
 
-	// [MỚI] Validate
 	if !bao_mat.KiemTraMaPin(pinMoi) {
 		c.JSON(200, gin.H{"status": "error", "msg": "Mã PIN mới phải đúng 8 số!"})
 		return

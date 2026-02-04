@@ -33,6 +33,7 @@ func TimKhachHangTheoUserOrEmail(input string) (*mo_hinh.KhachHang, bool) {
 	defer khoa.RUnlock()
 
 	for _, kh := range CacheKhachHang.DuLieu {
+		// [CHUẨN] Dùng TenDangNhap
 		if kh.TenDangNhap == input || kh.Email == input {
 			return kh, true
 		}
@@ -40,21 +41,20 @@ func TimKhachHangTheoUserOrEmail(input string) (*mo_hinh.KhachHang, bool) {
 	return nil, false
 }
 
-// [ĐÃ SỬA] Chỉ kiểm tra User và Email, bỏ tham số phone
 func KiemTraTonTaiUserEmail(user, email string) bool {
 	khoa := BoQuanLyKhoa.LayKhoa(CacheKhachHang.TenKey)
 	khoa.RLock()
 	defer khoa.RUnlock()
 
 	for _, kh := range CacheKhachHang.DuLieu {
+		// [CHUẨN] Dùng TenDangNhap
 		if kh.TenDangNhap == user { return true }
 		if email != "" && kh.Email == email { return true }
-		// Đã xóa dòng check DienThoai
 	}
 	return false
 }
 
-// 2. SINH MÃ & ĐẾM (Giữ nguyên)
+// 2. SINH MÃ & ĐẾM
 func DemSoLuongKhachHang() int {
 	khoa := BoQuanLyKhoa.LayKhoa(CacheKhachHang.TenKey)
 	khoa.RLock()
@@ -93,7 +93,7 @@ func LayDongKhachHang(maKH string) int {
 	return 0
 }
 
-// 3. GHI & CẬP NHẬT (Giữ nguyên)
+// 3. GHI & CẬP NHẬT
 func CapNhatPhienDangNhapKH(maKH string, newCookie string, newExpired int64) {
 	mtxKH.Lock()
 	defer mtxKH.Unlock()
@@ -130,27 +130,45 @@ func ThemKhachHangMoi(kh *mo_hinh.KhachHang) {
 	newRow := maxRow + 1
 	kh.DongTrongSheet = newRow
 
+	// Lưu RAM
 	CacheKhachHang.DuLieu[kh.MaKhachHang] = kh
 	khoa.Unlock()
 
+	// Ghi Sheet
 	sID := cau_hinh.BienCauHinh.IdFileSheet
 	sName := "KHACH_HANG"
 
 	ThemVaoHangCho(sID, sName, newRow, mo_hinh.CotKH_MaKhachHang, kh.MaKhachHang)
+	// [CHUẨN] Dùng CotKH_TenDangNhap
 	ThemVaoHangCho(sID, sName, newRow, mo_hinh.CotKH_TenDangNhap, kh.TenDangNhap)
+	// [CHUẨN] Dùng CotKH_MatKhauHash
 	ThemVaoHangCho(sID, sName, newRow, mo_hinh.CotKH_MatKhauHash, kh.MatKhauHash) 
 	ThemVaoHangCho(sID, sName, newRow, mo_hinh.CotKH_Cookie, kh.Cookie)
 	ThemVaoHangCho(sID, sName, newRow, mo_hinh.CotKH_CookieExpired, kh.CookieExpired)
 	ThemVaoHangCho(sID, sName, newRow, mo_hinh.CotKH_MaPinHash, kh.MaPinHash)
 	ThemVaoHangCho(sID, sName, newRow, mo_hinh.CotKH_LoaiKhachHang, kh.LoaiKhachHang)
+	
+	// [CHUẨN] Dùng CotKH_TenKhachHang
 	ThemVaoHangCho(sID, sName, newRow, mo_hinh.CotKH_TenKhachHang, kh.TenKhachHang)
+	
 	ThemVaoHangCho(sID, sName, newRow, mo_hinh.CotKH_DienThoai, kh.DienThoai)
 	ThemVaoHangCho(sID, sName, newRow, mo_hinh.CotKH_Email, kh.Email)
+	ThemVaoHangCho(sID, sName, newRow, mo_hinh.CotKH_UrlFb, kh.UrlFb)
+	ThemVaoHangCho(sID, sName, newRow, mo_hinh.CotKH_Zalo, kh.Zalo)
+	ThemVaoHangCho(sID, sName, newRow, mo_hinh.CotKH_UrlTele, kh.UrlTele)
+	ThemVaoHangCho(sID, sName, newRow, mo_hinh.CotKH_UrlTiktok, kh.UrlTiktok)
+	ThemVaoHangCho(sID, sName, newRow, mo_hinh.CotKH_DiaChi, kh.DiaChi)
 	ThemVaoHangCho(sID, sName, newRow, mo_hinh.CotKH_NgaySinh, kh.NgaySinh)
 	ThemVaoHangCho(sID, sName, newRow, mo_hinh.CotKH_GioiTinh, kh.GioiTinh)
+	ThemVaoHangCho(sID, sName, newRow, mo_hinh.CotKH_MaSoThue, kh.MaSoThue)
+	ThemVaoHangCho(sID, sName, newRow, mo_hinh.CotKH_DangNo, kh.DangNo)
+	ThemVaoHangCho(sID, sName, newRow, mo_hinh.CotKH_TongMua, kh.TongMua)
+	ThemVaoHangCho(sID, sName, newRow, mo_hinh.CotKH_ChucVu, kh.ChucVu)
 	ThemVaoHangCho(sID, sName, newRow, mo_hinh.CotKH_VaiTroQuyenHan, kh.VaiTroQuyenHan)
 	ThemVaoHangCho(sID, sName, newRow, mo_hinh.CotKH_TrangThai, kh.TrangThai)
-	ThemVaoHangCho(sID, sName, newRow, mo_hinh.CotKH_NgayTao, time.Now().Format("2006-01-02 15:04:05"))
+	ThemVaoHangCho(sID, sName, newRow, mo_hinh.CotKH_GhiChu, kh.GhiChu)
+	ThemVaoHangCho(sID, sName, newRow, mo_hinh.CotKH_NguoiTao, kh.NguoiTao)
+	ThemVaoHangCho(sID, sName, newRow, mo_hinh.CotKH_NgayTao, kh.NgayTao) // Dùng đúng biến NgayTao
 }
 
 func CapNhatHanCookieRAM(maKH string, newExpired int64) {

@@ -184,28 +184,33 @@ const (
 
 // 10. KHACH_HANG (A-V)
 const (
-	CotKH_MaKhachHang   = 0
-	CotKH_UserName      = 1
-	CotKH_PasswordHash  = 2
-	CotKH_LoaiKhachHang = 3
-	CotKH_TenKhachHang  = 4
-	CotKH_DienThoai     = 5
-	CotKH_Email         = 6
-	CotKH_UrlFb         = 7
-	CotKH_Zalo          = 8
-	CotKH_UrlTele       = 9
-	CotKH_UrlTiktok     = 10
-	CotKH_DiaChi        = 11
-	CotKH_NgaySinh      = 12
-	CotKH_GioiTinh      = 13
-	CotKH_MaSoThue      = 14
-	CotKH_DangNo        = 15
-	CotKH_TongMua       = 16
-	CotKH_TrangThai     = 17
-	CotKH_GhiChu        = 18
-	CotKH_NguoiTao      = 19
-	CotKH_NgayTao       = 20
-	CotKH_NgayCapNhat   = 21
+	CotKH_MaKhachHang      = 0  // A
+	CotKH_TenDangNhap      = 1  // B
+	CotKH_MatKhauHash      = 2  // C
+	CotKH_Cookie           = 3  // D
+	CotKH_CookieExpired    = 4  // E
+	CotKH_MaPinHash        = 5  // F
+	CotKH_LoaiKhachHang    = 6  // G
+	CotKH_TenKhachHang     = 7  // H (Họ tên)
+	CotKH_DienThoai        = 8  // I
+	CotKH_Email            = 9  // J
+	CotKH_UrlFb            = 10 // K
+	CotKH_Zalo             = 11 // L
+	CotKH_UrlTele          = 12 // M
+	CotKH_UrlTiktok        = 13 // N
+	CotKH_DiaChi           = 14 // O
+	CotKH_NgaySinh         = 15 // P
+	CotKH_GioiTinh         = 16 // Q
+	CotKH_MaSoThue         = 17 // R
+	CotKH_DangNo           = 18 // S
+	CotKH_TongMua          = 19 // T
+	CotKH_ChucVu           = 20 // U
+	CotKH_VaiTroQuyenHan   = 21 // V
+	CotKH_TrangThai        = 22 // W
+	CotKH_GhiChu           = 23 // X
+	CotKH_NguoiTao         = 24 // Y
+	CotKH_NgayTao          = 25 // Z
+	CotKH_NgayCapNhat      = 26 // AA
 )
 
 // 11. PHIEU_THU_CHI (A-P)
@@ -270,23 +275,7 @@ const (
 	CotTH_LogoUrl       = 2
 )
 
-// 15. NHAN_VIEN (A-L)
-const (
-	CotNV_MaNhanVien      = 0
-	CotNV_TenDangNhap     = 1
-	CotNV_Email           = 2
-	CotNV_MatKhauHash     = 3
-	CotNV_HoTen           = 4
-	CotNV_ChucVu          = 5
-	CotNV_MaPin           = 6
-	CotNV_Cookie          = 7
-	CotNV_CookieExpired   = 8
-	CotNV_VaiTroQuyenHan  = 9
-	CotNV_TrangThai       = 10
-	CotNV_LanDangNhapCuoi = 11
-)
-
-// 16. KHUYEN_MAI (A-I)
+// 15. KHUYEN_MAI (A-I)
 const (
 	CotKM_MaVoucher      = 0
 	CotKM_TenChuongTrinh = 1
@@ -299,7 +288,7 @@ const (
 	CotKM_TrangThai      = 8
 )
 
-// 17. CAU_HINH_WEB (A-D)
+// 16. CAU_HINH_WEB (A-D)
 const (
 	CotCH_MaCauHinh = 0
 	CotCH_GiaTri    = 1

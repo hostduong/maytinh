@@ -1,12 +1,17 @@
 package nghiep_vu
 
 import (
+	"fmt"
+	"strconv"
+	"strings"
 	"sync"
+	"app/cau_hinh"
 	"app/mo_hinh"
 )
 
-var mtxNV sync.Mutex
+var mtxNV sync.Mutex // Khóa an toàn
 
+// 1. Tìm nhân viên theo Cookie (Giữ nguyên)
 func TimNhanVienTheoCookie(cookie string) (*mo_hinh.NhanVien, bool) {
 	for _, nv := range CacheNhanVien.DuLieu {
 		if nv.Cookie == cookie {
@@ -16,6 +21,7 @@ func TimNhanVienTheoCookie(cookie string) (*mo_hinh.NhanVien, bool) {
 	return nil, false
 }
 
+// 2. Tìm nhân viên theo Tên Đăng Nhập (Giữ nguyên)
 func TimNhanVienTheoUsername(username string) (*mo_hinh.NhanVien, bool) {
 	for _, nv := range CacheNhanVien.DuLieu {
 		if nv.TenDangNhap == username {
@@ -25,6 +31,36 @@ func TimNhanVienTheoUsername(username string) (*mo_hinh.NhanVien, bool) {
 	return nil, false
 }
 
+// --- [MỚI] Hàm kiểm tra trùng User hoặc Email ---
+func KiemTraTonTaiUserOrEmail(username string, email string) bool {
+	for _, nv := range CacheNhanVien.DuLieu {
+		if nv.TenDangNhap == username || (email != "" && nv.Email == email) {
+			return true
+		}
+	}
+	return false
+}
+
+// --- [MỚI] Hàm sinh Mã Nhân Viên tự động (NV_0001 -> NV_0002) ---
+func TaoMaNhanVienMoi() string {
+	maxID := 0
+	
+	for _, nv := range CacheNhanVien.DuLieu {
+		// Mã có dạng "NV_xxxx". Cắt bỏ "NV_" lấy phần số
+		parts := strings.Split(nv.MaNhanVien, "_")
+		if len(parts) == 2 {
+			id, err := strconv.Atoi(parts[1])
+			if err == nil && id > maxID {
+				maxID = id
+			}
+		}
+	}
+	
+	// Tăng lên 1 và format lại thành 4 chữ số (NV_0005)
+	return fmt.Sprintf("NV_%04d", maxID+1)
+}
+
+// 3. Cập nhật Phiên làm việc (Giữ nguyên)
 func CapNhatPhienDangNhap(maNV string, newCookie string, newExpired int64) {
 	mtxNV.Lock()
 	defer mtxNV.Unlock()
@@ -39,34 +75,22 @@ func CapNhatPhienDangNhap(maNV string, newCookie string, newExpired int64) {
 	ThemVaoHangCho(CacheNhanVien.SpreadsheetID, "NHAN_VIEN", nv.DongTrongSheet, mo_hinh.CotNV_CookieExpired, newExpired)
 }
 
+// 4. Gia hạn Cookie (Giữ nguyên)
 func CapNhatHanCookieRAM(maNV string, newExpired int64) {
 	mtxNV.Lock()
 	defer mtxNV.Unlock()
-
 	nv, ok := CacheNhanVien.DuLieu[maNV]
 	if !ok { return }
-
 	nv.CookieExpired = newExpired
-	
 	ThemVaoHangCho(CacheNhanVien.SpreadsheetID, "NHAN_VIEN", nv.DongTrongSheet, mo_hinh.CotNV_CookieExpired, newExpired)
 }
 
-func LayDongNhanVien(maNV string) int {
-	if nv, ok := CacheNhanVien.DuLieu[maNV]; ok {
-		return nv.DongTrongSheet
-	}
-	return 0
-}
-
-// ... (Các hàm cũ giữ nguyên)
-
-// 5. Thêm Nhân Viên Mới (Đăng Ký)
+// 5. Thêm Nhân Viên Mới (Đã nâng cấp FULL trường)
 func ThemNhanVienMoi(nv *mo_hinh.NhanVien) {
 	mtxNV.Lock()
 	defer mtxNV.Unlock()
 
-	// 1. Tìm dòng trống tiếp theo trong Sheet
-	// (Duyệt qua Cache để tìm dòng lớn nhất đang có dữ liệu)
+	// Tìm dòng trống tiếp theo
 	maxRow := mo_hinh.DongBatDauDuLieu - 1
 	for _, item := range CacheNhanVien.DuLieu {
 		if item.DongTrongSheet > maxRow {
@@ -76,25 +100,36 @@ func ThemNhanVienMoi(nv *mo_hinh.NhanVien) {
 	newRow := maxRow + 1
 	nv.DongTrongSheet = newRow
 
-	// 2. Lưu vào RAM
+	// Lưu vào RAM
 	CacheNhanVien.DuLieu[nv.MaNhanVien] = nv
 
-	// 3. Đẩy vào Hàng Chờ Ghi (Ghi từng cột)
-	// ID Sheet, Tên Sheet, Dòng, Cột, Giá trị
-	sheetID := CacheNhanVien.SpreadsheetID
-	sheetName := "NHAN_VIEN"
+	// Đẩy vào Hàng Chờ Ghi (Ghi đủ cột A -> L)
+	sID := CacheNhanVien.SpreadsheetID
+	sName := "NHAN_VIEN"
 
-	ThemVaoHangCho(sheetID, sheetName, newRow, mo_hinh.CotNV_MaNhanVien, nv.MaNhanVien)
-	ThemVaoHangCho(sheetID, sheetName, newRow, mo_hinh.CotNV_TenDangNhap, nv.TenDangNhap)
-	ThemVaoHangCho(sheetID, sheetName, newRow, mo_hinh.CotNV_MatKhauHash, nv.MatKhauHash)
-	ThemVaoHangCho(sheetID, sheetName, newRow, mo_hinh.CotNV_HoTen, nv.HoTen)
-	ThemVaoHangCho(sheetID, sheetName, newRow, mo_hinh.CotNV_VaiTroQuyenHan, nv.VaiTroQuyenHan)
-	ThemVaoHangCho(sheetID, sheetName, newRow, mo_hinh.CotNV_TrangThai, nv.TrangThai)
-    // Mặc định ngày tạo là ngày login cuối để đỡ trống
-    ThemVaoHangCho(sheetID, sheetName, newRow, mo_hinh.CotNV_LanDangNhapCuoi, nv.LanDangNhapCuoi) 
+	ThemVaoHangCho(sID, sName, newRow, mo_hinh.CotNV_MaNhanVien, nv.MaNhanVien)
+	ThemVaoHangCho(sID, sName, newRow, mo_hinh.CotNV_TenDangNhap, nv.TenDangNhap)
+	ThemVaoHangCho(sID, sName, newRow, mo_hinh.CotNV_Email, nv.Email)           // Cột C
+	ThemVaoHangCho(sID, sName, newRow, mo_hinh.CotNV_MatKhauHash, nv.MatKhauHash)
+	ThemVaoHangCho(sID, sName, newRow, mo_hinh.CotNV_HoTen, nv.HoTen)
+	ThemVaoHangCho(sID, sName, newRow, mo_hinh.CotNV_ChucVu, nv.ChucVu)         // Cột F
+	ThemVaoHangCho(sID, sName, newRow, mo_hinh.CotNV_MaPin, nv.MaPin)           // Cột G
+	ThemVaoHangCho(sID, sName, newRow, mo_hinh.CotNV_Cookie, nv.Cookie)
+	ThemVaoHangCho(sID, sName, newRow, mo_hinh.CotNV_CookieExpired, nv.CookieExpired)
+	ThemVaoHangCho(sID, sName, newRow, mo_hinh.CotNV_VaiTroQuyenHan, nv.VaiTroQuyenHan)
+	ThemVaoHangCho(sID, sName, newRow, mo_hinh.CotNV_TrangThai, nv.TrangThai)
+	ThemVaoHangCho(sID, sName, newRow, mo_hinh.CotNV_LanDangNhapCuoi, nv.LanDangNhapCuoi)
 }
 
-// 6. Đếm số lượng nhân viên (Để biết ai là người đầu tiên)
+// 6. Đếm số lượng (Giữ nguyên)
 func DemSoLuongNhanVien() int {
 	return len(CacheNhanVien.DuLieu)
+}
+
+// 7. Lấy dòng (Giữ nguyên)
+func LayDongNhanVien(maNV string) int {
+	if nv, ok := CacheNhanVien.DuLieu[maNV]; ok {
+		return nv.DongTrongSheet
+	}
+	return 0
 }

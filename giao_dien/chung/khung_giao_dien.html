@@ -1,0 +1,49 @@
+{{ define "khung_giao_dien" }}
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ .TieuDe }} - Cửa Hàng Máy Tính</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
+    <style>body { font-family: 'Inter', sans-serif; }</style>
+</head>
+<body class="bg-gray-50 text-gray-800 flex flex-col min-h-screen">
+
+    <header class="bg-white shadow-sm sticky top-0 z-50">
+        <div class="container mx-auto px-4 h-16 flex items-center justify-between">
+            <a href="/" class="text-2xl font-bold text-blue-600 flex items-center gap-2">
+                🖥️ <span class="hidden md:inline">MayTinhShop</span>
+            </a>
+
+            <div class="flex-1 mx-4 max-w-lg hidden md:block">
+                <div class="relative">
+                    <input type="text" placeholder="Tìm kiếm linh kiện..." class="w-full pl-4 pr-10 py-2 border rounded-full bg-gray-100 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition">
+                    <button class="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-400">🔍</button>
+                </div>
+            </div>
+
+            <div class="flex items-center space-x-4">
+                <a href="#" class="hover:text-blue-600 font-medium">Danh mục</a>
+                <a href="#" class="relative hover:text-blue-600">
+                    🛒 Giỏ hàng
+                    <span class="absolute -top-2 -right-2 bg-red-500 text-white text-xs font-bold px-1.5 py-0.5 rounded-full">0</span>
+                </a>
+            </div>
+        </div>
+    </header>
+
+    <main class="flex-grow container mx-auto px-4 py-8">
+        {{ template "noi_dung" . }}
+    </main>
+
+    <footer class="bg-gray-800 text-gray-300 py-8">
+        <div class="container mx-auto px-4 text-center">
+            <p>&copy; 2024 Cửa Hàng Máy Tính. Hệ thống vận hành bởi Golang & Google Sheets.</p>
+        </div>
+    </footer>
+
+</body>
+</html>
+{{ end }}

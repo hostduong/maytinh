@@ -5,6 +5,7 @@
     <meta charset="UTF-8">
     <title>Khôi phục mật khẩu</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <style> .tab-active { border-bottom: 2px solid #2563eb; color: #2563eb; font-weight: 600; } </style>
 </head>
 <body class="bg-gray-100 h-screen flex items-center justify-center">
@@ -13,33 +14,35 @@
         <h1 class="text-2xl font-bold text-center mb-6 text-gray-800">Khôi phục mật khẩu</h1>
 
         <div class="flex border-b mb-6">
-            <button onclick="switchTab('pin')" id="btnTabPin" class="flex-1 pb-3 text-gray-500 tab-active">Dùng Mã PIN</button>
-            <button onclick="switchTab('email')" id="btnTabEmail" class="flex-1 pb-3 text-gray-500">Dùng Email</button>
+            <button onclick="switchTab('pin')" id="btnTabPin" class="flex-1 pb-3 text-gray-500 tab-active transition">Dùng Mã PIN</button>
+            <button onclick="switchTab('email')" id="btnTabEmail" class="flex-1 pb-3 text-gray-500 transition">Dùng Email</button>
         </div>
 
         <div id="formPin" class="space-y-4">
-            <input type="text" id="pinUser" placeholder="Tên đăng nhập hoặc Email" class="w-full p-3 border rounded-lg bg-gray-50">
-            <input type="password" id="pinCode" placeholder="Mã PIN bảo mật" class="w-full p-3 border rounded-lg bg-gray-50">
-            <input type="password" id="pinNewPass" placeholder="Mật khẩu mới" class="w-full p-3 border rounded-lg bg-gray-50">
-            <button onclick="resetByPin()" class="w-full bg-blue-600 text-white py-3 rounded-lg font-bold hover:bg-blue-700">ĐỔI MẬT KHẨU</button>
+            <input type="text" id="pinUser" placeholder="Tên đăng nhập hoặc Email" class="w-full p-3 border rounded-lg bg-gray-50 focus:ring-2 focus:ring-blue-500 outline-none">
+            <input type="password" id="pinCode" placeholder="Mã PIN bảo mật (6 số)" class="w-full p-3 border rounded-lg bg-gray-50 focus:ring-2 focus:ring-blue-500 outline-none">
+            <input type="password" id="pinNewPass" placeholder="Mật khẩu mới" class="w-full p-3 border rounded-lg bg-gray-50 focus:ring-2 focus:ring-blue-500 outline-none">
+            <button onclick="resetByPin()" class="w-full bg-blue-600 text-white py-3 rounded-lg font-bold hover:bg-blue-700 shadow-lg shadow-blue-500/30 transition">ĐỔI MẬT KHẨU</button>
         </div>
 
         <div id="formEmail" class="space-y-4 hidden">
             <div id="step1">
-                <input type="text" id="emailInput" placeholder="Nhập Email của bạn" class="w-full p-3 border rounded-lg bg-gray-50 mb-3">
-                <button onclick="sendOtp()" class="w-full bg-purple-600 text-white py-3 rounded-lg font-bold hover:bg-purple-700">GỬI MÃ OTP</button>
+                <input type="text" id="emailInput" placeholder="Nhập Email của bạn" class="w-full p-3 border rounded-lg bg-gray-50 mb-3 focus:ring-2 focus:ring-purple-500 outline-none">
+                <button onclick="sendOtp()" class="w-full bg-purple-600 text-white py-3 rounded-lg font-bold hover:bg-purple-700 shadow-lg shadow-purple-500/30 transition">GỬI MÃ OTP</button>
             </div>
             
             <div id="step2" class="hidden space-y-3">
-                <div class="bg-green-50 text-green-700 p-2 text-xs rounded mb-2">Đã gửi mã OTP 8 số về email của bạn.</div>
-                <input type="text" id="otpInput" placeholder="Nhập mã OTP (8 số)" class="w-full p-3 border rounded-lg bg-gray-50">
-                <input type="password" id="otpNewPass" placeholder="Mật khẩu mới" class="w-full p-3 border rounded-lg bg-gray-50">
-                <button onclick="resetByOtp()" class="w-full bg-green-600 text-white py-3 rounded-lg font-bold hover:bg-green-700">XÁC NHẬN ĐỔI</button>
+                <div class="bg-green-50 text-green-700 p-3 text-sm rounded border border-green-200 flex items-center gap-2">
+                    <span>✅</span> Đã gửi mã OTP 8 số về email của bạn.
+                </div>
+                <input type="text" id="otpInput" placeholder="Nhập mã OTP (8 số)" class="w-full p-3 border rounded-lg bg-gray-50 focus:ring-2 focus:ring-green-500 outline-none">
+                <input type="password" id="otpNewPass" placeholder="Mật khẩu mới" class="w-full p-3 border rounded-lg bg-gray-50 focus:ring-2 focus:ring-green-500 outline-none">
+                <button onclick="resetByOtp()" class="w-full bg-green-600 text-white py-3 rounded-lg font-bold hover:bg-green-700 shadow-lg shadow-green-500/30 transition">XÁC NHẬN ĐỔI</button>
             </div>
         </div>
 
         <div class="mt-6 text-center text-sm">
-            <a href="/login" class="text-blue-600 hover:underline">Quay lại đăng nhập</a>
+            <a href="/login" class="text-blue-600 hover:underline font-medium">← Quay lại đăng nhập</a>
         </div>
     </div>
 
@@ -66,34 +69,52 @@
             return await res.json();
         }
 
+        // --- RESET BẰNG PIN ---
         async function resetByPin() {
             const res = await postData('/api/auth/reset-by-pin', {
                 user: document.getElementById('pinUser').value,
                 pin: document.getElementById('pinCode').value,
                 pass_moi: document.getElementById('pinNewPass').value
             });
-            alert(res.msg);
-            if(res.status === 'ok') window.location.href = '/login';
-        }
-
-        async function sendOtp() {
-            const email = document.getElementById('emailInput').value;
-            const res = await postData('/api/auth/send-otp', { email: email });
-            alert(res.msg);
+            
             if(res.status === 'ok') {
-                document.getElementById('step1').classList.add('hidden');
-                document.getElementById('step2').classList.remove('hidden');
+                Swal.fire({ icon: 'success', title: 'Thành công!', text: res.msg }).then(() => {
+                    window.location.href = '/login';
+                });
+            } else {
+                Swal.fire({ icon: 'error', title: 'Lỗi!', text: res.msg });
             }
         }
 
+        // --- GỬI OTP ---
+        async function sendOtp() {
+            const email = document.getElementById('emailInput').value;
+            const res = await postData('/api/auth/send-otp', { email: email });
+            
+            if(res.status === 'ok') {
+                Swal.fire({ icon: 'success', title: 'Đã gửi!', text: res.msg, timer: 2000, showConfirmButton: false });
+                document.getElementById('step1').classList.add('hidden');
+                document.getElementById('step2').classList.remove('hidden');
+            } else {
+                Swal.fire({ icon: 'error', title: 'Lỗi!', text: res.msg });
+            }
+        }
+
+        // --- RESET BẰNG OTP ---
         async function resetByOtp() {
             const res = await postData('/api/auth/reset-by-otp', {
                 email: document.getElementById('emailInput').value,
                 otp: document.getElementById('otpInput').value,
                 pass_moi: document.getElementById('otpNewPass').value
             });
-            alert(res.msg);
-            if(res.status === 'ok') window.location.href = '/login';
+            
+            if(res.status === 'ok') {
+                Swal.fire({ icon: 'success', title: 'Thành công!', text: res.msg }).then(() => {
+                    window.location.href = '/login';
+                });
+            } else {
+                Swal.fire({ icon: 'error', title: 'Lỗi!', text: res.msg });
+            }
         }
     </script>
 </body>

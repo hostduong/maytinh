@@ -36,24 +36,22 @@ func XuLyDangKy(c *gin.Context) {
 	// 3. Mã hóa mật khẩu
 	passHash, _ := bao_mat.HashMatKhau(pass)
 
-	// 4. LOGIC QUYỀN HẠN & MÃ SỐ (QUAN TRỌNG)
+	// 4. Logic Quyền hạn (Admin vs Khách)
 	var maDinhDanh string
 	var quyenHan string
 	var chucVu string
 
 	if nghiep_vu.DemSoLuongNhanVien() == 0 {
-		// --- NGƯỜI ĐẦU TIÊN (ADMIN) ---
 		maDinhDanh = nghiep_vu.TaoMaNhanVienMoi() // NV_0001
 		quyenHan = "admin"
 		chucVu = "Quản lý cửa hàng"
 	} else {
-		// --- NGƯỜI THỨ 2 TRỞ ĐI (KHÁCH HÀNG) ---
 		maDinhDanh = nghiep_vu.TaoMaKhachHangMoi() // KH_xxxx
-		quyenHan = "" // Để rỗng theo yêu cầu (Khách vãng lai)
+		quyenHan = "" // Khách hàng không có quyền admin
 		chucVu = "Khách hàng"
 	}
 
-	// 5. Tạo Session cho Auto-Login
+	// 5. Tạo Session Auto Login
 	cookie := uuid.New().String()
 	expiredTime := time.Now().Add(cau_hinh.ThoiGianHetHanCookie).Unix()
 
@@ -76,11 +74,14 @@ func XuLyDangKy(c *gin.Context) {
 	// 7. Lưu vào hệ thống
 	nghiep_vu.ThemNhanVienMoi(newNV)
 
-	// 8. Auto Login
+	// 8. Auto Login (Set Cookie)
 	c.SetCookie("session_id", cookie, int(cau_hinh.ThoiGianHetHanCookie.Seconds()), "/", "", false, true)
 
-	// 9. Điều hướng
-	// Nếu là Admin -> Vào trang quản trị
-	// Nếu là Khách -> Có thể vào trang chủ hoặc trang cá nhân (Tạm thời cứ vào admin/tong-quan để test)
-	c.Redirect(http.StatusFound, "/admin/tong-quan")
+	// 9. ĐIỀU HƯỚNG THÔNG MINH (Smart Redirect)
+	if quyenHan == "admin" {
+		c.Redirect(http.StatusFound, "/admin/tong-quan")
+	} else {
+		// Khách hàng -> Về trang chủ mua sắm
+		c.Redirect(http.StatusFound, "/")
+	}
 }

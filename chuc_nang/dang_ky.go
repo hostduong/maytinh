@@ -2,10 +2,10 @@ package chuc_nang
 
 import (
 	"net/http"
-	"strings" // [MỚI] Thêm thư viện xử lý chuỗi
+	"strings"
 	"time"
 
-	"app/bao_mat"
+	"app/bao_mat" // <--- Đảm bảo đã import
 	"app/cau_hinh"
 	"app/mo_hinh"
 	"app/nghiep_vu"
@@ -13,45 +13,58 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// GET /register
+// GET /register (Giữ nguyên)
 func TrangDangKy(c *gin.Context) {
-	// CHẶN NẾU ĐÃ ĐĂNG NHẬP
 	cookie, _ := c.Cookie("session_id")
 	if cookie != "" {
 		if _, ok := nghiep_vu.TimNhanVienTheoCookie(cookie); ok {
-			c.Redirect(http.StatusFound, "/") // Đá về trang chủ
+			c.Redirect(http.StatusFound, "/")
 			return
 		}
 	}
-	
 	c.HTML(http.StatusOK, "dang_ky", gin.H{})
 }
 
 // POST /register
 func XuLyDangKy(c *gin.Context) {
-	// 1. Nhận dữ liệu & CẮT KHOẢNG TRẮNG [QUAN TRỌNG]
+	// 1. Nhận dữ liệu & Cắt khoảng trắng
 	hoTen := strings.TrimSpace(c.PostForm("ho_ten"))
 	user  := strings.TrimSpace(c.PostForm("ten_dang_nhap"))
 	pass  := strings.TrimSpace(c.PostForm("mat_khau"))
 	email := strings.TrimSpace(c.PostForm("email"))
 	maPin := strings.TrimSpace(c.PostForm("ma_pin"))
 
-	// Validate cơ bản: Không cho phép nhập rỗng
-	if user == "" || pass == "" || hoTen == "" {
-		c.HTML(http.StatusOK, "dang_ky", gin.H{"Loi": "Vui lòng nhập đầy đủ thông tin bắt buộc!"})
+	// 2. [MỚI] VALIDATION - KIỂM TRA ĐẦU VÀO CHẶT CHẼ
+	if !bao_mat.KiemTraHoTen(hoTen) {
+		c.HTML(http.StatusOK, "dang_ky", gin.H{"Loi": "Họ tên phải từ 6-50 ký tự, chỉ chứa chữ cái!"})
+		return
+	}
+	if !bao_mat.KiemTraTenDangNhap(user) {
+		c.HTML(http.StatusOK, "dang_ky", gin.H{"Loi": "Tên đăng nhập 6-30 ký tự (chữ, số, . _), không dấu cách/Việt!"})
+		return
+	}
+	if !bao_mat.KiemTraEmail(email) {
+		c.HTML(http.StatusOK, "dang_ky", gin.H{"Loi": "Email không hợp lệ hoặc chứa ký tự lạ!"})
+		return
+	}
+	if !bao_mat.KiemTraMaPin(maPin) {
+		c.HTML(http.StatusOK, "dang_ky", gin.H{"Loi": "Mã PIN phải là 8 chữ số!"})
+		return
+	}
+	if !bao_mat.KiemTraMatKhau(pass) {
+		c.HTML(http.StatusOK, "dang_ky", gin.H{"Loi": "Mật khẩu 8-30 ký tự, không chứa dấu cách, ' \" < >"})
 		return
 	}
 
-	// 2. Kiểm tra trùng lặp
+	// 3. Kiểm tra trùng lặp (Giữ nguyên)
 	if nghiep_vu.KiemTraTonTaiUserOrEmail(user, email) {
 		c.HTML(http.StatusOK, "dang_ky", gin.H{"Loi": "Tên đăng nhập hoặc Email đã tồn tại!"})
 		return
 	}
 
-	// 3. Mã hóa mật khẩu
+	// 4. Mã hóa & Logic tạo user (Giữ nguyên đoạn dưới...)
 	passHash, _ := bao_mat.HashMatKhau(pass)
 
-	// 4. Logic Quyền hạn (Admin vs Khách)
 	var maDinhDanh, quyenHan, chucVu string
 	if nghiep_vu.DemSoLuongNhanVien() == 0 {
 		maDinhDanh = nghiep_vu.TaoMaNhanVienMoi()
@@ -63,11 +76,9 @@ func XuLyDangKy(c *gin.Context) {
 		chucVu = "Khách hàng"
 	}
 
-	// 5. Tạo Session Siêu Bảo Mật
 	cookie := bao_mat.TaoSessionIDAnToan()
 	expiredTime := time.Now().Add(cau_hinh.ThoiGianHetHanCookie).Unix()
 
-	// 6. Tạo Struct
 	newNV := &mo_hinh.NhanVien{
 		MaNhanVien:      maDinhDanh,
 		TenDangNhap:     user,
@@ -83,13 +94,9 @@ func XuLyDangKy(c *gin.Context) {
 		LanDangNhapCuoi: time.Now().Format("2006-01-02 15:04:05"),
 	}
 
-	// 7. Lưu vào hệ thống
 	nghiep_vu.ThemNhanVienMoi(newNV)
-
-	// 8. Auto Login
 	c.SetCookie("session_id", cookie, int(cau_hinh.ThoiGianHetHanCookie.Seconds()), "/", "", false, true)
 
-	// 9. Điều hướng
 	if quyenHan == "admin" {
 		c.Redirect(http.StatusFound, "/admin/tong-quan")
 	} else {

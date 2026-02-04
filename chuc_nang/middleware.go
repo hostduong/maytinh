@@ -1,0 +1,119 @@
+package chuc_nang
+
+import (
+	"net/http"
+	"strconv"
+	"sync"
+	"time"
+
+	"app/cau_hinh"
+	"app/nghiep_vu" // Để gọi Hàng chờ ghi
+
+	"github.com/gin-gonic/gin"
+)
+
+// Bộ nhớ đếm Request cho Rate Limit
+var boDem = make(map[string]int)
+var mtx sync.Mutex
+
+// Khởi chạy bộ đếm (Reset mỗi giây)
+func KhoiTaoBoDemRateLimit() {
+	go func() {
+		for {
+			time.Sleep(1 * time.Second)
+			mtx.Lock()
+			boDem = make(map[string]int) // Xóa sạch bộ đếm cũ
+			mtx.Unlock()
+		}
+	}()
+}
+
+// MIDDLEWARE CHÍNH
+func KiemTraQuyenHan(c *gin.Context) {
+	// 1. KIỂM TRA RATE LIMIT (CHỐNG SPAM)
+	cookie, err := c.Cookie("session_id")
+	keyLimit := ""
+	
+	if err != nil || cookie == "" {
+		keyLimit = "LIMIT__IP__" + c.ClientIP()
+	} else {
+		keyLimit = "LIMIT__COOKIE__" + cookie
+	}
+
+	mtx.Lock()
+	boDem[keyLimit]++
+	soLanGoi := boDem[keyLimit]
+	mtx.Unlock()
+
+	// Logic chặn: Nếu người dùng gọi quá 10 req/s
+	if soLanGoi > cau_hinh.GioiHanNguoiDung {
+		c.AbortWithStatusJSON(http.StatusTooManyRequests, gin.H{"loi": "Thao tác quá nhanh! Vui lòng chậm lại."})
+		return
+	}
+
+	// 2. KIỂM TRA ĐĂNG NHẬP (AUTH)
+	// API Public không cần check (Ví dụ: trang login, trang chủ xem hàng)
+	// Ở đây ta tạm thời cho qua hết, chỉ check các API có prefix /admin hoặc /api/private
+	// (Logic routing cụ thể sẽ cài ở main.go)
+	
+	if cookie == "" {
+		// Chưa đăng nhập -> Cho qua (để vào Controller xử lý tiếp hoặc chặn tùy Route)
+		c.Next()
+		return
+	}
+
+	// Tìm trong RAM xem Cookie có tồn tại không
+	// (Giả sử bạn đã có map CacheNhanVien trong nghiep_vu.BoNho)
+	nhanVien, timThay := nghiep_vu.TimNhanVienTheoCookie(cookie)
+
+	if !timThay {
+		// Cookie rác -> Xóa cookie trình duyệt
+		c.SetCookie("session_id", "", -1, "/", "", false, true)
+		c.Next()
+		return
+	}
+
+	// 3. LOGIC GIA HẠN THÔNG MINH (Auto-Renew)
+	thoiGianHetHan := nhanVien.CookieExpired // Dạng int64 (Unix timestamp)
+	now := time.Now().Unix()
+
+	// Nếu đã hết hạn -> Đá ra
+	if now > thoiGianHetHan {
+		c.SetCookie("session_id", "", -1, "/", "", false, true)
+		c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"loi": "Phiên đăng nhập hết hạn"})
+		return
+	}
+
+	// Nếu còn hạn nhưng sắp hết (trong vùng ân hạn) -> GIA HẠN
+	thoiGianConLai := time.Duration(thoiGianHetHan - now) * time.Second
+	if thoiGianConLai < cau_hinh.ThoiGianAnHan {
+		
+		// A. Tính thời gian mới (+30 phút)
+		newExp := time.Now().Add(cau_hinh.ThoiGianHetHanCookie).Unix()
+		
+		// B. Cập nhật vào RAM ngay (để các request sau ko trigger nữa)
+		nghiep_vu.CapNhatHanCookieRAM(nhanVien.MaNhanVien, newExp)
+
+		// C. Đẩy vào Hàng Chờ Ghi (WriteQueue) -> Worker sẽ ghi xuống Sheet sau
+		// Ghi vào Sheet NHAN_VIEN, dòng tương ứng, cột CookieExpired
+		rowID := nghiep_vu.LayDongNhanVien(nhanVien.MaNhanVien) // Cần hàm này
+		if rowID > 0 {
+			nghiep_vu.ThemVaoHangCho(
+				nghiep_vu.CacheNhanVien.SpreadsheetID, // ID file sheet
+				"NHAN_VIEN",                           // Tên sheet
+				rowID,                                 // Dòng
+				cau_hinh.CotNV_CookieExpired,          // Cột I
+				newExp,                                // Giá trị mới
+			)
+		}
+
+		// D. Set lại Cookie mới cho trình duyệt
+		c.SetCookie("session_id", cookie, int(cau_hinh.ThoiGianHetHanCookie.Seconds()), "/", "", false, true)
+	}
+
+	// Lưu thông tin user vào Context để Controller dùng
+	c.Set("USER_ID", nhanVien.MaNhanVien)
+	c.Set("USER_ROLE", nhanVien.VaiTro)
+	
+	c.Next()
+}

@@ -4,16 +4,12 @@ FROM golang:1.20-alpine as builder
 # Tạo thư mục làm việc trong container
 WORKDIR /app
 
-# Copy file quản lý thư viện trước
-COPY go.mod ./
-# (Nếu sau này bạn chạy go mod tidy nó sẽ sinh ra go.sum, nếu có thì uncomment dòng dưới)
-# COPY go.sum ./
-
-# Tải thư viện về
-RUN go mod download
-
-# Copy toàn bộ code vào container
+# Copy toàn bộ code vào container TRƯỚC (Để quét được các import)
 COPY . .
+
+# --- KHẮC PHỤC LỖI Ở ĐÂY ---
+# Chạy lệnh này để nó tự tìm thư viện còn thiếu và tạo go.sum ảo
+RUN go mod tidy
 
 # Build ra file chạy tên là "server"
 RUN go build -o server main.go
@@ -25,7 +21,7 @@ WORKDIR /root/
 # Copy file chạy từ bước 1 sang
 COPY --from=builder /app/server .
 
-# Copy file chứng chỉ Google sang (LƯU Ý: Đọc phần bảo mật bên dưới)
+# Copy file chứng chỉ Google sang
 COPY chung_chi_google.json .
 
 # Mở cổng 8080

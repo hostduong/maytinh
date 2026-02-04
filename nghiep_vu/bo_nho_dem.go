@@ -34,18 +34,13 @@ type KhoNhaCungCapStore struct {
 	DuLieu map[string]mo_hinh.NhaCungCap
 	TenKey string
 }
-type KhoKhachHangStore struct {
-	DuLieu map[string]mo_hinh.KhachHang
-	TenKey string
-}
 
-// --- [QUAN TRỌNG: ĐÃ SỬA LẠI STRUCT NÀY] ---
-type KhoNhanVienStore struct {
-	DuLieu        map[string]*mo_hinh.NhanVien // <--- Có dấu sao (*)
+// [QUAN TRỌNG] Kho Khách Hàng (Lưu con trỏ *KhachHang để update RAM được)
+type KhoKhachHangStore struct {
+	DuLieu        map[string]*mo_hinh.KhachHang
 	TenKey        string
-	SpreadsheetID string                       // <--- Đã thêm trường này
+	SpreadsheetID string // ID file sheet để WriteQueue dùng
 }
-// -------------------------------------------
 
 type KhoPhieuNhapStore struct {
 	DuLieu   map[string]mo_hinh.PhieuNhap
@@ -105,7 +100,7 @@ var (
 	CacheThuongHieu      *KhoThuongHieuStore
 	CacheNhaCungCap      *KhoNhaCungCapStore
 	CacheKhachHang       *KhoKhachHangStore
-	CacheNhanVien        *KhoNhanVienStore
+	// Đã xóa CacheNhanVien
 	CachePhieuNhap       *KhoPhieuNhapStore
 	CacheChiTietNhap     *KhoChiTietPhieuNhapStore
 	CachePhieuXuat       *KhoPhieuXuatStore
@@ -128,20 +123,19 @@ func TaoKeyCache(tenSheet string) string {
 // 3. KHỞI TẠO VÀ NẠP DỮ LIỆU
 // =================================================================================
 func KhoiTaoBoNho() {
-	log.Println("--- [CACHE] Bắt đầu khởi tạo bộ nhớ cho 17 bảng ---")
+	log.Println("--- [CACHE] Bắt đầu khởi tạo bộ nhớ ---")
 	
 	khoiTaoCacStore()
 
 	var wg sync.WaitGroup
 
 	log.Println(">> Đợt 1: Nạp Master Data...")
-	wg.Add(7)
+	wg.Add(6) // Giảm còn 6 vì bỏ NhanVien
 	go func() { defer wg.Done(); napDanhMuc() }()
 	go func() { defer wg.Done(); napThuongHieu() }()
 	go func() { defer wg.Done(); napSanPham() }()
 	go func() { defer wg.Done(); napKhachHang() }()
 	go func() { defer wg.Done(); napNhaCungCap() }()
-	go func() { defer wg.Done(); napNhanVien() }()
 	go func() { defer wg.Done(); napCauHinhWeb() }()
 	wg.Wait()
 	
@@ -175,33 +169,26 @@ func khoiTaoCacStore() {
 	CacheDanhMuc = &KhoDanhMucStore{DuLieu: make(map[string]mo_hinh.DanhMuc), TenKey: TaoKeyCache("DANH_MUC")}
 	CacheThuongHieu = &KhoThuongHieuStore{DuLieu: make(map[string]mo_hinh.ThuongHieu), TenKey: TaoKeyCache("THUONG_HIEU")}
 	CacheNhaCungCap = &KhoNhaCungCapStore{DuLieu: make(map[string]mo_hinh.NhaCungCap), TenKey: TaoKeyCache("NHA_CUNG_CAP")}
-	CacheKhachHang = &KhoKhachHangStore{DuLieu: make(map[string]mo_hinh.KhachHang), TenKey: TaoKeyCache("KHACH_HANG")}
 	
-	// --- [QUAN TRỌNG] Khởi tạo với Map con trỏ (*) ---
-	CacheNhanVien = &KhoNhanVienStore{
-		DuLieu: make(map[string]*mo_hinh.NhanVien), 
-		TenKey: TaoKeyCache("NHAN_VIEN"),
+	// [QUAN TRỌNG] Khởi tạo KhachHangStore dùng con trỏ và ID Sheet
+	CacheKhachHang = &KhoKhachHangStore{
+		DuLieu:        make(map[string]*mo_hinh.KhachHang), 
+		TenKey:        TaoKeyCache("KHACH_HANG"),
+		SpreadsheetID: cau_hinh.BienCauHinh.IdFileSheet,
 	}
 
 	CachePhieuNhap = &KhoPhieuNhapStore{DuLieu: make(map[string]mo_hinh.PhieuNhap), TenKey: TaoKeyCache("PHIEU_NHAP")}
 	CacheChiTietNhap = &KhoChiTietPhieuNhapStore{TenKey: TaoKeyCache("CHI_TIET_PHIEU_NHAP")}
-	
 	CachePhieuXuat = &KhoPhieuXuatStore{DuLieu: make(map[string]mo_hinh.PhieuXuat), TenKey: TaoKeyCache("PHIEU_XUAT")}
 	CacheChiTietXuat = &KhoChiTietPhieuXuatStore{TenKey: TaoKeyCache("CHI_TIET_PHIEU_XUAT")}
-	
 	CacheSerial = &KhoSerialStore{DuLieu: make(map[string]mo_hinh.SerialSanPham), TenKey: TaoKeyCache("SERIAL_SAN_PHAM")}
 	CacheKhuyenMai = &KhoKhuyenMaiStore{DuLieu: make(map[string]mo_hinh.KhuyenMai), TenKey: TaoKeyCache("KHUYEN_MAI")}
 	CacheCauHinhWeb = &KhoCauHinhWebStore{DuLieu: make(map[string]mo_hinh.CauHinhWeb), TenKey: TaoKeyCache("CAU_HINH_WEB")}
-	
 	CacheHoaDon = &KhoHoaDonStore{DuLieu: make(map[string]mo_hinh.HoaDon), TenKey: TaoKeyCache("HOA_DON")}
 	CacheHoaDonChiTiet = &KhoHoaDonChiTietStore{TenKey: TaoKeyCache("HOA_DON_CHI_TIET")}
 	CachePhieuThuChi = &KhoPhieuThuChiStore{DuLieu: make(map[string]mo_hinh.PhieuThuChi), TenKey: TaoKeyCache("PHIEU_THU_CHI")}
 	CachePhieuBaoHanh = &KhoPhieuBaoHanhStore{DuLieu: make(map[string]mo_hinh.PhieuBaoHanh), TenKey: TaoKeyCache("PHIEU_BAO_HANH")}
 }
-
-// =================================================================================
-// 4. CÁC HÀM NẠP DỮ LIỆU
-// =================================================================================
 
 func loadSheetData(sheetName string, keyCache string) ([][]interface{}, error) {
 	duLieu, err := kho_du_lieu.DocToanBoSheet(sheetName)
@@ -214,7 +201,54 @@ func loadSheetData(sheetName string, keyCache string) ([][]interface{}, error) {
 	return duLieu, nil
 }
 
-// 1. SAN_PHAM
+// 1. KHACH_HANG (Thay thế cho NhanVien cũ)
+func napKhachHang() {
+	raw, err := loadSheetData("KHACH_HANG", CacheKhachHang.TenKey)
+	if err != nil { return }
+	defer BoQuanLyKhoa.LayKhoa(CacheKhachHang.TenKey).Unlock()
+
+	for i, r := range raw {
+		if i < mo_hinh.DongBatDauDuLieu { continue }
+		if len(r) <= mo_hinh.CotKH_MaKhachHang || layString(r, mo_hinh.CotKH_MaKhachHang) == "" { continue }
+
+		// Tạo con trỏ struct
+		item := &mo_hinh.KhachHang{
+			DongTrongSheet: i + 1,
+			MaKhachHang:    layString(r, mo_hinh.CotKH_MaKhachHang),
+			UserName:       layString(r, mo_hinh.CotKH_UserName), // Tên đăng nhập
+			TenDangNhap:    layString(r, mo_hinh.CotKH_UserName), // Map luôn vào TenDangNhap cho an toàn
+			MatKhauHash:    layString(r, mo_hinh.CotKH_PasswordHash),
+			Cookie:         layString(r, mo_hinh.CotKH_Cookie),
+			CookieExpired:  int64(layFloat(r, mo_hinh.CotKH_CookieExpired)),
+			MaPinHash:      layString(r, mo_hinh.CotKH_MaPinHash),
+			LoaiKhachHang:  layString(r, mo_hinh.CotKH_LoaiKhachHang),
+			TenKhachHang:   layString(r, mo_hinh.CotKH_TenKhachHang),
+			DienThoai:      layString(r, mo_hinh.CotKH_DienThoai),
+			Email:          layString(r, mo_hinh.CotKH_Email),
+			UrlFb:          layString(r, mo_hinh.CotKH_UrlFb),
+			Zalo:           layString(r, mo_hinh.CotKH_Zalo),
+			UrlTele:        layString(r, mo_hinh.CotKH_UrlTele),
+			UrlTiktok:      layString(r, mo_hinh.CotKH_UrlTiktok),
+			DiaChi:         layString(r, mo_hinh.CotKH_DiaChi),
+			NgaySinh:       layString(r, mo_hinh.CotKH_NgaySinh),
+			GioiTinh:       layString(r, mo_hinh.CotKH_GioiTinh),
+			MaSoThue:       layString(r, mo_hinh.CotKH_MaSoThue),
+			DangNo:         layFloat(r, mo_hinh.CotKH_DangNo),
+			TongMua:        layFloat(r, mo_hinh.CotKH_TongMua),
+			ChucVu:         layString(r, mo_hinh.CotKH_ChucVu),
+			VaiTroQuyenHan: layString(r, mo_hinh.CotKH_VaiTroQuyenHan),
+			TrangThai:      layInt(r, mo_hinh.CotKH_TrangThai),
+			GhiChu:         layString(r, mo_hinh.CotKH_GhiChu),
+			NguoiTao:       layString(r, mo_hinh.CotKH_NguoiTao),
+			NgayTao:        layString(r, mo_hinh.CotKH_NgayTao),
+			NgayCapNhat:    layString(r, mo_hinh.CotKH_NgayCapNhat),
+		}
+		// Lưu con trỏ vào map
+		CacheKhachHang.DuLieu[item.MaKhachHang] = item
+	}
+}
+
+// 2. SAN_PHAM
 func napSanPham() {
 	raw, err := loadSheetData("SAN_PHAM", CacheSanPham.TenKey)
 	if err != nil { return }
@@ -250,7 +284,7 @@ func napSanPham() {
 	}
 }
 
-// 2. DANH_MUC
+// 3. DANH_MUC
 func napDanhMuc() {
 	raw, err := loadSheetData("DANH_MUC", CacheDanhMuc.TenKey)
 	if err != nil { return }
@@ -271,7 +305,7 @@ func napDanhMuc() {
 	}
 }
 
-// 3. THUONG_HIEU
+// 4. THUONG_HIEU
 func napThuongHieu() {
 	raw, err := loadSheetData("THUONG_HIEU", CacheThuongHieu.TenKey)
 	if err != nil { return }
@@ -287,37 +321,6 @@ func napThuongHieu() {
 			LogoUrl:       layString(r, mo_hinh.CotTH_LogoUrl),
 		}
 		CacheThuongHieu.DuLieu[item.MaThuongHieu] = item
-	}
-}
-
-// 4. KHACH_HANG
-func napKhachHang() {
-	raw, err := loadSheetData("KHACH_HANG", CacheKhachHang.TenKey)
-	if err != nil { return }
-	defer BoQuanLyKhoa.LayKhoa(CacheKhachHang.TenKey).Unlock()
-
-	for i, r := range raw {
-		if i < mo_hinh.DongBatDauDuLieu { continue }
-		if len(r) <= mo_hinh.CotKH_MaKhachHang || layString(r, mo_hinh.CotKH_MaKhachHang) == "" { continue }
-
-		item := mo_hinh.KhachHang{
-			MaKhachHang:   layString(r, mo_hinh.CotKH_MaKhachHang),
-			UserName:      layString(r, mo_hinh.CotKH_UserName),
-			PasswordHash:  layString(r, mo_hinh.CotKH_PasswordHash),
-			LoaiKhachHang: layString(r, mo_hinh.CotKH_LoaiKhachHang),
-			TenKhachHang:  layString(r, mo_hinh.CotKH_TenKhachHang),
-			DienThoai:     layString(r, mo_hinh.CotKH_DienThoai),
-			Email:         layString(r, mo_hinh.CotKH_Email),
-			UrlFb:         layString(r, mo_hinh.CotKH_UrlFb),
-			DiaChi:        layString(r, mo_hinh.CotKH_DiaChi),
-			NgaySinh:      layString(r, mo_hinh.CotKH_NgaySinh),
-			GioiTinh:      layString(r, mo_hinh.CotKH_GioiTinh),
-			MaSoThue:      layString(r, mo_hinh.CotKH_MaSoThue),
-			DangNo:        layFloat(r, mo_hinh.CotKH_DangNo),
-			TongMua:       layFloat(r, mo_hinh.CotKH_TongMua),
-			TrangThai:     layInt(r, mo_hinh.CotKH_TrangThai),
-		}
-		CacheKhachHang.DuLieu[item.MaKhachHang] = item
 	}
 }
 
@@ -344,43 +347,7 @@ func napNhaCungCap() {
 	}
 }
 
-// 6. NHAN_VIEN (Đã sửa để dùng Con Trỏ & SpreadsheetID)
-func napNhanVien() {
-	// Gán ID Sheet để WriteQueue biết đường ghi
-	CacheNhanVien.SpreadsheetID = cau_hinh.BienCauHinh.IdFileSheet
-
-	raw, err := loadSheetData("NHAN_VIEN", CacheNhanVien.TenKey)
-	if err != nil { return }
-	defer BoQuanLyKhoa.LayKhoa(CacheNhanVien.TenKey).Unlock()
-
-	// Reset map với kiểu con trỏ
-	CacheNhanVien.DuLieu = make(map[string]*mo_hinh.NhanVien)
-
-	for i, r := range raw {
-		if i < mo_hinh.DongBatDauDuLieu { continue }
-		if len(r) <= mo_hinh.CotNV_MaNhanVien || layString(r, mo_hinh.CotNV_MaNhanVien) == "" { continue }
-		
-		item := &mo_hinh.NhanVien{ // Dùng dấu & để lấy địa chỉ
-			DongTrongSheet:  i + 1,
-			MaNhanVien:      layString(r, mo_hinh.CotNV_MaNhanVien),
-			TenDangNhap:     layString(r, mo_hinh.CotNV_TenDangNhap),
-			Email:           layString(r, mo_hinh.CotNV_Email),
-			MatKhauHash:     layString(r, mo_hinh.CotNV_MatKhauHash),
-			HoTen:           layString(r, mo_hinh.CotNV_HoTen),
-			ChucVu:          layString(r, mo_hinh.CotNV_ChucVu),
-			MaPin:           layString(r, mo_hinh.CotNV_MaPin),
-			Cookie:          layString(r, mo_hinh.CotNV_Cookie),
-			CookieExpired:   int64(layFloat(r, mo_hinh.CotNV_CookieExpired)),
-			VaiTroQuyenHan:  layString(r, mo_hinh.CotNV_VaiTroQuyenHan),
-			TrangThai:       layInt(r, mo_hinh.CotNV_TrangThai),
-			LanDangNhapCuoi: layString(r, mo_hinh.CotNV_LanDangNhapCuoi),
-		}
-		
-		CacheNhanVien.DuLieu[item.MaNhanVien] = item
-	}
-}
-
-// 7. PHIEU_XUAT
+// 6. PHIEU_XUAT
 func napPhieuXuat() {
 	raw, err := loadSheetData("PHIEU_XUAT", CachePhieuXuat.TenKey)
 	if err != nil { return }
@@ -413,7 +380,7 @@ func napPhieuXuat() {
 	}
 }
 
-// 8. CHI_TIET_PHIEU_XUAT
+// 7. CHI_TIET_PHIEU_XUAT
 func napChiTietPhieuXuat() {
 	raw, err := loadSheetData("CHI_TIET_PHIEU_XUAT", CacheChiTietXuat.TenKey)
 	if err != nil { return }
@@ -436,7 +403,7 @@ func napChiTietPhieuXuat() {
 	}
 }
 
-// 9. PHIEU_NHAP
+// 8. PHIEU_NHAP
 func napPhieuNhap() {
 	raw, err := loadSheetData("PHIEU_NHAP", CachePhieuNhap.TenKey)
 	if err != nil { return }
@@ -461,7 +428,7 @@ func napPhieuNhap() {
 	}
 }
 
-// 10. CHI_TIET_PHIEU_NHAP
+// 9. CHI_TIET_PHIEU_NHAP
 func napChiTietPhieuNhap() {
 	raw, err := loadSheetData("CHI_TIET_PHIEU_NHAP", CacheChiTietNhap.TenKey)
 	if err != nil { return }
@@ -482,7 +449,7 @@ func napChiTietPhieuNhap() {
 	}
 }
 
-// 11. SERIAL_SAN_PHAM
+// 10. SERIAL_SAN_PHAM
 func napSerial() {
 	raw, err := loadSheetData("SERIAL_SAN_PHAM", CacheSerial.TenKey)
 	if err != nil { return }
@@ -504,7 +471,7 @@ func napSerial() {
 	}
 }
 
-// 12. KHUYEN_MAI
+// 11. KHUYEN_MAI
 func napKhuyenMai() {
 	raw, err := loadSheetData("KHUYEN_MAI", CacheKhuyenMai.TenKey)
 	if err != nil { return }
@@ -526,7 +493,7 @@ func napKhuyenMai() {
 	}
 }
 
-// 13. CAU_HINH_WEB
+// 12. CAU_HINH_WEB
 func napCauHinhWeb() {
 	raw, err := loadSheetData("CAU_HINH_WEB", CacheCauHinhWeb.TenKey)
 	if err != nil { return }
@@ -545,7 +512,7 @@ func napCauHinhWeb() {
 	}
 }
 
-// 14. HOA_DON
+// 13. HOA_DON
 func napHoaDon() {
 	raw, err := loadSheetData("HOA_DON", CacheHoaDon.TenKey)
 	if err != nil { return }
@@ -568,7 +535,7 @@ func napHoaDon() {
 	}
 }
 
-// 15. HOA_DON_CHI_TIET
+// 14. HOA_DON_CHI_TIET
 func napHoaDonChiTiet() {
 	raw, err := loadSheetData("HOA_DON_CHI_TIET", CacheHoaDonChiTiet.TenKey)
 	if err != nil { return }
@@ -588,7 +555,7 @@ func napHoaDonChiTiet() {
 	}
 }
 
-// 16. PHIEU_THU_CHI
+// 15. PHIEU_THU_CHI
 func napPhieuThuChi() {
 	raw, err := loadSheetData("PHIEU_THU_CHI", CachePhieuThuChi.TenKey)
 	if err != nil { return }
@@ -610,7 +577,7 @@ func napPhieuThuChi() {
 	}
 }
 
-// 17. PHIEU_BAO_HANH
+// 16. PHIEU_BAO_HANH
 func napPhieuBaoHanh() {
 	raw, err := loadSheetData("PHIEU_BAO_HANH", CachePhieuBaoHanh.TenKey)
 	if err != nil { return }

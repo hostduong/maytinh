@@ -10,49 +10,55 @@ import (
 	"app/nghiep_vu"
 
 	"github.com/gin-gonic/gin"
-	"github.com/google/uuid"
+	// "github.com/google/uuid" <--- Xóa dòng này, không dùng UUID nữa
 )
 
 // GET /register
 func TrangDangKy(c *gin.Context) {
+	// --- [MỚI] CHẶN NẾU ĐÃ ĐĂNG NHẬP ---
+	cookie, _ := c.Cookie("session_id")
+	if cookie != "" {
+		if _, ok := nghiep_vu.TimNhanVienTheoCookie(cookie); ok {
+			c.Redirect(http.StatusFound, "/") // Đá về trang chủ
+			return
+		}
+	}
+	// ------------------------------------
+	
 	c.HTML(http.StatusOK, "dang_ky", gin.H{})
 }
 
 // POST /register
 func XuLyDangKy(c *gin.Context) {
-	// 1. Nhận dữ liệu
+	// ... (Phần nhận dữ liệu 1, 2, 3, 4 giữ nguyên) ...
 	hoTen := c.PostForm("ho_ten")
 	user := c.PostForm("ten_dang_nhap")
 	pass := c.PostForm("mat_khau")
 	email := c.PostForm("email")
 	maPin := c.PostForm("ma_pin")
 
-	// 2. Kiểm tra trùng
 	if nghiep_vu.KiemTraTonTaiUserOrEmail(user, email) {
 		c.HTML(http.StatusOK, "dang_ky", gin.H{"Loi": "Tên đăng nhập hoặc Email đã tồn tại!"})
 		return
 	}
-
-	// 3. Mã hóa mật khẩu
 	passHash, _ := bao_mat.HashMatKhau(pass)
 
-	// 4. Logic Quyền hạn (Admin vs Khách)
-	var maDinhDanh string
-	var quyenHan string
-	var chucVu string
-
+	var maDinhDanh, quyenHan, chucVu string
 	if nghiep_vu.DemSoLuongNhanVien() == 0 {
-		maDinhDanh = nghiep_vu.TaoMaNhanVienMoi() // NV_0001
+		maDinhDanh = nghiep_vu.TaoMaNhanVienMoi()
 		quyenHan = "admin"
 		chucVu = "Quản lý cửa hàng"
 	} else {
-		maDinhDanh = nghiep_vu.TaoMaKhachHangMoi() // KH_xxxx
-		quyenHan = "" // Khách hàng không có quyền admin
+		maDinhDanh = nghiep_vu.TaoMaKhachHangMoi()
+		quyenHan = ""
 		chucVu = "Khách hàng"
 	}
 
-	// 5. Tạo Session Auto Login
-	cookie := uuid.New().String()
+	// 5. Tạo Session Siêu Bảo Mật
+	// --- [MỚI] Dùng hàm bảo mật cao ---
+	cookie := bao_mat.TaoSessionIDAnToan() 
+	// ----------------------------------
+	
 	expiredTime := time.Now().Add(cau_hinh.ThoiGianHetHanCookie).Unix()
 
 	// 6. Tạo Struct
@@ -74,14 +80,13 @@ func XuLyDangKy(c *gin.Context) {
 	// 7. Lưu vào hệ thống
 	nghiep_vu.ThemNhanVienMoi(newNV)
 
-	// 8. Auto Login (Set Cookie)
+	// 8. Auto Login
 	c.SetCookie("session_id", cookie, int(cau_hinh.ThoiGianHetHanCookie.Seconds()), "/", "", false, true)
 
-	// 9. ĐIỀU HƯỚNG THÔNG MINH (Smart Redirect)
+	// 9. Điều hướng
 	if quyenHan == "admin" {
 		c.Redirect(http.StatusFound, "/admin/tong-quan")
 	} else {
-		// Khách hàng -> Về trang chủ mua sắm
 		c.Redirect(http.StatusFound, "/")
 	}
 }

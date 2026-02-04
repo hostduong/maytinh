@@ -1,7 +1,7 @@
 package mo_hinh
 
-// DongBatDauDuLieu : Dữ liệu bắt đầu từ dòng 11 trong Excel => Index = 10
-const DongBatDauDuLieu = 10
+// DongBatDauDuLieu : Dữ liệu bắt đầu từ dòng 11 trong Excel
+const DongBatDauDuLieu = 11
 
 // 1. SAN_PHAM (A-S)
 const (

@@ -2,40 +2,58 @@ package chuc_nang
 
 import (
 	"net/http"
-	"app/nghiep_vu" // Nhớ sửa thành tên module của bạn nếu khác "app"
+	"app/nghiep_vu"
 	"github.com/gin-gonic/gin"
 )
 
-// TrangChu : Hiển thị trang chủ HTML
-func TrangChu(c *gin.Context) {
-	// 1. Lấy dữ liệu từ RAM
-	danhSachSP := nghiep_vu.LayDanhSachSanPham()
-	// (Tạm thời lấy hết, sau này sẽ có logic lấy SP mới nhất/bán chạy)
+// Hàm hỗ trợ lấy thông tin User từ Cookie (Dùng nội bộ file này)
+func layThongTinNguoiDung(c *gin.Context) (bool, string, string) {
+	cookie, _ := c.Cookie("session_id")
+	if cookie != "" {
+		if nv, ok := nghiep_vu.TimNhanVienTheoCookie(cookie); ok {
+			// Trả về: Đã đăng nhập, Họ tên, Quyền hạn
+			return true, nv.HoTen, nv.VaiTroQuyenHan
+		}
+	}
+	return false, "", ""
+}
 
-	// 2. Trả về HTML
+// TrangChu : Hiển thị trang chủ
+func TrangChu(c *gin.Context) {
+	// 1. Lấy dữ liệu sản phẩm
+	danhSachSP := nghiep_vu.LayDanhSachSanPham()
+	
+	// 2. Kiểm tra đăng nhập
+	daLogin, tenUser, quyen := layThongTinNguoiDung(c)
+
+	// 3. Trả về HTML kèm thông tin User
 	c.HTML(http.StatusOK, "khung_giao_dien", gin.H{
 		"TieuDe":          "Trang Chủ",
 		"DanhSachSanPham": danhSachSP,
+		"DaDangNhap":      daLogin,   // Biến cờ để giao diện biết
+		"TenNguoiDung":    tenUser,   // Tên để hiển thị "Chào A"
+		"QuyenHan":        quyen,     // Để hiện nút Admin nếu cần
 	})
 }
 
 // ChiTietSanPham : Hiển thị trang chi tiết
 func ChiTietSanPham(c *gin.Context) {
-	// 1. Lấy ID từ đường dẫn (VD: /san-pham/SP001 -> id = SP001)
 	id := c.Param("id")
-
-	// 2. Tìm trong RAM
 	sp, tonTai := nghiep_vu.LayChiTietSanPham(id)
 
 	if !tonTai {
-		// Nếu không thấy thì báo lỗi 404 (Sau này làm trang 404 đẹp sau)
 		c.String(http.StatusNotFound, "Không tìm thấy sản phẩm này!")
 		return
 	}
 
-	// 3. Trả về HTML
+	// Kiểm tra đăng nhập
+	daLogin, tenUser, quyen := layThongTinNguoiDung(c)
+
 	c.HTML(http.StatusOK, "khung_giao_dien", gin.H{
-		"TieuDe":  sp.TenSanPham,
-		"SanPham": sp,
+		"TieuDe":       sp.TenSanPham,
+		"SanPham":      sp,
+		"DaDangNhap":   daLogin,
+		"TenNguoiDung": tenUser,
+		"QuyenHan":     quyen,
 	})
 }

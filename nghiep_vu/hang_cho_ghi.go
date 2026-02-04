@@ -80,7 +80,11 @@ func guiBatchUpdateGoogle(spreadId string, data map[string]map[string]interface{
 		for cellKey, val := range cells {
 			var r, c int
 			fmt.Sscanf(cellKey, "%d_%d", &r, &c)
-			rangeStr := fmt.Sprintf("%s!%s%d", sheetName, layTenCot(c), r+1) 
+			
+			// --- [ĐÃ SỬA LỖI TẠI ĐÂY] ---
+			// Xóa bỏ +1 vì r đã là dòng thực tế trong Excel (DongTrongSheet)
+			rangeStr := fmt.Sprintf("%s!%s%d", sheetName, layTenCot(c), r) 
+			// ---------------------------
 
 			vr := &sheets.ValueRange{
 				Range:  rangeStr,

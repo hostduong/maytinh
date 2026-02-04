@@ -10,9 +10,10 @@ import (
 func layThongTinNguoiDung(c *gin.Context) (bool, string, string) {
 	cookie, _ := c.Cookie("session_id")
 	if cookie != "" {
-		if nv, ok := nghiep_vu.TimNhanVienTheoCookie(cookie); ok {
-			// Trả về: Đã đăng nhập, Họ tên, Quyền hạn
-			return true, nv.HoTen, nv.VaiTroQuyenHan
+		// [SỬA] Tìm Khách Hàng
+		if kh, ok := nghiep_vu.TimKhachHangTheoCookie(cookie); ok {
+			// Trả về: Đã đăng nhập, Tên hiển thị (TenKhachHang), Quyền hạn
+			return true, kh.TenKhachHang, kh.VaiTroQuyenHan
 		}
 	}
 	return false, "", ""
@@ -31,7 +32,7 @@ func TrangChu(c *gin.Context) {
 		"TieuDe":          "Trang Chủ",
 		"DanhSachSanPham": danhSachSP,
 		"DaDangNhap":      daLogin,   // Biến cờ để giao diện biết
-		"TenNguoiDung":    tenUser,   // Tên để hiển thị "Chào A"
+		"TenNguoiDung":    tenUser,   // Tên để hiển thị "Chào Dương"
 		"QuyenHan":        quyen,     // Để hiện nút Admin nếu cần
 	})
 }

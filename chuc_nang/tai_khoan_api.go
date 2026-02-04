@@ -4,14 +4,13 @@ import (
 	"strings"
 
 	"app/bao_mat"
-	"app/cau_hinh" // [ĐÃ THÊM IMPORT NÀY]
+	"app/cau_hinh"
 	"app/mo_hinh"
 	"app/nghiep_vu"
 
 	"github.com/gin-gonic/gin"
 )
 
-// API: Cập nhật Họ Tên
 func API_DoiThongTin(c *gin.Context) {
 	hoTenMoi := strings.TrimSpace(c.PostForm("ho_ten_moi"))
 	cookie, _ := c.Cookie("session_id")
@@ -22,8 +21,7 @@ func API_DoiThongTin(c *gin.Context) {
 	}
 
 	if kh, ok := nghiep_vu.TimKhachHangTheoCookie(cookie); ok {
-		kh.TenKhachHang = hoTenMoi 
-		// [SỬA] Dùng IdFileSheet từ cau_hinh
+		kh.TenKhachHang = hoTenMoi // [CHUẨN] Update TenKhachHang
 		nghiep_vu.ThemVaoHangCho(cau_hinh.BienCauHinh.IdFileSheet, "KHACH_HANG", kh.DongTrongSheet, mo_hinh.CotKH_TenKhachHang, hoTenMoi)
 		c.JSON(200, gin.H{"status": "ok", "msg": "Cập nhật tên thành công!"})
 	} else {
@@ -31,7 +29,6 @@ func API_DoiThongTin(c *gin.Context) {
 	}
 }
 
-// API: Đổi Mật Khẩu
 func API_DoiMatKhau(c *gin.Context) {
 	passCu := strings.TrimSpace(c.PostForm("pass_cu"))
 	passMoi := strings.TrimSpace(c.PostForm("pass_moi"))
@@ -56,7 +53,6 @@ func API_DoiMatKhau(c *gin.Context) {
 	}
 }
 
-// API: Đổi Mã PIN
 func API_DoiMaPin(c *gin.Context) {
 	pinCu := strings.TrimSpace(c.PostForm("pin_cu"))
 	pinMoi := strings.TrimSpace(c.PostForm("pin_moi"))

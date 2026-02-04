@@ -7,7 +7,7 @@
             
             <div class="text-center">
                 <h2 class="text-3xl font-bold text-blue-600">Đăng Nhập</h2>
-                <p class="mt-2 text-sm text-gray-600">Truy cập hệ thống MayTinhShop</p>
+                <p class="mt-2 text-sm text-gray-600">Truy cập hệ thống MayTinhHaiDuong.VN</p>
             </div>
 
             {{ if .Loi }}
@@ -16,19 +16,26 @@
             </div>
             {{ end }}
 
-            <form class="mt-8 space-y-6" action="/login" method="POST">
+            <form id="formLogin" class="mt-8 space-y-6" action="/login" method="POST" novalidate>
                 <div class="rounded-md shadow-sm space-y-4">
+                    
                     <div>
                         <label for="user" class="block text-sm font-medium text-gray-700 mb-1">Tên đăng nhập / Email</label>
-                        <input id="user" name="ten_dang_nhap" type="text" required 
-                            class="appearance-none relative block w-full px-4 py-3 border border-gray-300 placeholder-gray-400 text-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 sm:text-sm transition" 
-                            placeholder="Ví dụ: duongyour">
+                        <input id="user" name="ten_dang_nhap" type="text" 
+                            class="appearance-none relative block w-full px-4 py-3 border border-gray-300 placeholder-gray-400 text-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition" 
+                            placeholder="Nhập username hoặc email">
+                        <p id="err_user" class="text-red-500 text-xs mt-1 hidden">Vui lòng nhập Username (6-30 ký tự) hoặc Email hợp lệ.</p>
                     </div>
+
                     <div>
                         <label for="pass" class="block text-sm font-medium text-gray-700 mb-1">Mật khẩu</label>
-                        <input id="pass" name="mat_khau" type="password" required 
-                            class="appearance-none relative block w-full px-4 py-3 border border-gray-300 placeholder-gray-400 text-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 sm:text-sm transition" 
-                            placeholder="••••••••">
+                        <div class="relative">
+                            <input id="pass" name="mat_khau" type="password" 
+                                class="appearance-none relative block w-full px-4 py-3 border border-gray-300 placeholder-gray-400 text-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition" 
+                                placeholder="••••••••">
+                            <button type="button" onclick="togglePass('pass')" class="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600 focus:outline-none">👁️</button>
+                        </div>
+                        <p id="err_pass" class="text-red-500 text-xs mt-1 hidden">Mật khẩu từ 8-30 ký tự, không chứa dấu cách.</p>
                     </div>
                 </div>
 
@@ -46,14 +53,63 @@
                 </div>
 
                 <div>
-                    <button type="submit" 
-                        class="group relative w-full flex justify-center py-3 px-4 border border-transparent text-sm font-bold rounded-lg text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 shadow-lg shadow-blue-500/30 transition transform active:scale-95">
+                    <button type="submit" id="btnSubmit" disabled
+                        class="group relative w-full flex justify-center py-3 px-4 border border-transparent text-sm font-bold rounded-lg text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 shadow-lg shadow-blue-500/30 transition transform active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed">
                         ĐĂNG NHẬP
                     </button>
                 </div>
             </form>
         </div>
     </div>
+
+    <script>
+        // Regex: Cho phép Email chuẩn HOẶC Username (a-z0-9._)
+        const REGEX_USER = /^([a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}|[a-zA-Z0-9._]{6,30})$/;
+        const REGEX_PASS = /^[^'"<>\s]{8,30}$/;
+
+        function showErr(id, isError) {
+            const input = document.getElementById(id);
+            const msg = document.getElementById('err_' + id);
+            
+            if (isError) {
+                input.classList.remove('border-gray-300', 'border-green-500', 'focus:ring-blue-500');
+                input.classList.add('border-red-500', 'focus:ring-red-500');
+                msg.classList.remove('hidden');
+            } else {
+                input.classList.remove('border-gray-300', 'border-red-500', 'focus:ring-red-500');
+                input.classList.add('border-green-500', 'focus:ring-blue-500'); // Login dùng màu xanh/blue
+                msg.classList.add('hidden');
+            }
+            checkValid();
+        }
+
+        function checkValid() {
+            const u = document.getElementById('user');
+            const p = document.getElementById('pass');
+            // Kiểm tra class error hoặc value rỗng
+            const hasError = u.classList.contains('border-red-500') || p.classList.contains('border-red-500') || u.value === '' || p.value === '';
+            
+            const btn = document.getElementById('btnSubmit');
+            btn.disabled = hasError;
+            if (hasError) btn.classList.add('cursor-not-allowed', 'opacity-50');
+            else btn.classList.remove('cursor-not-allowed', 'opacity-50');
+        }
+
+        document.getElementById('user').addEventListener('input', function() {
+            // Xóa dấu cách nếu lỡ nhập
+            this.value = this.value.replace(/\s/g, '');
+            showErr('user', !REGEX_USER.test(this.value));
+        });
+
+        document.getElementById('pass').addEventListener('input', function() {
+            showErr('pass', !REGEX_PASS.test(this.value));
+        });
+
+        function togglePass(id) {
+            const el = document.getElementById(id);
+            el.type = el.type === 'password' ? 'text' : 'password';
+        }
+    </script>
 
     {{ template "footer" . }}
 {{ end }}

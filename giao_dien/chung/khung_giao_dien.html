@@ -1,4 +1,4 @@
-{{ define "khung_giao_dien" }}
+{{ define "header" }}
 <!DOCTYPE html>
 <html lang="vi">
 <head>
@@ -13,67 +13,61 @@
 
     <header class="bg-white shadow-sm sticky top-0 z-50">
         <div class="container mx-auto px-4 h-16 flex items-center justify-between">
-            
             <a href="/" class="text-2xl font-bold text-blue-600 flex items-center gap-2">
                 🖥️ <span class="hidden md:inline">MayTinhShop</span>
             </a>
 
             <div class="flex-1 mx-4 max-w-lg hidden md:block">
                 <div class="relative">
-                    <input type="text" placeholder="Tìm kiếm linh kiện..." class="w-full pl-4 pr-10 py-2 border rounded-full bg-gray-100 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition">
+                    <input type="text" placeholder="Tìm kiếm..." class="w-full pl-4 pr-10 py-2 border rounded-full bg-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500">
                     <button class="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-400">🔍</button>
                 </div>
             </div>
 
             <div class="flex items-center space-x-6 text-sm font-medium">
-                
                 <a href="#" class="relative hover:text-blue-600 flex items-center gap-1">
                     🛒 <span class="hidden sm:inline">Giỏ hàng</span>
                     <span class="bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full absolute -top-1 -right-2">0</span>
                 </a>
 
-{{ if .DaDangNhap }}
+                {{ if .DaDangNhap }}
                     <div class="flex items-center gap-3 border-l pl-6 ml-2 border-gray-300">
                         <div class="text-right hidden sm:block">
-                            <a href="/tai-khoan" class="text-gray-900 font-bold hover:text-blue-600 transition">
-                                Hi, {{ .TenNguoiDung }}
-                            </a>
-                            
+                            <a href="/tai-khoan" class="text-gray-900 font-bold hover:text-blue-600">Hi, {{ .TenNguoiDung }}</a>
                             {{ if eq .QuyenHan "admin" }}
-                                <div class="text-xs">
-                                    <a href="/admin/tong-quan" class="text-blue-600 hover:underline">Vào trang quản trị</a>
-                                </div>
+                                <div class="text-xs"><a href="/admin/tong-quan" class="text-blue-600 hover:underline">Vào trang quản trị</a></div>
                             {{ end }}
                         </div>
-                        <a href="/logout" class="bg-gray-100 hover:bg-red-50 text-red-600 px-3 py-2 rounded-lg transition" title="Đăng xuất">
-                            🚪 Thoát
-                        </a>
+                        <a href="/logout" class="bg-gray-100 hover:bg-red-50 text-red-600 px-3 py-2 rounded-lg" title="Đăng xuất">🚪</a>
                     </div>
                 {{ else }}
-                
                     <div class="flex items-center gap-2 border-l pl-4 ml-2 border-gray-300">
                         <a href="/login" class="text-gray-600 hover:text-blue-600">Đăng nhập</a>
                         <span class="text-gray-300">|</span>
-                        <a href="/register" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-full transition shadow-md shadow-blue-200">
-                            Đăng ký
-                        </a>
+                        <a href="/register" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-full shadow-md">Đăng ký</a>
                     </div>
                 {{ end }}
-
             </div>
         </div>
     </header>
-
+    
     <main class="flex-grow container mx-auto px-4 py-8">
-        {{ template "noi_dung" . }}
-    </main>
+{{ end }}
 
+{{ define "footer" }}
+    </main>
     <footer class="bg-gray-800 text-gray-300 py-8 mt-auto">
         <div class="container mx-auto px-4 text-center">
             <p>&copy; 2026 MayTinhShop. Hệ thống vận hành bởi Golang & Google Sheets.</p>
         </div>
     </footer>
-
 </body>
 </html>
+{{ end }}
+
+{{/* ĐÂY LÀ LAYOUT CŨ CHO TRANG CHỦ & CHI TIẾT (Giữ lại để không lỗi) */}}
+{{ define "khung_giao_dien" }}
+    {{ template "header" . }}
+    {{ template "noi_dung" . }}
+    {{ template "footer" . }}
 {{ end }}

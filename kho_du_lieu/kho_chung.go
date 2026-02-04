@@ -3,7 +3,7 @@ package kho_du_lieu
 import (
 	"fmt"
 	// Thay đường dẫn này bằng tên module thật của bạn
-	"maytinh/cau_hinh" 
+	"app/cau_hinh" 
 )
 
 // DocToanBoSheet : Đọc tất cả dữ liệu text từ 1 sheet

@@ -12,10 +12,10 @@
                         <img src="https://api.dicebear.com/7.x/avataaars/svg?seed={{ .NhanVien.TenDangNhap }}" alt="Avatar" class="w-full h-full">
                     </div>
                 </div>
-                <h2 class="mt-3 text-2xl font-bold text-white drop-shadow-md" id="lblHoTen" style="text-shadow: 0 1px 3px rgba(0,0,0,0.3);">
+                <h2 class="mt-3 text-2xl font-bold text-gray-800" id="lblHoTen">
                     {{ .NhanVien.HoTen }}
                 </h2>
-                <p class="text-blue-100 text-sm font-medium">{{ .NhanVien.ChucVu }}</p>
+                <p class="text-blue-500 font-medium">{{ .NhanVien.ChucVu }}</p>
             </div>
 
             <div class="p-8 space-y-6">
@@ -112,7 +112,6 @@
             const modal = document.getElementById(id);
             if (modal.classList.contains('hidden')) {
                 modal.classList.remove('hidden');
-                // Animation effect (optional simple fade)
                 setTimeout(() => modal.firstElementChild.classList.add('scale-100'), 10);
             } else {
                 modal.classList.add('hidden');

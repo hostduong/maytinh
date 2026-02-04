@@ -35,16 +35,23 @@ func main() {
 		api.GET("/san-pham", chuc_nang.API_LayDanhSachSanPham)
 		api.GET("/san-pham/:id", chuc_nang.API_ChiTietSanPham)
 		api.GET("/cau-hinh", chuc_nang.API_LayMenu)
+		// Bạn sẽ thêm API đặt hàng vào đây sau
 	}
 
-	// Trang chủ (Tạm thời trả về text, sau sẽ gắn HTML)
+	// Trang chủ (Test server sống hay chết)
 	router.GET("/", func(c *gin.Context) {
-		c.String(200, "Hệ thống bán hàng Golang + Google Sheet đang chạy!")
+		c.JSON(200, gin.H{
+			"trang_thai": "Hoat dong tot",
+			"thong_diep": "Hệ thống bán hàng Golang + Google Sheet đang chạy!",
+		})
 	})
 
 	// 5. Bấm nút CHẠY
 	port := cau_hinh.BienCauHinh.CongChayWeb
-	log.Println(">> Server đang chạy tại: http://localhost:" + port)
+	if port == "" {
+		port = "8080"
+	}
+	log.Println(">> Server đang chạy tại cổng: " + port)
 	
 	if err := router.Run(":" + port); err != nil {
 		log.Fatalf("Lỗi khởi động Server: %v", err)

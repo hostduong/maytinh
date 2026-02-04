@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"app/bao_mat"
+	"app/cau_hinh"
 	"app/mo_hinh"
 	"app/nghiep_vu"
 
@@ -19,14 +20,14 @@ func TrangDangKy(c *gin.Context) {
 
 // POST /register
 func XuLyDangKy(c *gin.Context) {
-	// 1. Nhận dữ liệu từ Form HTML
+	// 1. Nhận dữ liệu
 	hoTen := c.PostForm("ho_ten")
 	user := c.PostForm("ten_dang_nhap")
 	pass := c.PostForm("mat_khau")
-	email := c.PostForm("email")   // Mới
-	maPin := c.PostForm("ma_pin")  // Mới
+	email := c.PostForm("email")
+	maPin := c.PostForm("ma_pin")
 
-	// 2. Kiểm tra trùng lặp (User hoặc Email)
+	// 2. Kiểm tra trùng
 	if nghiep_vu.KiemTraTonTaiUserOrEmail(user, email) {
 		c.HTML(http.StatusOK, "dang_ky", gin.H{"Loi": "Tên đăng nhập hoặc Email đã tồn tại!"})
 		return
@@ -35,24 +36,30 @@ func XuLyDangKy(c *gin.Context) {
 	// 3. Mã hóa mật khẩu
 	passHash, _ := bao_mat.HashMatKhau(pass)
 
-	// 4. Logic Quyền hạn & Chức vụ (Người đầu tiên là Admin)
-	role := "nhan_vien"
-	chucVu := "Nhân viên"
-	soLuong := nghiep_vu.DemSoLuongNhanVien()
-	if soLuong == 0 {
-		role = "admin"
+	// 4. LOGIC QUYỀN HẠN & MÃ SỐ (QUAN TRỌNG)
+	var maDinhDanh string
+	var quyenHan string
+	var chucVu string
+
+	if nghiep_vu.DemSoLuongNhanVien() == 0 {
+		// --- NGƯỜI ĐẦU TIÊN (ADMIN) ---
+		maDinhDanh = nghiep_vu.TaoMaNhanVienMoi() // NV_0001
+		quyenHan = "admin"
 		chucVu = "Quản lý cửa hàng"
+	} else {
+		// --- NGƯỜI THỨ 2 TRỞ ĐI (KHÁCH HÀNG) ---
+		maDinhDanh = nghiep_vu.TaoMaKhachHangMoi() // KH_xxxx
+		quyenHan = "" // Để rỗng theo yêu cầu (Khách vãng lai)
+		chucVu = "Khách hàng"
 	}
 
-	// 5. Sinh dữ liệu tự động
-	maNV := nghiep_vu.TaoMaNhanVienMoi() // NV_0001
-	
-	// Tạo Cookie ngẫu nhiên (UUID) - Kiểm tra trùng cookie là thừa vì xác suất UUID trùng là 0
-	cookie := uuid.New().String() 
+	// 5. Tạo Session cho Auto-Login
+	cookie := uuid.New().String()
+	expiredTime := time.Now().Add(cau_hinh.ThoiGianHetHanCookie).Unix()
 
-	// 6. Tạo struct nhân viên mới
+	// 6. Tạo Struct
 	newNV := &mo_hinh.NhanVien{
-		MaNhanVien:      maNV,
+		MaNhanVien:      maDinhDanh,
 		TenDangNhap:     user,
 		Email:           email,
 		MatKhauHash:     passHash,
@@ -60,17 +67,20 @@ func XuLyDangKy(c *gin.Context) {
 		ChucVu:          chucVu,
 		MaPin:           maPin,
 		Cookie:          cookie,
-		CookieExpired:   0, // Mới tạo chưa login nên chưa có hạn
-		VaiTroQuyenHan:  role,
-		TrangThai:       1, // Active
+		CookieExpired:   expiredTime,
+		VaiTroQuyenHan:  quyenHan,
+		TrangThai:       1,
 		LanDangNhapCuoi: time.Now().Format("2006-01-02 15:04:05"),
 	}
 
 	// 7. Lưu vào hệ thống
 	nghiep_vu.ThemNhanVienMoi(newNV)
 
-	// 8. Thông báo thành công
-	c.HTML(http.StatusOK, "dang_nhap", gin.H{
-		"Loi": "Đăng ký thành công! Mã NV của bạn là: " + maNV, 
-	})
+	// 8. Auto Login
+	c.SetCookie("session_id", cookie, int(cau_hinh.ThoiGianHetHanCookie.Seconds()), "/", "", false, true)
+
+	// 9. Điều hướng
+	// Nếu là Admin -> Vào trang quản trị
+	// Nếu là Khách -> Có thể vào trang chủ hoặc trang cá nhân (Tạm thời cứ vào admin/tong-quan để test)
+	c.Redirect(http.StatusFound, "/admin/tong-quan")
 }

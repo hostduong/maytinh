@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{ .TieuDe }} - Cửa Hàng Máy Tính</title>
+    <title>{{ .TieuDe }} - MayTinhShop</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
     <style>body { font-family: 'Inter', sans-serif; }</style>
@@ -13,6 +13,7 @@
 
     <header class="bg-white shadow-sm sticky top-0 z-50">
         <div class="container mx-auto px-4 h-16 flex items-center justify-between">
+            
             <a href="/" class="text-2xl font-bold text-blue-600 flex items-center gap-2">
                 🖥️ <span class="hidden md:inline">MayTinhShop</span>
             </a>
@@ -24,12 +25,35 @@
                 </div>
             </div>
 
-            <div class="flex items-center space-x-4">
-                <a href="#" class="hover:text-blue-600 font-medium">Danh mục</a>
-                <a href="#" class="relative hover:text-blue-600">
-                    🛒 Giỏ hàng
-                    <span class="absolute -top-2 -right-2 bg-red-500 text-white text-xs font-bold px-1.5 py-0.5 rounded-full">0</span>
+            <div class="flex items-center space-x-6 text-sm font-medium">
+                
+                <a href="#" class="relative hover:text-blue-600 flex items-center gap-1">
+                    🛒 <span class="hidden sm:inline">Giỏ hàng</span>
+                    <span class="bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full absolute -top-1 -right-2">0</span>
                 </a>
+
+                {{ if .DaDangNhap }}
+                    <div class="flex items-center gap-3 border-l pl-6 ml-2 border-gray-300">
+                        <div class="text-right hidden sm:block">
+                            <div class="text-gray-900">Hi, {{ .TenNguoiDung }}</div>
+                            {{ if eq .QuyenHan "admin" }}
+                                <a href="/admin/tong-quan" class="text-xs text-blue-600 hover:underline">Vào trang quản trị</a>
+                            {{ end }}
+                        </div>
+                        <a href="/logout" class="bg-gray-100 hover:bg-red-50 text-red-600 px-3 py-2 rounded-lg transition" title="Đăng xuất">
+                            🚪 Thoát
+                        </a>
+                    </div>
+                {{ else }}
+                    <div class="flex items-center gap-2 border-l pl-4 ml-2 border-gray-300">
+                        <a href="/login" class="text-gray-600 hover:text-blue-600">Đăng nhập</a>
+                        <span class="text-gray-300">|</span>
+                        <a href="/register" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-full transition shadow-md shadow-blue-200">
+                            Đăng ký
+                        </a>
+                    </div>
+                {{ end }}
+
             </div>
         </div>
     </header>
@@ -38,9 +62,9 @@
         {{ template "noi_dung" . }}
     </main>
 
-    <footer class="bg-gray-800 text-gray-300 py-8">
+    <footer class="bg-gray-800 text-gray-300 py-8 mt-auto">
         <div class="container mx-auto px-4 text-center">
-            <p>&copy; 2024 Cửa Hàng Máy Tính. Hệ thống vận hành bởi Golang & Google Sheets.</p>
+            <p>&copy; 2026 MayTinhShop. Hệ thống vận hành bởi Golang & Google Sheets.</p>
         </div>
     </footer>
 

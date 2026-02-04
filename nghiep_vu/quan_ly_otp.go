@@ -13,7 +13,7 @@ type ThongTinOTP struct {
 	HetHanLuc int64
 }
 
-// Map lưu OTP: Key là Email/User -> Value là Code
+// Map lưu OTP: Key là Username -> Value là Code
 var CacheOTP = make(map[string]ThongTinOTP)
 var mtxOTP sync.Mutex
 

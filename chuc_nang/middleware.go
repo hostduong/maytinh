@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"app/cau_hinh"
-	"app/mo_hinh" // [MỚI] Import để lấy index cột
+	"app/mo_hinh"
 	"app/nghiep_vu"
 
 	"github.com/gin-gonic/gin"
@@ -57,7 +57,7 @@ func KiemTraQuyenHan(c *gin.Context) {
 		return
 	}
 
-	// [SỬA] Tìm trong RAM KHÁCH HÀNG
+	// Tìm trong RAM KHÁCH HÀNG (Thay vì Nhân Viên)
 	khachHang, timThay := nghiep_vu.TimKhachHangTheoCookie(cookie)
 
 	if !timThay {
@@ -85,17 +85,18 @@ func KiemTraQuyenHan(c *gin.Context) {
 		// A. Tính thời gian mới (+30 phút)
 		newExp := time.Now().Add(cau_hinh.ThoiGianHetHanCookie).Unix()
 		
-		// B. Cập nhật vào RAM ngay (Vì khachHang là con trỏ nên cập nhật trực tiếp được)
+		// B. Cập nhật vào RAM ngay
+		// Lưu ý: khachHang ở đây là con trỏ (*KhachHang), nên gán trực tiếp sẽ thay đổi RAM
 		khachHang.CookieExpired = newExp
 
-		// C. Đẩy vào Hàng Chờ Ghi (WriteQueue) -> Worker sẽ ghi xuống Sheet sau
+		// C. Đẩy vào Hàng Chờ Ghi (WriteQueue) -> Ghi vào Sheet KHACH_HANG
 		rowID := nghiep_vu.LayDongKhachHang(khachHang.MaKhachHang)
 		if rowID > 0 {
 			nghiep_vu.ThemVaoHangCho(
 				cau_hinh.BienCauHinh.IdFileSheet, // ID file sheet
-				"KHACH_HANG",                     // [SỬA] Tên sheet mới
+				"KHACH_HANG",                     // Tên sheet
 				rowID,                            // Dòng
-				mo_hinh.CotKH_CookieExpired,      // [SỬA] Cột E trong struct KhachHang
+				mo_hinh.CotKH_CookieExpired,      // Cột E (Index 4)
 				newExp,                           // Giá trị mới
 			)
 		}
@@ -106,8 +107,6 @@ func KiemTraQuyenHan(c *gin.Context) {
 
 	// Lưu thông tin user vào Context để Controller dùng
 	c.Set("USER_ID", khachHang.MaKhachHang)
-	
-	// Check quyền
 	c.Set("USER_ROLE", khachHang.VaiTroQuyenHan)
 	
 	c.Next()

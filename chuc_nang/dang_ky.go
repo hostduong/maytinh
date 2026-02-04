@@ -36,7 +36,6 @@ func XuLyDangKy(c *gin.Context) {
 	ngaySinh  := strings.TrimSpace(c.PostForm("ngay_sinh"))
 	gioiTinh  := strings.TrimSpace(c.PostForm("gioi_tinh"))
 
-	// Validation
 	if !bao_mat.KiemTraHoTen(hoTen) || !bao_mat.KiemTraTenDangNhap(user) || 
 	   !bao_mat.KiemTraEmail(email) || !bao_mat.KiemTraMaPin(maPin) || 
 	   !bao_mat.KiemTraDinhDangMatKhau(pass) {
@@ -44,7 +43,6 @@ func XuLyDangKy(c *gin.Context) {
 		return
 	}
 
-	// [ĐÃ SỬA] Chỉ kiểm tra User và Email (Bỏ số điện thoại)
 	if nghiep_vu.KiemTraTonTaiUserEmail(user, email) {
 		c.HTML(http.StatusOK, "dang_ky", gin.H{"Loi": "Tên đăng nhập hoặc Email đã tồn tại!"})
 		return
@@ -67,12 +65,12 @@ func XuLyDangKy(c *gin.Context) {
 
 	newKH := &mo_hinh.KhachHang{
 		MaKhachHang:    maKH,
-		TenDangNhap:    user,
+		TenDangNhap:    user,     // [CHUẨN] Dùng TenDangNhap
 		Email:          email,
 		DienThoai:      dienThoai,
 		MatKhauHash:    passHash,
 		MaPinHash:      maPin, 
-		TenKhachHang:   hoTen,
+		TenKhachHang:   hoTen,    // [CHUẨN] Dùng TenKhachHang
 		NgaySinh:       ngaySinh,
 		GioiTinh:       gioiTinh,
 		LoaiKhachHang:  loaiKH,

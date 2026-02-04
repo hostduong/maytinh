@@ -1,8 +1,9 @@
 {{ define "ho_so" }}
     {{ template "header" . }}
 
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
     <div class="max-w-2xl mx-auto py-10">
-        
         <div class="bg-white rounded-2xl shadow-xl overflow-hidden border border-gray-100">
             
             <div class="bg-blue-500 h-32 relative"></div>
@@ -19,7 +20,6 @@
             </div>
 
             <div class="p-8 space-y-6">
-                
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
                         <label class="block text-xs text-gray-400 uppercase font-bold tracking-wider">Mã thành viên</label>
@@ -34,14 +34,12 @@
                         </div>
                     </div>
                 </div>
-
                 <div>
                     <label class="block text-xs text-gray-400 uppercase font-bold tracking-wider">Email</label>
                     <div class="mt-1 text-lg text-gray-800 border-b border-gray-200 pb-1">
                         {{ if .NhanVien.Email }}{{ .NhanVien.Email }}{{ else }}<span class="text-gray-400 italic">Chưa cập nhật</span>{{ end }}
                     </div>
                 </div>
-
                 <div>
                     <label class="block text-xs text-gray-400 uppercase font-bold tracking-wider">Ngày tham gia</label>
                     <div class="mt-1 text-gray-600 text-sm">
@@ -118,7 +116,6 @@
             }
         }
 
-        // Hàm gọi API chung
         async function postData(url, data) {
             const formData = new FormData();
             for(const k in data) formData.append(k, data[k]);
@@ -130,42 +127,51 @@
             }
         }
 
-        // Xử lý Đổi Mật Khẩu
+        // --- ĐỔI MẬT KHẨU ---
         async function doiPass() {
             const res = await postData('/api/user/change-pass', {
                 pass_cu: document.getElementById('oldPass').value,
                 pass_moi: document.getElementById('newPass').value
             });
-            alert(res.msg);
+            
             if(res.status === 'ok') {
+                Swal.fire({ icon: 'success', title: 'Thành công!', text: res.msg, timer: 2000, showConfirmButton: false });
                 document.getElementById('oldPass').value = '';
                 document.getElementById('newPass').value = '';
                 toggleModal('modalPass');
+            } else {
+                Swal.fire({ icon: 'error', title: 'Lỗi!', text: res.msg });
             }
         }
 
-        // Xử lý Đổi Tên
+        // --- ĐỔI TÊN ---
         async function doiTen() {
             const newName = document.getElementById('newName').value;
             const res = await postData('/api/user/update-info', { ho_ten_moi: newName });
-            alert(res.msg);
+            
             if(res.status === 'ok') {
+                Swal.fire({ icon: 'success', title: 'Cập nhật xong!', text: res.msg, timer: 1500, showConfirmButton: false });
                 document.getElementById('lblHoTen').innerText = newName;
                 toggleModal('modalInfo');
+            } else {
+                Swal.fire({ icon: 'error', title: 'Lỗi!', text: res.msg });
             }
         }
 
-        // Xử lý Đổi PIN
+        // --- ĐỔI PIN ---
         async function doiPin() {
             const res = await postData('/api/user/change-pin', {
                 pin_cu: document.getElementById('oldPin').value,
                 pin_moi: document.getElementById('newPin').value
             });
-            alert(res.msg);
+            
             if(res.status === 'ok') {
+                Swal.fire({ icon: 'success', title: 'Thành công!', text: res.msg, timer: 2000, showConfirmButton: false });
                 document.getElementById('oldPin').value = '';
                 document.getElementById('newPin').value = '';
                 toggleModal('modalPin');
+            } else {
+                Swal.fire({ icon: 'error', title: 'Lỗi!', text: res.msg });
             }
         }
     </script>

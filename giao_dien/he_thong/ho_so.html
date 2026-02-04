@@ -1,84 +1,151 @@
 {{ define "ho_so" }}
     {{ template "header" . }}
 
-    <div class="max-w-2xl mx-auto relative">
-        <div class="bg-white rounded-2xl shadow-lg overflow-hidden border border-gray-100">
-             <div class="bg-gradient-to-r from-blue-600 to-blue-400 p-6 text-white text-center">
-                <div class="text-6xl mb-2">👤</div>
-                <h1 class="text-2xl font-bold" id="lblHoTen">{{ .NhanVien.HoTen }}</h1>
-                <p class="opacity-90">{{ .NhanVien.ChucVu }}</p>
+    <div class="max-w-2xl mx-auto py-10">
+        
+        <div class="bg-white rounded-2xl shadow-xl overflow-hidden border border-gray-100">
+            
+            <div class="bg-blue-500 h-32 relative"></div>
+            <div class="text-center -mt-16 relative">
+                <div class="inline-block p-1 bg-white rounded-full shadow-md">
+                    <div class="w-24 h-24 bg-gray-800 rounded-full flex items-center justify-center text-white text-4xl overflow-hidden">
+                        <img src="https://api.dicebear.com/7.x/avataaars/svg?seed={{ .NhanVien.TenDangNhap }}" alt="Avatar" class="w-full h-full">
+                    </div>
+                </div>
+                <h2 class="mt-3 text-2xl font-bold text-white drop-shadow-md" id="lblHoTen" style="text-shadow: 0 1px 3px rgba(0,0,0,0.3);">
+                    {{ .NhanVien.HoTen }}
+                </h2>
+                <p class="text-blue-100 text-sm font-medium">{{ .NhanVien.ChucVu }}</p>
             </div>
-            <div class="bg-gray-50 p-6 flex justify-center gap-4">
-                <button onclick="toggleModal('modalPass')" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-medium transition shadow">
+
+            <div class="p-8 space-y-6">
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <label class="block text-xs text-gray-400 uppercase font-bold tracking-wider">Mã thành viên</label>
+                        <div class="mt-1 p-3 bg-gray-50 rounded border border-gray-100 font-mono text-gray-700 font-semibold">
+                            {{ .NhanVien.MaNhanVien }}
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-xs text-gray-400 uppercase font-bold tracking-wider">Tên đăng nhập</label>
+                        <div class="mt-1 p-3 bg-gray-50 rounded border border-gray-100 text-gray-800">
+                            {{ .NhanVien.TenDangNhap }}
+                        </div>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs text-gray-400 uppercase font-bold tracking-wider">Email</label>
+                    <div class="mt-1 text-lg text-gray-800 border-b border-gray-200 pb-1">
+                        {{ if .NhanVien.Email }}{{ .NhanVien.Email }}{{ else }}<span class="text-gray-400 italic">Chưa cập nhật</span>{{ end }}
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs text-gray-400 uppercase font-bold tracking-wider">Ngày tham gia</label>
+                    <div class="mt-1 text-gray-600 text-sm">
+                         {{ .NhanVien.LanDangNhapCuoi }}
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-gray-50 px-8 py-6 border-t border-gray-100 flex flex-wrap justify-center gap-3">
+                <button onclick="toggleModal('modalPass')" class="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-lg font-medium shadow-lg shadow-blue-500/30 transition transform hover:-translate-y-0.5">
                     Đổi mật khẩu
                 </button>
-                <button onclick="toggleModal('modalInfo')" class="bg-white border border-gray-300 hover:bg-gray-100 text-gray-700 px-6 py-2 rounded-lg font-medium transition">
+                <button onclick="toggleModal('modalInfo')" class="bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 px-5 py-2.5 rounded-lg font-medium transition shadow-sm">
                     Cập nhật thông tin
                 </button>
-                <button onclick="toggleModal('modalPin')" class="bg-purple-100 text-purple-700 hover:bg-purple-200 px-6 py-2 rounded-lg font-medium transition">
+                <button onclick="toggleModal('modalPin')" class="bg-purple-50 text-purple-600 hover:bg-purple-100 border border-purple-200 px-5 py-2.5 rounded-lg font-medium transition">
                     Đổi mã PIN
                 </button>
             </div>
         </div>
+    </div>
 
-        <div id="modalPass" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div class="bg-white p-6 rounded-xl shadow-2xl w-96">
-                <h3 class="text-lg font-bold mb-4">🔐 Đổi Mật Khẩu</h3>
-                <input type="password" id="oldPass" placeholder="Mật khẩu cũ" class="w-full p-2 border rounded mb-3">
-                <input type="password" id="newPass" placeholder="Mật khẩu mới" class="w-full p-2 border rounded mb-4">
-                <div class="flex justify-end gap-2">
-                    <button onclick="toggleModal('modalPass')" class="text-gray-500 hover:bg-gray-100 px-4 py-2 rounded">Hủy</button>
-                    <button onclick="doiPass()" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">Lưu</button>
-                </div>
+    <div id="modalPass" class="hidden fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 backdrop-blur-sm transition-opacity">
+        <div class="bg-white p-6 rounded-2xl shadow-2xl w-96 transform transition-all scale-100">
+            <h3 class="text-xl font-bold mb-4 text-gray-800">🔐 Đổi Mật Khẩu</h3>
+            <div class="space-y-3">
+                <input type="password" id="oldPass" placeholder="Mật khẩu hiện tại" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none">
+                <input type="password" id="newPass" placeholder="Mật khẩu mới" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none">
+            </div>
+            <div class="mt-6 flex justify-end gap-3">
+                <button onclick="toggleModal('modalPass')" class="text-gray-500 hover:bg-gray-100 px-4 py-2 rounded-lg font-medium">Hủy</button>
+                <button onclick="doiPass()" class="bg-blue-600 text-white px-5 py-2 rounded-lg font-bold hover:bg-blue-700 shadow-md">Lưu thay đổi</button>
             </div>
         </div>
+    </div>
 
-        <div id="modalInfo" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div class="bg-white p-6 rounded-xl shadow-2xl w-96">
-                <h3 class="text-lg font-bold mb-4">✏️ Cập nhật thông tin</h3>
-                <input type="text" id="newName" value="{{ .NhanVien.HoTen }}" placeholder="Họ và tên" class="w-full p-2 border rounded mb-4">
-                <div class="flex justify-end gap-2">
-                    <button onclick="toggleModal('modalInfo')" class="text-gray-500 hover:bg-gray-100 px-4 py-2 rounded">Hủy</button>
-                    <button onclick="doiTen()" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">Lưu</button>
-                </div>
+    <div id="modalInfo" class="hidden fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 backdrop-blur-sm">
+        <div class="bg-white p-6 rounded-2xl shadow-2xl w-96">
+            <h3 class="text-xl font-bold mb-4 text-gray-800">✏️ Cập nhật thông tin</h3>
+            <div class="space-y-3">
+                <label class="text-sm text-gray-500">Họ và tên hiển thị</label>
+                <input type="text" id="newName" value="{{ .NhanVien.HoTen }}" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none">
+            </div>
+            <div class="mt-6 flex justify-end gap-3">
+                <button onclick="toggleModal('modalInfo')" class="text-gray-500 hover:bg-gray-100 px-4 py-2 rounded-lg font-medium">Hủy</button>
+                <button onclick="doiTen()" class="bg-blue-600 text-white px-5 py-2 rounded-lg font-bold hover:bg-blue-700 shadow-md">Cập nhật</button>
             </div>
         </div>
+    </div>
 
-        <div id="modalPin" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div class="bg-white p-6 rounded-xl shadow-2xl w-96">
-                <h3 class="text-lg font-bold mb-4">🔢 Đổi Mã PIN</h3>
-                <input type="text" id="oldPin" maxlength="6" placeholder="Mã PIN cũ" class="w-full p-2 border rounded mb-3">
-                <input type="text" id="newPin" maxlength="6" placeholder="Mã PIN mới (6 số)" class="w-full p-2 border rounded mb-4">
-                <div class="flex justify-end gap-2">
-                    <button onclick="toggleModal('modalPin')" class="text-gray-500 hover:bg-gray-100 px-4 py-2 rounded">Hủy</button>
-                    <button onclick="doiPin()" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">Lưu</button>
-                </div>
+    <div id="modalPin" class="hidden fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 backdrop-blur-sm">
+        <div class="bg-white p-6 rounded-2xl shadow-2xl w-96">
+            <h3 class="text-xl font-bold mb-4 text-gray-800">🔢 Đổi Mã PIN Bảo Mật</h3>
+            <p class="text-xs text-gray-500 mb-3">Mã PIN dùng để khôi phục mật khẩu khi quên.</p>
+            <div class="space-y-3">
+                <input type="text" id="oldPin" maxlength="6" placeholder="Mã PIN cũ" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none">
+                <input type="text" id="newPin" maxlength="6" placeholder="Mã PIN mới (6 số)" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none">
+            </div>
+            <div class="mt-6 flex justify-end gap-3">
+                <button onclick="toggleModal('modalPin')" class="text-gray-500 hover:bg-gray-100 px-4 py-2 rounded-lg font-medium">Hủy</button>
+                <button onclick="doiPin()" class="bg-purple-600 text-white px-5 py-2 rounded-lg font-bold hover:bg-purple-700 shadow-md">Lưu PIN</button>
             </div>
         </div>
-
     </div>
 
     <script>
         function toggleModal(id) {
-            document.getElementById(id).classList.toggle('hidden');
+            const modal = document.getElementById(id);
+            if (modal.classList.contains('hidden')) {
+                modal.classList.remove('hidden');
+                // Animation effect (optional simple fade)
+                setTimeout(() => modal.firstElementChild.classList.add('scale-100'), 10);
+            } else {
+                modal.classList.add('hidden');
+            }
         }
 
+        // Hàm gọi API chung
         async function postData(url, data) {
             const formData = new FormData();
             for(const k in data) formData.append(k, data[k]);
-            const res = await fetch(url, { method: 'POST', body: formData });
-            return await res.json();
+            try {
+                const res = await fetch(url, { method: 'POST', body: formData });
+                return await res.json();
+            } catch (e) {
+                return { status: 'error', msg: 'Lỗi kết nối server!' };
+            }
         }
 
+        // Xử lý Đổi Mật Khẩu
         async function doiPass() {
             const res = await postData('/api/user/change-pass', {
                 pass_cu: document.getElementById('oldPass').value,
                 pass_moi: document.getElementById('newPass').value
             });
             alert(res.msg);
-            if(res.status === 'ok') toggleModal('modalPass');
+            if(res.status === 'ok') {
+                document.getElementById('oldPass').value = '';
+                document.getElementById('newPass').value = '';
+                toggleModal('modalPass');
+            }
         }
 
+        // Xử lý Đổi Tên
         async function doiTen() {
             const newName = document.getElementById('newName').value;
             const res = await postData('/api/user/update-info', { ho_ten_moi: newName });
@@ -89,13 +156,18 @@
             }
         }
 
+        // Xử lý Đổi PIN
         async function doiPin() {
             const res = await postData('/api/user/change-pin', {
                 pin_cu: document.getElementById('oldPin').value,
                 pin_moi: document.getElementById('newPin').value
             });
             alert(res.msg);
-            if(res.status === 'ok') toggleModal('modalPin');
+            if(res.status === 'ok') {
+                document.getElementById('oldPin').value = '';
+                document.getElementById('newPin').value = '';
+                toggleModal('modalPin');
+            }
         }
     </script>
 

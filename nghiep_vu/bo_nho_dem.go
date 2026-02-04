@@ -346,27 +346,46 @@ func napNhaCungCap() {
 	}
 }
 
-// 6. NHAN_VIEN
+// 6. NHAN_VIEN (Đã cập nhật cho Auth & WriteQueue)
 func napNhanVien() {
+	// Cập nhật ID Sheet (Lấy từ Config chung)
+	CacheNhanVien.SpreadsheetID = cau_hinh.BienCauHinh.IdFileSheet
+
 	raw, err := loadSheetData("NHAN_VIEN", CacheNhanVien.TenKey)
 	if err != nil { return }
 	defer BoQuanLyKhoa.LayKhoa(CacheNhanVien.TenKey).Unlock()
 
+	// Reset map với kiểu con trỏ
+	CacheNhanVien.DuLieu = make(map[string]*mo_hinh.NhanVien)
+
 	for i, r := range raw {
+		// Bỏ qua dòng tiêu đề. Lưu ý: DongBatDauDuLieu = 11. 
+		// Nếu Sheet Nhân viên bạn nhập từ dòng 2 thì sửa logic này hoặc nhập liệu từ dòng 11.
 		if i < mo_hinh.DongBatDauDuLieu { continue }
+		
 		if len(r) <= mo_hinh.CotNV_MaNhanVien || layString(r, mo_hinh.CotNV_MaNhanVien) == "" { continue }
 		
-		item := mo_hinh.NhanVien{
-			MaNhanVien:     layString(r, mo_hinh.CotNV_MaNhanVien),
-			TenDangNhap:    layString(r, mo_hinh.CotNV_TenDangNhap),
-			MatKhauHash:    layString(r, mo_hinh.CotNV_MatKhauHash),
-			HoTen:          layString(r, mo_hinh.CotNV_HoTen),
-			ChucVu:         layString(r, mo_hinh.CotNV_ChucVu),
-			MaPin:          layString(r, mo_hinh.CotNV_MaPin),
-			Cookie:         layString(r, mo_hinh.CotNV_Cookie),
-			VaiTroQuyenHan: layString(r, mo_hinh.CotNV_VaiTroQuyenHan),
-			TrangThai:      layInt(r, mo_hinh.CotNV_TrangThai),
+		item := &mo_hinh.NhanVien{
+			DongTrongSheet:  i + 1, // Quan trọng: Lưu vị trí dòng Excel (Index + 1)
+			
+			MaNhanVien:      layString(r, mo_hinh.CotNV_MaNhanVien),
+			TenDangNhap:     layString(r, mo_hinh.CotNV_TenDangNhap),
+			Email:           layString(r, mo_hinh.CotNV_Email),
+			MatKhauHash:     layString(r, mo_hinh.CotNV_MatKhauHash),
+			HoTen:           layString(r, mo_hinh.CotNV_HoTen),
+			ChucVu:          layString(r, mo_hinh.CotNV_ChucVu),
+			MaPin:           layString(r, mo_hinh.CotNV_MaPin),
+			Cookie:          layString(r, mo_hinh.CotNV_Cookie),
+			
+			// Quan trọng: Parse thời gian hết hạn
+			CookieExpired:   int64(layFloat(r, mo_hinh.CotNV_CookieExpired)),
+			
+			VaiTroQuyenHan:  layString(r, mo_hinh.CotNV_VaiTroQuyenHan),
+			TrangThai:       layInt(r, mo_hinh.CotNV_TrangThai),
+			LanDangNhapCuoi: layString(r, mo_hinh.CotNV_LanDangNhapCuoi),
 		}
+		
+		// Lưu vào Cache
 		CacheNhanVien.DuLieu[item.MaNhanVien] = item
 	}
 }

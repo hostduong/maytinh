@@ -299,18 +299,24 @@ type ThuongHieu struct {
 // 15. BẢNG: NHÂN VIÊN (NHAN_VIEN)
 // ========================================================
 type NhanVien struct {
-	MaNhanVien      string `json:"ma_nhan_vien"`       // Cột A
-	TenDangNhap     string `json:"ten_dang_nhap"`      // Cột B
-	Email           string `json:"email"`              // Cột C
-	MatKhauHash     string `json:"-"`                  // Cột D (Ẩn JSON)
-	HoTen           string `json:"ho_ten"`             // Cột E
-	ChucVu          string `json:"chuc_vu"`            // Cột F
-	MaPin           string `json:"-"`                  // Cột G (Ẩn JSON)
-	Cookie          string `json:"-"`                  // Cột H (Ẩn JSON)
-	CookieExpired   string `json:"cookie_expired"`     // Cột I
-	VaiTroQuyenHan  string `json:"vai_tro_quyen_han"`  // Cột J
-	TrangThai       int    `json:"trang_thai"`         // Cột K
-	LanDangNhapCuoi string `json:"lan_dang_nhap_cuoi"` // Cột L
+    // --- Thêm dòng này để phục vụ WriteQueue (RAM only) ---
+    DongTrongSheet  int    `json:"-"` 
+
+    MaNhanVien      string `json:"ma_nhan_vien"`       // Cột A
+    TenDangNhap     string `json:"ten_dang_nhap"`      // Cột B
+    Email           string `json:"email"`              // Cột C
+    MatKhauHash     string `json:"-"`                  // Cột D (Ẩn JSON)
+    HoTen           string `json:"ho_ten"`             // Cột E
+    ChucVu          string `json:"chuc_vu"`            // Cột F
+    MaPin           string `json:"-"`                  // Cột G (Ẩn JSON)
+    Cookie          string `json:"-"`                  // Cột H (Ẩn JSON)
+    
+    // --- Sửa String thành Int64 để tính toán thời gian ---
+    CookieExpired   int64  `json:"cookie_expired"`     // Cột I
+    
+    VaiTroQuyenHan  string `json:"vai_tro_quyen_han"`  // Cột J
+    TrangThai       int    `json:"trang_thai"`         // Cột K
+    LanDangNhapCuoi string `json:"lan_dang_nhap_cuoi"` // Cột L
 }
 
 // ========================================================

@@ -1,0 +1,52 @@
+{{ define "noi_dung" }}
+<div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6 md:p-8">
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-10">
+        
+        <div class="space-y-4">
+            <div class="aspect-square bg-gray-50 rounded-xl overflow-hidden flex items-center justify-center border">
+                {{ if .SanPham.UrlHinhAnh }}
+                    <img src="{{ .SanPham.UrlHinhAnh }}" alt="{{ .SanPham.TenSanPham }}" class="object-contain w-full h-full">
+                {{ else }}
+                    <span class="text-6xl">📦</span>
+                {{ end }}
+            </div>
+        </div>
+
+        <div>
+            <div class="mb-2 text-sm text-blue-600 font-bold uppercase tracking-wide">
+                {{ .SanPham.MaDanhMuc }} </div>
+            <h1 class="text-3xl font-bold text-gray-900 mb-2">{{ .SanPham.TenSanPham }}</h1>
+            <p class="text-gray-500 text-sm mb-6">Mã SP: <span class="font-mono bg-gray-100 px-2 py-1 rounded">{{ .SanPham.MaSanPham }}</span></p>
+
+            <div class="mb-8">
+                <span class="text-4xl font-bold text-red-600">{{ printf "%.0f" .SanPham.GiaBanLe }} đ</span>
+                {{ if .SanPham.BaoHanhThang }}
+                <div class="mt-2 text-sm text-gray-600 flex items-center gap-2">
+                    🛡️ Bảo hành: <span class="font-semibold text-gray-900">{{ .SanPham.BaoHanhThang }} tháng</span>
+                </div>
+                {{ end }}
+            </div>
+
+            <div class="flex gap-4 mb-8">
+                <button class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 px-6 rounded-xl transition shadow-lg shadow-blue-200">
+                    MUA NGAY
+                </button>
+                <button class="bg-gray-100 hover:bg-gray-200 text-gray-800 font-bold py-4 px-6 rounded-xl transition">
+                    THÊM VÀO GIỎ
+                </button>
+            </div>
+
+            <div class="border-t pt-6">
+                <h3 class="font-bold text-lg mb-4">Thông số kỹ thuật</h3>
+                <div class="bg-gray-50 rounded-lg p-4 text-sm leading-relaxed text-gray-700 whitespace-pre-line">
+                    {{ if .SanPham.ThongSo }}
+                        {{ .SanPham.ThongSo }}
+                    {{ else }}
+                        Đang cập nhật thông số...
+                    {{ end }}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{{ end }}

@@ -68,17 +68,6 @@ func LayThongTinKhachHang(maKH string) (*mo_hinh.KhachHang, bool) {
 	return kh, tonTai
 }
 
-// --- [SỬA LẠI HÀM NÀY] ---
-// Trả về *mo_hinh.NhanVien (Con trỏ) thay vì giá trị
-func LayThongTinNhanVien(maNV string) (*mo_hinh.NhanVien, bool) {
-	khoa := BoQuanLyKhoa.LayKhoa(CacheNhanVien.TenKey)
-	khoa.RLock()
-	defer khoa.RUnlock()
-	nv, tonTai := CacheNhanVien.DuLieu[maNV]
-	// Vì CacheNhanVien.DuLieu giờ lưu con trỏ, nên ta trả về trực tiếp
-	return nv, tonTai
-}
-// -------------------------
 
 func LayCauHinhWeb() map[string]mo_hinh.CauHinhWeb {
 	khoa := BoQuanLyKhoa.LayKhoa(CacheCauHinhWeb.TenKey)

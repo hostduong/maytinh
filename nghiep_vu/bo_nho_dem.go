@@ -623,29 +623,29 @@ func napPhieuBaoHanh() {
 }
 
 // --------------------------------------------------------
-// HELPER FUNCTIONS (TIỆN ÍCH)
+// HELPER FUNCTIONS (TIỆN ÍCH - Dán vào cuối file)
 // --------------------------------------------------------
+
 func layString(dong []interface{}, index int) string {
 	if index >= len(dong) || dong[index] == nil { return "" }
 	return fmt.Sprintf("%v", dong[index])
 }
 
-func layFloat(dong []interface{}, index int) float64 {
-	str := layString(dong, index)
-	if str == "" { return 0 }
-	str = strings.ReplaceAll(str, ",", "")
-	val, _ := strconv.ParseFloat(str, 64)
-	return val
-}
-
+// Hàm xử lý số nguyên thông minh (Hiểu được cả 1.000)
 func layInt(dong []interface{}, index int) int {
 	str := layString(dong, index)
 	if str == "" { return 0 }
+	
+	// Xóa các ký tự phân cách (VD: 1.000 -> 1000)
+	str = strings.ReplaceAll(str, ".", "")
+	str = strings.ReplaceAll(str, ",", "")
+	str = strings.ReplaceAll(str, " ", "")
+	
 	val, _ := strconv.Atoi(str)
 	return val
 }
 
-// Hàm này nằm ở cuối file nghiep_vu/bo_nho_dem.go
+// Hàm xử lý tiền tệ/số thực thông minh (Hiểu được cả 1.500.000 đ)
 func layFloat(dong []interface{}, index int) float64 {
 	str := layString(dong, index)
 	if str == "" { return 0 }

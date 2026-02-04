@@ -1,55 +1,103 @@
 {{ define "ho_so" }}
     {{ template "header" . }}
 
-    <div class="max-w-2xl mx-auto">
+    <div class="max-w-2xl mx-auto relative">
         <div class="bg-white rounded-2xl shadow-lg overflow-hidden border border-gray-100">
-            <div class="bg-gradient-to-r from-blue-600 to-blue-400 p-6 text-white text-center">
+             <div class="bg-gradient-to-r from-blue-600 to-blue-400 p-6 text-white text-center">
                 <div class="text-6xl mb-2">👤</div>
-                <h1 class="text-2xl font-bold">{{ .NhanVien.HoTen }}</h1>
+                <h1 class="text-2xl font-bold" id="lblHoTen">{{ .NhanVien.HoTen }}</h1>
                 <p class="opacity-90">{{ .NhanVien.ChucVu }}</p>
             </div>
-
-            <div class="p-8 space-y-6">
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div>
-                        <label class="block text-xs text-gray-500 uppercase font-semibold">Mã thành viên</label>
-                        <div class="text-lg font-mono text-gray-800 bg-gray-50 px-3 py-2 rounded mt-1">
-                            {{ .NhanVien.MaNhanVien }}
-                        </div>
-                    </div>
-                    <div>
-                        <label class="block text-xs text-gray-500 uppercase font-semibold">Tên đăng nhập</label>
-                        <div class="text-lg text-gray-800 bg-gray-50 px-3 py-2 rounded mt-1">
-                            {{ .NhanVien.TenDangNhap }}
-                        </div>
-                    </div>
-                </div>
-
-                <div>
-                    <label class="block text-xs text-gray-500 uppercase font-semibold">Email</label>
-                    <div class="text-lg text-gray-800 border-b pb-1 mt-1">
-                        {{ if .NhanVien.Email }}{{ .NhanVien.Email }}{{ else }}<span class="text-gray-400 italic">Chưa cập nhật</span>{{ end }}
-                    </div>
-                </div>
-
-                <div>
-                    <label class="block text-xs text-gray-500 uppercase font-semibold">Ngày tham gia</label>
-                    <div class="text-gray-600 mt-1">
-                         {{ .NhanVien.LanDangNhapCuoi }}
-                    </div>
-                </div>
-            </div>
-
             <div class="bg-gray-50 p-6 flex justify-center gap-4">
-                <button class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-medium transition shadow">
+                <button onclick="toggleModal('modalPass')" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-medium transition shadow">
                     Đổi mật khẩu
                 </button>
-                <button class="bg-white border border-gray-300 hover:bg-gray-100 text-gray-700 px-6 py-2 rounded-lg font-medium transition">
+                <button onclick="toggleModal('modalInfo')" class="bg-white border border-gray-300 hover:bg-gray-100 text-gray-700 px-6 py-2 rounded-lg font-medium transition">
                     Cập nhật thông tin
+                </button>
+                <button onclick="toggleModal('modalPin')" class="bg-purple-100 text-purple-700 hover:bg-purple-200 px-6 py-2 rounded-lg font-medium transition">
+                    Đổi mã PIN
                 </button>
             </div>
         </div>
+
+        <div id="modalPass" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div class="bg-white p-6 rounded-xl shadow-2xl w-96">
+                <h3 class="text-lg font-bold mb-4">🔐 Đổi Mật Khẩu</h3>
+                <input type="password" id="oldPass" placeholder="Mật khẩu cũ" class="w-full p-2 border rounded mb-3">
+                <input type="password" id="newPass" placeholder="Mật khẩu mới" class="w-full p-2 border rounded mb-4">
+                <div class="flex justify-end gap-2">
+                    <button onclick="toggleModal('modalPass')" class="text-gray-500 hover:bg-gray-100 px-4 py-2 rounded">Hủy</button>
+                    <button onclick="doiPass()" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">Lưu</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="modalInfo" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div class="bg-white p-6 rounded-xl shadow-2xl w-96">
+                <h3 class="text-lg font-bold mb-4">✏️ Cập nhật thông tin</h3>
+                <input type="text" id="newName" value="{{ .NhanVien.HoTen }}" placeholder="Họ và tên" class="w-full p-2 border rounded mb-4">
+                <div class="flex justify-end gap-2">
+                    <button onclick="toggleModal('modalInfo')" class="text-gray-500 hover:bg-gray-100 px-4 py-2 rounded">Hủy</button>
+                    <button onclick="doiTen()" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">Lưu</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="modalPin" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div class="bg-white p-6 rounded-xl shadow-2xl w-96">
+                <h3 class="text-lg font-bold mb-4">🔢 Đổi Mã PIN</h3>
+                <input type="text" id="oldPin" maxlength="6" placeholder="Mã PIN cũ" class="w-full p-2 border rounded mb-3">
+                <input type="text" id="newPin" maxlength="6" placeholder="Mã PIN mới (6 số)" class="w-full p-2 border rounded mb-4">
+                <div class="flex justify-end gap-2">
+                    <button onclick="toggleModal('modalPin')" class="text-gray-500 hover:bg-gray-100 px-4 py-2 rounded">Hủy</button>
+                    <button onclick="doiPin()" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">Lưu</button>
+                </div>
+            </div>
+        </div>
+
     </div>
+
+    <script>
+        function toggleModal(id) {
+            document.getElementById(id).classList.toggle('hidden');
+        }
+
+        async function postData(url, data) {
+            const formData = new FormData();
+            for(const k in data) formData.append(k, data[k]);
+            const res = await fetch(url, { method: 'POST', body: formData });
+            return await res.json();
+        }
+
+        async function doiPass() {
+            const res = await postData('/api/user/change-pass', {
+                pass_cu: document.getElementById('oldPass').value,
+                pass_moi: document.getElementById('newPass').value
+            });
+            alert(res.msg);
+            if(res.status === 'ok') toggleModal('modalPass');
+        }
+
+        async function doiTen() {
+            const newName = document.getElementById('newName').value;
+            const res = await postData('/api/user/update-info', { ho_ten_moi: newName });
+            alert(res.msg);
+            if(res.status === 'ok') {
+                document.getElementById('lblHoTen').innerText = newName;
+                toggleModal('modalInfo');
+            }
+        }
+
+        async function doiPin() {
+            const res = await postData('/api/user/change-pin', {
+                pin_cu: document.getElementById('oldPin').value,
+                pin_moi: document.getElementById('newPin').value
+            });
+            alert(res.msg);
+            if(res.status === 'ok') toggleModal('modalPin');
+        }
+    </script>
 
     {{ template "footer" . }}
 {{ end }}

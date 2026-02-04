@@ -1,76 +1,72 @@
 {{ define "dang_ky" }}
-<!DOCTYPE html>
-<html lang="vi">
-<head>
-    <meta charset="UTF-8">
-    <title>Đăng Ký Tài Khoản</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <style>body { font-family: 'Inter', sans-serif; }</style>
-</head>
-<body class="bg-gray-100 h-screen flex items-center justify-center">
+    {{ template "header" . }}
 
-    <div class="bg-white p-8 rounded-2xl shadow-xl w-full max-w-md border border-gray-200">
-        <div class="text-center mb-6">
-            <h1 class="text-3xl font-bold text-blue-600 mb-2">Đăng Ký Mới</h1>
-            <p class="text-gray-500 text-sm">Tham gia hệ thống MayTinhShop</p>
-        </div>
-
-        {{ if .Loi }}
-        <div class="mb-4 bg-red-50 border-l-4 border-red-500 text-red-700 p-3 rounded text-sm">
-            <p>{{ .Loi }}</p>
-        </div>
-        {{ end }}
-
-        <form action="/register" method="POST" class="space-y-4">
+    <div class="flex items-center justify-center min-h-[calc(100vh-200px)] py-12 px-4 sm:px-6 lg:px-8 bg-gray-50">
+        
+        <div class="w-full max-w-md space-y-8 bg-white p-8 rounded-2xl shadow-lg border border-gray-100">
             
-            <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">Họ và tên</label>
-                <input type="text" name="ho_ten" required
-                    class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 outline-none"
-                    placeholder="Nguyễn Văn A">
+            <div class="text-center">
+                <h2 class="text-3xl font-bold text-green-600">Tạo Tài Khoản</h2>
+                <p class="mt-2 text-sm text-gray-600">Trở thành thành viên của MayTinhShop</p>
             </div>
 
-            <div class="grid grid-cols-2 gap-4">
+            {{ if .Loi }}
+            <div class="bg-red-50 border-l-4 border-red-500 text-red-700 p-4 rounded text-sm flex items-center shadow-sm">
+                <span class="mr-2 text-lg">⚠️</span> {{ .Loi }}
+            </div>
+            {{ end }}
+
+            <form class="mt-8 space-y-4" action="/register" method="POST">
+                
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Email</label>
-                    <input type="email" name="email" required
-                        class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 outline-none"
-                        placeholder="abc@gmail.com">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Họ và tên</label>
+                    <input name="ho_ten" type="text" required 
+                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none transition"
+                        placeholder="Nguyễn Văn A">
                 </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                        <input name="email" type="email" required 
+                            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none transition"
+                            placeholder="abc@gmail.com">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Mã PIN (6 số)</label>
+                        <input name="ma_pin" type="text" maxlength="6" required 
+                            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none transition"
+                            placeholder="123456">
+                    </div>
+                </div>
+
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Mã PIN (6 số)</label>
-                    <input type="text" name="ma_pin" maxlength="6" required
-                        class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 outline-none"
-                        placeholder="123456">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Tên đăng nhập</label>
+                    <input name="ten_dang_nhap" type="text" required 
+                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none transition"
+                        placeholder="user123">
                 </div>
-            </div>
 
-            <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">Tên đăng nhập</label>
-                <input type="text" name="ten_dang_nhap" required
-                    class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 outline-none"
-                    placeholder="user123">
-            </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Mật khẩu</label>
+                    <input name="mat_khau" type="password" required 
+                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none transition"
+                        placeholder="••••••••">
+                </div>
 
-            <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">Mật khẩu</label>
-                <input type="password" name="mat_khau" required
-                    class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 outline-none"
-                    placeholder="••••••">
-            </div>
+                <div class="pt-2">
+                    <button type="submit" 
+                        class="group w-full flex justify-center py-3 px-4 border border-transparent text-sm font-bold rounded-lg text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 shadow-lg shadow-green-500/30 transition transform active:scale-95">
+                        ĐĂNG KÝ NGAY
+                    </button>
+                </div>
 
-            <button type="submit" 
-                class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 rounded-lg transition shadow-lg shadow-green-500/30">
-                TẠO TÀI KHOẢN
-            </button>
-        </form>
-
-        <div class="mt-6 text-center text-sm">
-            Đã có tài khoản? <a href="/login" class="text-blue-600 hover:underline font-semibold">Đăng nhập ngay</a>
+                <div class="text-center text-sm mt-4">
+                    Đã có tài khoản? <a href="/login" class="font-medium text-blue-600 hover:text-blue-500">Đăng nhập</a>
+                </div>
+            </form>
         </div>
     </div>
 
-</body>
-</html>
+    {{ template "footer" . }}
 {{ end }}

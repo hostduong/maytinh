@@ -10,12 +10,14 @@
 <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
     
     {{ range .DanhSachSanPham }}
-    <a class="bg-white rounded-xl shadow-sm hover:shadow-md transition border border-gray-100 overflow-hidden group">
+    <a href="/san-pham/{{ .MaSanPham }}" class="block bg-white rounded-xl shadow-sm hover:shadow-md transition border border-gray-100 overflow-hidden group">
+        
         <div class="h-48 bg-gray-100 flex items-center justify-center overflow-hidden relative">
             {{ if .UrlHinhAnh }}
                 <img src="{{ .UrlHinhAnh }}" alt="{{ .TenSanPham }}" class="object-cover w-full h-full group-hover:scale-105 transition duration-300">
             {{ else }}
-                <span class="text-4xl">📦</span> {{ end }}
+                <span class="text-4xl">📦</span> 
+            {{ end }}
         </div>
 
         <div class="p-4">

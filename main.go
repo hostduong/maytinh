@@ -1,80 +1,126 @@
-package nghiep_vu
+package main
 
 import (
-	"bytes"
-	"crypto/rand"
-	"encoding/json"
-	"fmt"
-	"math/big"
+	"log"
 	"net/http"
-	"sync"
-	"time"
+	"os"
+	"os/signal"
+	"syscall"
+
+	"app/bao_mat"
+	"app/cau_hinh"
+	"app/chuc_nang"
+	"app/kho_du_lieu"
+	"app/nghiep_vu"
+
+	"github.com/gin-gonic/gin"
 )
 
-const (
-	URL_API_MAIL = "https://script.google.com/macros/s/AKfycbxd40H4neotKdnL54uQevZgSZpyZKXWfV7kJhNLY0oD9pPPA5Mn75KlFWvFd5WqiokZyA/exec"
-	KEY_API_MAIL = "A1qPqCeLaX9oO0ozrMiH1a2IJKFDaj095Dlhmr8STXuS3cCmOe"
-)
+func main() {
+	log.Println(">>> ĐANG KHỞI ĐỘNG HỆ THỐNG (PUBLIC MODE)...")
 
-type ThongTinOTP struct { MaCode string; HetHanLuc int64 }
-type BoDemRate struct { LanGuiCuoi int64; SoLanTrong6h int; ResetLuc int64 }
+	cau_hinh.KhoiTaoCauHinh()
+	kho_du_lieu.KhoiTaoKetNoiGoogle()
+	nghiep_vu.KhoiTaoBoNho()
+	nghiep_vu.KhoiTaoWorkerGhiSheet()
+	chuc_nang.KhoiTaoBoDemRateLimit()
 
-var CacheOTP = make(map[string]ThongTinOTP)
-var CacheRate = make(map[string]*BoDemRate)
-var mtxOTP sync.Mutex
+	router := gin.Default()
+	router.LoadHTMLGlob("giao_dien/**/*")
 
-// --- HÀM CŨ (GIỮ NGUYÊN) ---
-func TaoMaOTP() string {
-	n, _ := rand.Int(rand.Reader, big.NewInt(99999999))
-	return fmt.Sprintf("%08d", n.Int64())
+	router.GET("/", chuc_nang.TrangChu)
+	router.GET("/san-pham/:id", chuc_nang.ChiTietSanPham)
+	
+	router.GET("/login", chuc_nang.TrangDangNhap)
+	router.POST("/login", chuc_nang.XuLyDangNhap)
+	router.GET("/register", chuc_nang.TrangDangKy)
+	router.POST("/register", chuc_nang.XuLyDangKy)
+	router.GET("/logout", chuc_nang.DangXuat)
+
+	router.GET("/forgot-password", chuc_nang.TrangQuenMatKhau)
+	router.POST("/api/auth/reset-by-pin", chuc_nang.XuLyQuenPassBangPIN)
+	router.POST("/api/auth/send-otp", chuc_nang.XuLyGuiOTPEmail)
+	router.POST("/api/auth/reset-by-otp", chuc_nang.XuLyQuenPassBangOTP)
+
+	userGroup := router.Group("/api/user")
+	{
+		userGroup.POST("/update-info", chuc_nang.API_DoiThongTin)
+		userGroup.POST("/change-pass", chuc_nang.API_DoiMatKhau)
+		userGroup.POST("/change-pin", chuc_nang.API_DoiMaPin)
+		userGroup.POST("/send-otp-pin", chuc_nang.API_GuiOTPPin)
+		
+		// [QUAN TRỌNG] Đã xóa dòng gọi API_ResetPinBangOTP vì không dùng nữa
+		// Để tránh lỗi undefined khi build
+	}
+
+	router.GET("/tai-khoan", func(c *gin.Context) {
+		cookie, _ := c.Cookie("session_id")
+		if cookie == "" {
+			 c.Redirect(http.StatusFound, "/login")
+			 return
+		}
+		if kh, ok := nghiep_vu.TimKhachHangTheoCookie(cookie); ok {
+			 c.HTML(http.StatusOK, "ho_so", gin.H{
+			 	"TieuDe":       "Hồ sơ của bạn",
+			 	"NhanVien":     kh,
+			 	"DaDangNhap":   true,
+			 	"TenNguoiDung": kh.TenKhachHang,
+			 	"QuyenHan":     kh.VaiTroQuyenHan,
+			 })
+		} else {
+			 c.Redirect(http.StatusFound, "/login")
+		}
+	})
+
+	router.GET("/tool/hash/:pass", func(c *gin.Context) {
+		pass := c.Param("pass")
+		hash, _ := bao_mat.HashMatKhau(pass)
+		c.String(200, "Pass: %s\nHash: %s", pass, hash)
+	})
+
+	admin := router.Group("/admin")
+	admin.Use(chuc_nang.KiemTraQuyenHan)
+	{
+		admin.GET("/tong-quan", func(c *gin.Context) {
+			userID, _ := c.Get("USER_ID")
+			kh, _ := nghiep_vu.TimKhachHangTheoCookie(mustGetCookie(c))
+			c.HTML(http.StatusOK, "quan_tri", gin.H{
+				"TieuDe":       "Quản trị hệ thống",
+				"NhanVien":     kh,
+				"DaDangNhap":   true,
+				"TenNguoiDung": kh.TenKhachHang,
+				"QuyenHan":     kh.VaiTroQuyenHan,
+				"UserID":       userID,
+			})
+		})
+		admin.GET("/reload", chuc_nang.API_NapLaiDuLieu)
+	}
+
+	// [FIX LỖI DEPLOY] Cloud Run bắt buộc 0.0.0.0
+	port := os.Getenv("PORT")
+	if port == "" { port = cau_hinh.BienCauHinh.CongChayWeb }
+	if port == "" { port = "8080" }
+	
+	addr := "0.0.0.0:" + port
+	srv := &http.Server{ Addr: addr, Handler: router }
+
+	go func() {
+		log.Printf("✅ Server đang lắng nghe tại: %s", addr)
+		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			log.Fatalf("❌ Lỗi server: %s\n", err)
+		}
+	}()
+
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
+	<-quit
+	
+	log.Println("⚠️ Đang tắt Server...")
+	nghiep_vu.ThucHienGhiSheet(true)
+	log.Println("✅ Server đã tắt an toàn.")
 }
 
-func LuuOTP(userKey string, code string) {
-	mtxOTP.Lock(); defer mtxOTP.Unlock()
-	CacheOTP[userKey] = ThongTinOTP{MaCode: code, HetHanLuc: time.Now().Add(10 * time.Minute).Unix()}
-}
-
-func KiemTraOTP(userKey string, inputCode string) bool {
-	mtxOTP.Lock(); defer mtxOTP.Unlock()
-	otp, ok := CacheOTP[userKey]
-	if !ok || time.Now().Unix() > otp.HetHanLuc { return false }
-	if otp.MaCode == inputCode { delete(CacheOTP, userKey); return true }
-	return false
-}
-
-// --- HÀM MỚI (BỔ SUNG) ---
-
-// TaoMaOTP6So : Dùng cho Quên mật khẩu
-func TaoMaOTP6So() string {
-	n, _ := rand.Int(rand.Reader, big.NewInt(999999))
-	return fmt.Sprintf("%06d", n.Int64())
-}
-
-func KiemTraRateLimit(email string) (bool, string) {
-	mtxOTP.Lock(); defer mtxOTP.Unlock()
-	now := time.Now().Unix()
-	rd, ok := CacheRate[email]
-	if !ok || now > rd.ResetLuc { CacheRate[email] = &BoDemRate{ResetLuc: now + 21600}; rd = CacheRate[email] }
-	if now-rd.LanGuiCuoi < 60 { return false, fmt.Sprintf("Vui lòng đợi %d giây.", 60-(now-rd.LanGuiCuoi)) }
-	if rd.SoLanTrong6h >= 10 { return false, "Vượt quá 10 lần gửi trong 6 giờ." }
-	rd.LanGuiCuoi = now; rd.SoLanTrong6h++; return true, ""
-}
-
-func GuiMailXacMinhAPI(email, code string) error {
-	return callApi(map[string]string{"type": "sender_mail", "api_key": KEY_API_MAIL, "email": email, "code": code})
-}
-
-func GuiMailThongBaoAPI(email, subject, name, body string) error {
-	return callApi(map[string]string{"type": "sender", "api_key": KEY_API_MAIL, "email": email, "subject": subject, "name": name, "body": body})
-}
-
-func callApi(payload interface{}) error {
-	b, _ := json.Marshal(payload)
-	resp, err := http.Post(URL_API_MAIL, "application/json", bytes.NewBuffer(b))
-	if err != nil { return err }
-	defer resp.Body.Close()
-	var r struct{ Status string `json:"status"`; Messenger string `json:"messenger"` }
-	json.NewDecoder(resp.Body).Decode(&r)
-	if r.Status == "true" { return nil }
-	return fmt.Errorf("%s", r.Messenger)
+func mustGetCookie(c *gin.Context) string {
+	cookie, _ := c.Cookie("session_id")
+	return cookie
 }

@@ -23,7 +23,7 @@ var CacheOTP = make(map[string]ThongTinOTP)
 var CacheRate = make(map[string]*BoDemRate)
 var mtxOTP sync.Mutex
 
-// --- HÀM CŨ (GIỮ NGUYÊN) ---
+// --- [HÀM CŨ 8 SỐ - GIỮ NGUYÊN] ---
 func TaoMaOTP() string {
 	n, _ := rand.Int(rand.Reader, big.NewInt(99999999))
 	return fmt.Sprintf("%08d", n.Int64())
@@ -42,9 +42,8 @@ func KiemTraOTP(userKey string, inputCode string) bool {
 	return false
 }
 
-// --- HÀM MỚI (BỔ SUNG) ---
+// --- [HÀM BỔ SUNG] ---
 
-// TaoMaOTP6So : Dùng cho Quên mật khẩu
 func TaoMaOTP6So() string {
 	n, _ := rand.Int(rand.Reader, big.NewInt(999999))
 	return fmt.Sprintf("%06d", n.Int64())
@@ -56,7 +55,7 @@ func KiemTraRateLimit(email string) (bool, string) {
 	rd, ok := CacheRate[email]
 	if !ok || now > rd.ResetLuc { CacheRate[email] = &BoDemRate{ResetLuc: now + 21600}; rd = CacheRate[email] }
 	if now-rd.LanGuiCuoi < 60 { return false, fmt.Sprintf("Vui lòng đợi %d giây.", 60-(now-rd.LanGuiCuoi)) }
-	if rd.SoLanTrong6h >= 10 { return false, "Vượt quá 10 lần gửi trong 6 giờ." }
+	if rd.SoLanTrong6h >= 10 { return false, "Vượt quá 10 lần gửi/6h." }
 	rd.LanGuiCuoi = now; rd.SoLanTrong6h++; return true, ""
 }
 

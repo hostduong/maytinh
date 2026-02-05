@@ -3,19 +3,21 @@ package chuc_nang
 import (
 	"fmt"
 	"strings"
+
 	"app/bao_mat"
 	"app/cau_hinh"
 	"app/mo_hinh"
 	"app/nghiep_vu"
+
 	"github.com/gin-gonic/gin"
 )
 
 // [GIỮ NGUYÊN 3 HÀM CŨ: API_DoiThongTin, API_DoiMatKhau, API_DoiMaPin]
-// Bạn copy lại y hệt nội dung cũ cho 3 hàm này nhé.
+// (Bạn hãy giữ nguyên code cũ của 3 hàm này, không thay đổi gì)
 
 func API_DoiThongTin(c *gin.Context) {
-	hoTenMoi := strings.TrimSpace(c.PostForm("ho_ten"))
-	sdtMoi := strings.TrimSpace(c.PostForm("dien_thoai"))
+	hoTenMoi    := strings.TrimSpace(c.PostForm("ho_ten"))
+	sdtMoi      := strings.TrimSpace(c.PostForm("dien_thoai"))
 	ngaySinhMoi := strings.TrimSpace(c.PostForm("ngay_sinh"))
 	gioiTinhMoi := strings.TrimSpace(c.PostForm("gioi_tinh"))
 	cookie, _ := c.Cookie("session_id")
@@ -61,27 +63,30 @@ func API_DoiMaPin(c *gin.Context) {
 	} else { c.JSON(401, gin.H{"status": "error", "msg": "Hết phiên"}) }
 }
 
-// --- [HÀM MỚI] ---
+// --- [HÀM BỔ SUNG - GỬI PIN MỚI] ---
 func API_GuiOTPPin(c *gin.Context) {
 	cookie, _ := c.Cookie("session_id")
 	kh, ok := nghiep_vu.TimKhachHangTheoCookie(cookie)
-	if !ok { c.JSON(401, gin.H{"status": "error", "msg": "Hết phiên"}); return }
+	if !ok { c.JSON(401, gin.H{"status": "error", "msg": "Hết phiên làm việc"}); return }
 
-	okLimit, msg := nghiep_vu.KiemTraRateLimit(kh.Email)
-	if !okLimit { c.JSON(200, gin.H{"status": "error", "msg": msg}); return }
+	// 1. Rate Limit
+	theGui, msg := nghiep_vu.KiemTraRateLimit(kh.Email)
+	if !theGui { c.JSON(200, gin.H{"status": "error", "msg": msg}); return }
 
-	newPin := nghiep_vu.TaoMaOTP() // 8 số
-	body := fmt.Sprintf("Xin chào %s,\n\nMã PIN mới: %s\n\nTrân trọng!", kh.TenDangNhap, newPin)
-	
-	if err := nghiep_vu.GuiMailThongBaoAPI(kh.Email, "Cấp lại PIN", "Hỗ trợ", body); err != nil {
-		c.JSON(200, gin.H{"status": "error", "msg": "Lỗi gửi mail!"}); return
+	// 2. Tạo PIN mới 8 số (Dùng hàm cũ TaoMaOTP 8 số)
+	newPin := nghiep_vu.TaoMaOTP()
+
+	// 3. Gửi Mail
+	body := fmt.Sprintf("Chào %s,\n\nMã PIN mới của bạn là: %s\n\nTrân trọng!", kh.TenDangNhap, newPin)
+	err := nghiep_vu.GuiMailThongBaoAPI(kh.Email, "Cấp lại Mã PIN", "Hỗ trợ", body)
+	if err != nil {
+		c.JSON(200, gin.H{"status": "error", "msg": "Lỗi gửi mail: " + err.Error()})
+		return
 	}
 
+	// 4. Cập nhật
 	kh.MaPinHash = newPin
 	nghiep_vu.ThemVaoHangCho(cau_hinh.BienCauHinh.IdFileSheet, "KHACH_HANG", kh.DongTrongSheet, mo_hinh.CotKH_MaPinHash, newPin)
-	c.JSON(200, gin.H{"status": "ok", "msg": "Đã gửi PIN mới vào Email!"})
-}
 
-func API_ResetPinBangOTP(c *gin.Context) {
-	c.JSON(200, gin.H{"status": "error", "msg": "Vui lòng dùng tính năng gửi PIN qua Email."})
+	c.JSON(200, gin.H{"status": "ok", "msg": "Đã gửi mã PIN mới vào Email!"})
 }

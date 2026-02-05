@@ -35,7 +35,7 @@
             
             <div class="flex flex-wrap justify-center gap-3 py-8 px-6">
                 <button onclick="toggleModal('modalInfo')" class="bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 px-5 py-2.5 rounded-xl font-semibold shadow-sm transition transform hover:-translate-y-0.5 active:scale-95 flex items-center gap-2">
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-4 h-4"><path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" /></svg>
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-4 h-4"><path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.687a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" /></svg>
                     Cập nhật thông tin
                 </button>
                 <button onclick="toggleModal('modalPass')" class="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-xl font-semibold shadow-md transition transform hover:-translate-y-0.5 active:scale-95 flex items-center gap-2">
@@ -284,9 +284,41 @@
             catch (e) { return { status: 'error', msg: 'Lỗi kết nối server!' }; }
         }
 
+        function handleRes(res, modalId) {
+            if(res.status === 'ok') {
+                Swal.fire({ icon: 'success', title: 'Thành công', text: res.msg }).then(() => location.reload());
+                toggleModal(modalId);
+            } else {
+                Swal.fire({ icon: 'error', title: 'Thất bại', text: res.msg });
+            }
+        }
+
         async function doiPass() {
             const res = await postData('/api/user/change-pass', { pass_cu: document.getElementById('oldPass').value, pass_moi: document.getElementById('newPass').value });
             handleRes(res, 'modalPass');
         }
 
-        async function capNhat
+        // [PHẦN BỊ THIẾU ĐÃ ĐƯỢC BỔ SUNG ĐẦY ĐỦ Ở ĐÂY]
+        async function capNhatThongTin() {
+            const data = {
+                ho_ten: document.getElementById('newName').value,
+                dien_thoai: iti.getNumber(),
+                ngay_sinh: document.getElementById('newDob').value,
+                gioi_tinh: document.getElementById('newGender').value
+            };
+            const res = await postData('/api/user/update-info', data);
+            handleRes(res, 'modalInfo');
+        }
+
+        async function doiPin() {
+            const res = await postData('/api/user/change-pin', { pin_cu: document.getElementById('oldPin').value, pin_moi: document.getElementById('newPin').value });
+            handleRes(res, 'modalPin');
+        }
+
+        async function guiYeuCauResetPin() {
+            const res = await fetch('/api/user/send-otp-pin', { method: 'POST' });
+            const json = await res.json();
+            handleRes(json, 'modalPin');
+        }
+    </script>
+{{ end }}

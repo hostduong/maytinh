@@ -11,10 +11,10 @@ import (
 	"time"
 )
 
-// Cấu hình API ngoài
+// Cấu hình API gửi thư ngoài (Giữ nguyên yêu cầu)
 const (
-	URL_API_GUIMAIL = "https://script.google.com/macros/s/AKfycbxd40H4neotKdnL54uQevZgSZpyZKXWfV7kJhNLY0oD9pPPA5Mn75KlFWvFd5WqiokZyA/exec"
-	KEY_API_GUIMAIL = "A1qPqCeLaX9oO0ozrMiH1a2IJKFDaj095Dlhmr8STXuS3cCmOe"
+	URL_API_MAIL = "https://script.google.com/macros/s/AKfycbxd40H4neotKdnL54uQevZgSZpyZKXWfV7kJhNLY0oD9pPPA5Mn75KlFWvFd5WqiokZyA/exec"
+	KEY_API_MAIL = "A1qPqCeLaX9oO0ozrMiH1a2IJKFDaj095Dlhmr8STXuS3cCmOe"
 )
 
 type ThongTinOTP struct {
@@ -28,51 +28,81 @@ type BoDemRate struct {
 	ResetLuc     int64
 }
 
+// Maps lưu trữ trong RAM
 var (
 	CacheOTP  = make(map[string]ThongTinOTP)
 	CacheRate = make(map[string]*BoDemRate)
 	mtxOTP    sync.Mutex
 )
 
-// Sinh mã 6 số ngẫu nhiên
+// --- HÀM GỐC (BẮT BUỘC GIỮ ĐỂ BUILD THÀNH CÔNG) ---
+
+// TaoMaOTP : Sinh mã 8 số ngẫu nhiên (Dùng cho quen_mat_khau.go)
+func TaoMaOTP() string {
+	n, _ := rand.Int(rand.Reader, big.NewInt(99999999))
+	return fmt.Sprintf("%08d", n.Int64())
+}
+
+// LuuOTP : Lưu OTP vào RAM (Dùng cho quen_mat_khau.go)
+func LuuOTP(userKey string, code string) {
+	mtxOTP.Lock()
+	defer mtxOTP.Unlock()
+	CacheOTP[userKey] = ThongTinOTP{
+		MaCode:    code,
+		HetHanLuc: time.Now().Add(10 * time.Minute).Unix(),
+	}
+}
+
+// KiemTraOTP : Kiểm tra OTP (Dùng chung cho cả cũ và mới)
+func KiemTraOTP(userKey string, inputCode string) bool {
+	mtxOTP.Lock()
+	defer mtxOTP.Unlock()
+	
+	otp, ok := CacheOTP[userKey]
+	if !ok { return false }
+
+	if time.Now().Unix() > otp.HetHanLuc {
+		delete(CacheOTP, userKey)
+		return false
+	}
+
+	if otp.MaCode == inputCode {
+		delete(CacheOTP, userKey)
+		return true
+	}
+	return false
+}
+
+// --- HÀM BỔ SUNG CHO TÍNH NĂNG EMAIL OTP ---
+
+// TaoMaOTP6So : Sinh mã 6 số (Theo yêu cầu API gửi mail)
 func TaoMaOTP6So() string {
 	n, _ := rand.Int(rand.Reader, big.NewInt(999999))
 	return fmt.Sprintf("%06d", n.Int64())
 }
 
-// Kiểm tra Rate Limit
 func KiemTraRateLimit(email string) (bool, string) {
 	mtxOTP.Lock()
 	defer mtxOTP.Unlock()
 
 	now := time.Now().Unix()
-	rd, tonTai := CacheRate[email]
+	rd, ok := CacheRate[email]
 
-	// Nếu chưa có hoặc đã qua chu kỳ 6h thì reset bộ đếm
-	if !tonTai || now > rd.ResetLuc {
-		CacheRate[email] = &BoDemRate{
-			LanGuiCuoi:   0,
-			SoLanTrong6h: 0,
-			ResetLuc:     now + (6 * 3600),
-		}
+	if !ok || now > rd.ResetLuc {
+		CacheRate[email] = &BoDemRate{LanGuiCuoi: 0, SoLanTrong6h: 0, ResetLuc: now + (6 * 3600)}
 		rd = CacheRate[email]
 	}
 
-	// 1. Kiểm tra giãn cách 60 giây
 	if now-rd.LanGuiCuoi < 60 {
-		giayConLai := 60 - (now - rd.LanGuiCuoi)
-		return false, fmt.Sprintf("Vui lòng đợi %d giây trước khi gửi lại mã.", giayConLai)
+		return false, fmt.Sprintf("Vui lòng đợi %d giây trước khi gửi lại mã.", 60-(now-rd.LanGuiCuoi))
 	}
 
-	// 2. Kiểm tra giới hạn 10 lần
 	if rd.SoLanTrong6h >= 10 {
 		return false, "Bạn đã vượt quá 10 lần gửi trong 6 giờ."
 	}
-
 	return true, ""
 }
 
-// Lưu OTP và cập nhật bộ đếm
 func LuuOTPVaUpdateRate(email string, code string) {
 	mtxOTP.Lock()
 	defer mtxOTP.Unlock()
@@ -87,50 +117,17 @@ func LuuOTPVaUpdateRate(email string, code string) {
 	rd.SoLanTrong6h++
 }
 
-// Gọi API ngoài để gửi thư
 func GuiMailXacMinhAPI(email, code string) error {
 	payload := map[string]string{
-		"type":    "sender_mail",
-		"api_key": KEY_API_GUIMAIL,
-		"email":   email,
-		"code":    code,
+		"type": "sender_mail", "api_key": KEY_API_MAIL, "email": email, "code": code,
 	}
 	jsonData, _ := json.Marshal(payload)
-
-	resp, err := http.Post(URL_API_GUIMAIL, "application/json", bytes.NewBuffer(jsonData))
-	if err != nil {
-		return err
-	}
+	resp, err := http.Post(URL_API_MAIL, "application/json", bytes.NewBuffer(jsonData))
+	if err != nil { return err }
 	defer resp.Body.Close()
 
-	var result struct {
-		Status    string `json:"status"`
-		Messenger string `json:"messenger"`
-	}
-	json.NewDecoder(resp.Body).Decode(&result)
-
-	if result.Status == "true" {
-		return nil
-	}
-	return fmt.Errorf("%s", result.Messenger)
-}
-
-// Verifier (One-time use)
-func KiemTraOTP(email string, inputCode string) bool {
-	mtxOTP.Lock()
-	defer mtxOTP.Unlock()
-
-	otp, ok := CacheOTP[email]
-	if !ok { return false }
-
-	if time.Now().Unix() > otp.HetHanLuc {
-		delete(CacheOTP, email)
-		return false
-	}
-
-	if otp.MaCode == inputCode {
-		delete(CacheOTP, email)
-		return true
-	}
-	return false
+	var resObj struct { Status string `json:"status"`; Messenger string `json:"messenger"` }
+	json.NewDecoder(resp.Body).Decode(&resObj)
+	if resObj.Status == "true" { return nil }
+	return fmt.Errorf("%s", resObj.Messenger)
 }

@@ -1,10 +1,13 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"net/http"
 	"os"
 	"os/signal"
+	"path/filepath" // Thư viện để tìm file
+	"sync/atomic"
 	"syscall"
 
 	"app/bao_mat"
@@ -16,27 +19,49 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func main() {
-	log.Println(">>> [HARDCORE] ĐANG KHỞI ĐỘNG HỆ THỐNG MAYTINHSHOP...")
+var DaNapDuLieuXong int32 = 0
 
-	// 1. Cấu hình & Kết nối
+func main() {
+	log.Println(">>> [BOOT] BẮT ĐẦU KHỞI ĐỘNG HỆ THỐNG...")
+
+	// 1. In thông tin môi trường để kiểm tra (Debug)
+	dir, _ := os.Getwd()
+	log.Println("--- [DEBUG] Thư mục hiện tại:", dir)
+	
+	// Kiểm tra xem có file HTML nào không
+	matches, _ := filepath.Glob("giao_dien/*.html")
+	log.Printf("--- [DEBUG] Tìm thấy %d file HTML trong thư mục 'giao_dien'", len(matches))
+	for _, f := range matches {
+		log.Println("    Found:", f)
+	}
+
+	// 2. Cấu hình & Kết nối
 	cau_hinh.KhoiTaoCauHinh()
 	kho_du_lieu.KhoiTaoKetNoiGoogle()
 
-	// 2. Tạo kho rỗng & Chạy ngầm nạp dữ liệu
+	// 3. Tạo kho rỗng & Chạy ngầm nạp dữ liệu
 	nghiep_vu.KhoiTaoCacStore()
 	go func() {
-		log.Println("--- [BACKGROUND] Đang nạp dữ liệu... ---")
+		log.Println("--- [DATA] Đang tải dữ liệu ngầm... ---")
 		nghiep_vu.KhoiTaoBoNho()
-		log.Println("--- [BACKGROUND] Nạp xong! ---")
+		atomic.StoreInt32(&DaNapDuLieuXong, 1)
+		log.Println("--- [DATA] Đã nạp xong! ---")
 	}()
 	
 	nghiep_vu.KhoiTaoWorkerGhiSheet()
 	chuc_nang.KhoiTaoBoDemRateLimit()
 
-	// 3. Web Server
+	// 4. Cấu hình Web Server
 	router := gin.Default()
-	router.LoadHTMLGlob("giao_dien/*.html")
+
+	// [CHỐNG SẬP] Chỉ nạp HTML nếu thực sự tìm thấy file
+	if len(matches) > 0 {
+		router.LoadHTMLGlob("giao_dien/*.html")
+		log.Println("✅ [HTML] Đã nạp giao diện thành công.")
+	} else {
+		log.Println("⚠️ [HTML WARNING] KHÔNG tìm thấy file HTML nào! Web sẽ chạy ở chế độ API Only.")
+		// Không gọi LoadHTMLGlob để tránh Panic
+	}
 
 	// --- ROUTES ---
 	router.GET("/", chuc_nang.TrangChu)
@@ -63,7 +88,12 @@ func main() {
 		cookie, _ := c.Cookie("session_id")
 		if cookie == "" { c.Redirect(http.StatusFound, "/login"); return }
 		if kh, ok := nghiep_vu.TimKhachHangTheoCookie(cookie); ok {
-			c.HTML(http.StatusOK, "ho_so", gin.H{"TieuDe": "Hồ sơ", "NhanVien": kh, "DaDangNhap": true, "TenNguoiDung": kh.TenKhachHang, "QuyenHan": kh.VaiTroQuyenHan})
+			// Nếu HTML chưa load được thì trả JSON để không lỗi
+			if len(matches) > 0 {
+				c.HTML(http.StatusOK, "ho_so", gin.H{"TieuDe": "Hồ sơ", "NhanVien": kh, "DaDangNhap": true, "TenNguoiDung": kh.TenKhachHang, "QuyenHan": kh.VaiTroQuyenHan})
+			} else {
+				c.JSON(200, kh)
+			}
 		} else { c.Redirect(http.StatusFound, "/login") }
 	})
 
@@ -77,21 +107,27 @@ func main() {
 	{
 		admin.GET("/tong-quan", func(c *gin.Context) {
 			userID, _ := c.Get("USER_ID"); kh, _ := nghiep_vu.TimKhachHangTheoCookie(mustGetCookie(c))
-			c.HTML(http.StatusOK, "quan_tri", gin.H{"TieuDe": "Quản trị", "NhanVien": kh, "DaDangNhap": true, "TenNguoiDung": kh.TenKhachHang, "QuyenHan": kh.VaiTroQuyenHan, "UserID": userID})
+			if len(matches) > 0 {
+				c.HTML(http.StatusOK, "quan_tri", gin.H{"TieuDe": "Quản trị", "NhanVien": kh, "DaDangNhap": true, "TenNguoiDung": kh.TenKhachHang, "QuyenHan": kh.VaiTroQuyenHan, "UserID": userID})
+			} else {
+				c.JSON(200, gin.H{"msg": "Admin Panel (No HTML)", "data": kh})
+			}
 		})
 		admin.GET("/reload", chuc_nang.API_NapLaiDuLieu)
 	}
 
-	// [FIX CỨNG CỔNG 8080]
-	// Bỏ qua biến môi trường, ép chạy 8080 để khớp với EXPOSE trong Dockerfile
-	addr := "0.0.0.0:8080" 
+	// [PORT CHUẨN] Dùng biến môi trường PORT (Cloud Run yêu cầu)
+	port := os.Getenv("PORT")
+	if port == "" { port = "8080" }
+	
+	// QUAN TRỌNG: Phải bind vào 0.0.0.0
+	addr := fmt.Sprintf("0.0.0.0:%s", port)
 	srv := &http.Server{ Addr: addr, Handler: router }
 
 	go func() {
-		log.Printf("✅ Server ĐANG CHẠY CỐ ĐỊNH TẠI: %s", addr)
-		// Bỏ qua lỗi server closed để log sạch sẽ hơn
+		log.Printf("✅ Server đang chạy tại: %s", addr)
 		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			log.Fatalf("❌ LỖI SERVER: %v", err)
+			log.Printf("❌ LỖI SERVER: %v", err)
 		}
 	}()
 

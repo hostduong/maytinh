@@ -90,3 +90,35 @@ func XuLyQuenPassBangOTP(c *gin.Context) {
 
 	c.JSON(200, gin.H{"status": "ok", "msg": "Đổi mật khẩu thành công!"})
 }
+
+// [Cập nhật hàm XuLyGuiOTPEmail trong quen_mat_khau.go]
+
+func XuLyGuiOTPEmail(c *gin.Context) {
+	email := strings.ToLower(strings.TrimSpace(c.PostForm("email")))
+	kh, ok := nghiep_vu.TimKhachHangTheoUserOrEmail(email)
+	
+	if !ok {
+		// Trả về OK để tránh lộ email tồn tại, nhưng thực tế không gửi
+		c.JSON(200, gin.H{"status": "ok", "msg": "Nếu email chính xác, mã xác minh đã được gửi!"})
+		return
+	}
+
+	// 1. Rate Limit
+	theGui, msgLoi := nghiep_vu.KiemTraRateLimit(kh.Email)
+	if !theGui { c.JSON(200, gin.H{"status": "error", "msg": msgLoi}); return }
+
+	// 2. Tạo mã 6 số cho OTP mật khẩu
+	code := nghiep_vu.TaoMaOTP6So() 
+	
+	// 3. Gọi API gửi thư (type: sender_mail)
+	err := nghiep_vu.GuiMailXacMinhAPI(kh.Email, code)
+	if err != nil {
+		c.JSON(200, gin.H{"status": "error", "msg": "Lỗi gửi mail: " + err.Error()})
+		return
+	}
+
+	// 4. Lưu OTP vào RAM (dùng Username làm key cho đồng bộ file cũ)
+	nghiep_vu.LuuOTP(kh.TenDangNhap, code)
+
+	c.JSON(200, gin.H{"status": "ok", "msg": "Mã xác minh 6 số đã được gửi vào Email!"})
+}

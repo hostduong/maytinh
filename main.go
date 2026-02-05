@@ -17,22 +17,31 @@ import (
 )
 
 func main() {
-	log.Println(">>> ĐANG KHỞI ĐỘNG HỆ THỐNG MAYTINHSHOP (PUBLIC MODE)...")
+	log.Println(">>> ĐANG KHỞI ĐỘNG HỆ THỐNG MAYTINHSHOP...")
 
 	// 1. Nạp cấu hình
 	cau_hinh.KhoiTaoCauHinh()
 
-	// 2. Kết nối Sheet (Chế độ Public - Không cần file JSON)
+	// 2. Kết nối Sheet (Chế độ Public - Không file JSON)
+	// Lưu ý: Chế độ này có thể không đọc được dữ liệu nếu Google chặn API không khóa.
+	// Nhưng nó giúp App khởi động lên được (không bị Crash).
 	kho_du_lieu.KhoiTaoKetNoiGoogle()
 
 	// 3. Khởi tạo bộ nhớ & Worker
-	nghiep_vu.KhoiTaoBoNho()
+	// (Chạy ngầm để không chặn việc khởi động Server nếu mạng chậm)
+	go func() {
+		nghiep_vu.KhoiTaoBoNho()
+	}()
+	
 	nghiep_vu.KhoiTaoWorkerGhiSheet()
 	chuc_nang.KhoiTaoBoDemRateLimit()
 
 	// 4. Cấu hình Web Server
 	router := gin.Default()
-	router.LoadHTMLGlob("giao_dien/**/*")
+	
+	// [QUAN TRỌNG] Sửa lỗi Panic do không tìm thấy file
+	// Dùng "giao_dien/*" thay vì "giao_dien/**/*" vì bạn không có thư mục con
+	router.LoadHTMLGlob("giao_dien/*")
 
 	// --- PUBLIC ROUTES ---
 	router.GET("/", chuc_nang.TrangChu)
@@ -55,7 +64,7 @@ func main() {
 		userGroup.POST("/update-info", chuc_nang.API_DoiThongTin)
 		userGroup.POST("/change-pass", chuc_nang.API_DoiMatKhau)
 		userGroup.POST("/change-pin", chuc_nang.API_DoiMaPin)
-		// Đã xóa dòng API_ResetPinBangOTP để fix lỗi build
+		// Đã xóa API_ResetPinBangOTP để tránh lỗi build
 	}
 
 	router.GET("/tai-khoan", func(c *gin.Context) {
@@ -77,7 +86,6 @@ func main() {
 		}
 	})
 
-	// Tool tiện ích (hash pass nhanh)
 	router.GET("/tool/hash/:pass", func(c *gin.Context) {
 		pass := c.Param("pass")
 		hash, _ := bao_mat.HashMatKhau(pass)
@@ -103,7 +111,7 @@ func main() {
 		admin.GET("/reload", chuc_nang.API_NapLaiDuLieu)
 	}
 
-	// [QUAN TRỌNG] Cloud Run Port Logic
+	// [PORT CLOUD RUN]
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = cau_hinh.BienCauHinh.CongChayWeb
@@ -112,23 +120,20 @@ func main() {
 		port = "8080"
 	}
 	
-	// FIX LỖI DEPLOY: Thêm "0.0.0.0" để Cloud Run nhận diện
-	addr := "0.0.0.0:" + port
-	srv := &http.Server{ Addr: addr, Handler: router }
+	srv := &http.Server{ Addr: "0.0.0.0:" + port, Handler: router }
 
 	go func() {
-		log.Printf("✅ Server đang lắng nghe tại: %s", addr)
+		log.Printf("✅ Server đang lắng nghe tại: 0.0.0.0:%s", port)
 		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			log.Fatalf("❌ Lỗi server: %s\n", err)
 		}
 	}()
 
-	// Graceful Shutdown
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 	<-quit
 	
-	log.Println("⚠️ Đang tắt Server... Xả hàng đợi...")
+	log.Println("⚠️ Đang tắt Server...")
 	nghiep_vu.ThucHienGhiSheet(true)
 	log.Println("✅ Server đã tắt an toàn.")
 }

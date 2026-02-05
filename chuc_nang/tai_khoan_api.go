@@ -11,9 +11,8 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// API: Cập nhật Thông tin cá nhân (Tên, SĐT, Ngày sinh, Giới tính)
+// API: Cập nhật Thông tin cá nhân (Họ tên, SĐT, Ngày sinh, Giới tính)
 func API_DoiThongTin(c *gin.Context) {
-	// Lấy dữ liệu từ Form
 	hoTenMoi    := strings.TrimSpace(c.PostForm("ho_ten"))
 	sdtMoi      := strings.TrimSpace(c.PostForm("dien_thoai"))
 	ngaySinhMoi := strings.TrimSpace(c.PostForm("ngay_sinh"))
@@ -21,27 +20,22 @@ func API_DoiThongTin(c *gin.Context) {
 	
 	cookie, _ := c.Cookie("session_id")
 
-	// 1. Validate Họ Tên
 	if !bao_mat.KiemTraHoTen(hoTenMoi) {
 		c.JSON(200, gin.H{"status": "error", "msg": "Tên không hợp lệ (6-50 ký tự, không số)!"})
 		return
 	}
 
-	// 2. Validate SĐT (Cơ bản: chỉ số, 8-15 ký tự)
-	// Lưu ý: Frontend đã check kỹ bằng lib, Backend check chốt chặn
-	if len(sdtMoi) < 8 || len(sdtMoi) > 15 {
+	if len(sdtMoi) > 0 && (len(sdtMoi) < 8 || len(sdtMoi) > 15) {
 		c.JSON(200, gin.H{"status": "error", "msg": "Số điện thoại không hợp lệ!"})
 		return
 	}
 
 	if kh, ok := nghiep_vu.TimKhachHangTheoCookie(cookie); ok {
-		// Cập nhật RAM
 		kh.TenKhachHang = hoTenMoi
 		kh.DienThoai    = sdtMoi
 		kh.NgaySinh     = ngaySinhMoi
 		kh.GioiTinh     = gioiTinhMoi
 
-		// Cập nhật Google Sheet (Ghi 4 cột)
 		sID := cau_hinh.BienCauHinh.IdFileSheet
 		row := kh.DongTrongSheet
 		sheet := "KHACH_HANG"
@@ -57,14 +51,14 @@ func API_DoiThongTin(c *gin.Context) {
 	}
 }
 
-// API: Đổi Mật Khẩu (Giữ nguyên)
+// API: Đổi Mật Khẩu (Giữ nguyên logic cũ)
 func API_DoiMatKhau(c *gin.Context) {
 	passCu := strings.TrimSpace(c.PostForm("pass_cu"))
 	passMoi := strings.TrimSpace(c.PostForm("pass_moi"))
 	cookie, _ := c.Cookie("session_id")
 
 	if !bao_mat.KiemTraDinhDangMatKhau(passMoi) {
-		c.JSON(200, gin.H{"status": "error", "msg": "Mật khẩu mới không an toàn!"})
+		c.JSON(200, gin.H{"status": "error", "msg": "Mật khẩu mới không hợp lệ!"})
 		return
 	}
 
@@ -82,7 +76,7 @@ func API_DoiMatKhau(c *gin.Context) {
 	}
 }
 
-// API: Đổi Mã PIN (Giữ nguyên)
+// API: Đổi Mã PIN (Giữ nguyên logic cũ)
 func API_DoiMaPin(c *gin.Context) {
 	pinCu := strings.TrimSpace(c.PostForm("pin_cu"))
 	pinMoi := strings.TrimSpace(c.PostForm("pin_moi"))
@@ -106,60 +100,42 @@ func API_DoiMaPin(c *gin.Context) {
 	}
 }
 
-// [THÊM VÀO FILE tai_khoan_api.go]
+// --- API BỔ SUNG CHO QUÊN MÃ PIN ---
 
-// API: Yêu cầu gửi OTP PIN
 func API_GuiOTPPin(c *gin.Context) {
 	cookie, _ := c.Cookie("session_id")
 	kh, ok := nghiep_vu.TimKhachHangTheoCookie(cookie)
-	if !ok {
-		c.JSON(401, gin.H{"status": "error", "msg": "Hết phiên làm việc"})
-		return
-	}
+	if !ok { c.JSON(401, gin.H{"status": "error", "msg": "Hết phiên làm việc"}); return }
 
-	// Check Rate
 	theGui, msgLoi := nghiep_vu.KiemTraRateLimit(kh.Email)
-	if !theGui {
-		c.JSON(200, gin.H{"status": "error", "msg": msgLoi})
-		return
-	}
+	if !theGui { c.JSON(200, gin.H{"status": "error", "msg": msgLoi}); return }
 
-	code := nghiep_vu.TaoMaOTP6So()
-	err := nghiep_vu.GuiMailXacMinhAPI(kh.Email, code)
-	if err != nil {
-		c.JSON(200, gin.H{"status": "error", "msg": "Lỗi API gửi thư: " + err.Error()})
-		return
+	code := nghiep_vu.TaoMaOTP6So() // API mail cần 6 số
+	if err := nghiep_vu.GuiMailXacMinhAPI(kh.Email, code); err != nil {
+		c.JSON(200, gin.H{"status": "error", "msg": "Lỗi API gửi thư: " + err.Error()}); return
 	}
 
 	nghiep_vu.LuuOTPVaUpdateRate(kh.Email, code)
 	c.JSON(200, gin.H{"status": "ok", "msg": "Mã xác minh đã được gửi vào Email của bạn!"})
 }
 
-// API: Đặt lại PIN bằng OTP
 func API_ResetPinBangOTP(c *gin.Context) {
 	otpInput := strings.TrimSpace(c.PostForm("otp"))
 	pinMoi   := strings.TrimSpace(c.PostForm("pin_moi"))
 	cookie, _ := c.Cookie("session_id")
 
 	if !bao_mat.KiemTraMaPin(pinMoi) {
-		c.JSON(200, gin.H{"status": "error", "msg": "PIN mới phải đúng 8 số!"})
-		return
+		c.JSON(200, gin.H{"status": "error", "msg": "Mã PIN mới phải đúng 8 số!"}); return
 	}
 
 	kh, ok := nghiep_vu.TimKhachHangTheoCookie(cookie)
-	if !ok {
-		c.JSON(401, gin.H{"status": "error", "msg": "Hết phiên làm việc"})
-		return
-	}
+	if !ok { c.JSON(401, gin.H{"status": "error", "msg": "Hết phiên làm việc"}); return }
 
 	if !nghiep_vu.KiemTraOTP(kh.Email, otpInput) {
-		c.JSON(200, gin.H{"status": "error", "msg": "Mã xác minh sai hoặc đã hết hạn!"})
-		return
+		c.JSON(200, gin.H{"status": "error", "msg": "Mã xác minh sai hoặc đã hết hạn!"}); return
 	}
 
-	// Cập nhật RAM & Sheet
 	kh.MaPinHash = pinMoi
 	nghiep_vu.ThemVaoHangCho(cau_hinh.BienCauHinh.IdFileSheet, "KHACH_HANG", kh.DongTrongSheet, mo_hinh.CotKH_MaPinHash, pinMoi)
-
 	c.JSON(200, gin.H{"status": "ok", "msg": "Đã khôi phục mã PIN thành công!"})
 }

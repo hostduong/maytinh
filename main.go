@@ -19,7 +19,7 @@ import (
 )
 
 // [CÔNG NGHỆ EMBED]
-// Dòng này ra lệnh cho Go: "Hãy nhét toàn bộ thư mục giao_dien vào trong file chạy này!"
+// Dòng này ra lệnh cho Go: "Hãy nhét toàn bộ thư mục giao_dien vào trong file chạy này"
 //go:embed giao_dien/*.html
 var f embed.FS
 

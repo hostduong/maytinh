@@ -6,7 +6,6 @@ import (
 	"time"
 )
 
-// Giữ nguyên struct cũ của bạn
 type CauHinhHeThong struct {
 	IdFileSheet string
 	CongChayWeb string
@@ -14,9 +13,9 @@ type CauHinhHeThong struct {
 
 var BienCauHinh CauHinhHeThong
 
-// Thêm cấu hình Batch Write (Hằng số)
+// [CẤU HÌNH] Chu kỳ ghi dữ liệu xuống Sheet (5 Giây)
 const (
-	ChuKyGhiSheet = 5 * time.Second
+	ChuKyGhiSheet = 2 * time.Second
 )
 
 func KhoiTaoCauHinh() {
@@ -35,5 +34,5 @@ func KhoiTaoCauHinh() {
 		CongChayWeb: congWeb,
 	}
 
-	log.Println("--- [CẤU HÌNH] Đã tải xong (Chế độ Public) ---")
+	log.Println("--- [CẤU HÌNH] Đã tải xong (Mode: Public + Batch 5s) ---")
 }

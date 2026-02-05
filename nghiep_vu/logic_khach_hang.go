@@ -1,176 +1,156 @@
 package nghiep_vu
 
 import (
+	"errors"
 	"fmt"
-	"strconv"
+	"log"
 	"strings"
-	"sync"
-	"time" // Đã được sử dụng trong hàm ThemKhachHangMoi
+	"time"
 
-	"app/cau_hinh"
+	"app/bao_mat"
 	"app/mo_hinh"
 )
 
-var mtxKH sync.Mutex
+// Hàm xử lý nghiệp vụ Đăng ký mới
+func ThemKhachHangMoi(input mo_hinh.KhachHang) error {
+	// 1. Chuẩn hóa dữ liệu
+	input.TenDangNhap = strings.ToLower(strings.TrimSpace(input.TenDangNhap))
+	input.Email = strings.ToLower(strings.TrimSpace(input.Email))
 
-// 1. TÌM KIẾM
-func TimKhachHangTheoCookie(cookie string) (*mo_hinh.KhachHang, bool) {
-	khoa := BoQuanLyKhoa.LayKhoa(CacheKhachHang.TenKey)
-	khoa.RLock()
-	defer khoa.RUnlock()
-
-	for _, kh := range CacheKhachHang.DuLieu {
-		if kh.Cookie == cookie {
-			return kh, true 
+	// 2. Kiểm tra trùng lặp trong Cache
+	if _, ok := CacheKhachHang.DuLieu[input.TenDangNhap]; ok {
+		return errors.New("Tên đăng nhập đã tồn tại")
+	}
+	if input.Email != "" {
+		if _, ok := CacheKhachHang.DuLieu[input.Email]; ok {
+			return errors.New("Email này đã được sử dụng")
 		}
 	}
-	return nil, false
-}
 
-func TimKhachHangTheoUserOrEmail(input string) (*mo_hinh.KhachHang, bool) {
-	khoa := BoQuanLyKhoa.LayKhoa(CacheKhachHang.TenKey)
-	khoa.RLock()
-	defer khoa.RUnlock()
-
-	for _, kh := range CacheKhachHang.DuLieu {
-		if kh.TenDangNhap == input || kh.Email == input {
-			return kh, true
+	// 3. Logic Founder & Phân quyền
+	var chucVu, vaiTro string
+	countUsers := 0
+	
+	seen := make(map[string]bool)
+	for _, v := range CacheKhachHang.DuLieu {
+		if !seen[v.MaKhachHang] {
+			seen[v.MaKhachHang] = true
+			countUsers++
 		}
 	}
-	return nil, false
-}
 
-func KiemTraTonTaiUserEmail(user, email string) bool {
-	khoa := BoQuanLyKhoa.LayKhoa(CacheKhachHang.TenKey)
-	khoa.RLock()
-	defer khoa.RUnlock()
-
-	for _, kh := range CacheKhachHang.DuLieu {
-		if kh.TenDangNhap == user { return true }
-		if email != "" && kh.Email == email { return true }
+	if countUsers == 0 {
+		chucVu = "Quản trị viên cấp cao"
+		vaiTro = "admin_root"
+		log.Println("👑 [FOUNDER] Admin Root khởi tạo")
+	} else {
+		chucVu = "Khách hàng"
+		vaiTro = "customer"
 	}
-	return false
+
+	// 4. Tạo dữ liệu
+	maMoi := TaoMaKhachHangMoi()
+	now := time.Now().Format("2006-01-02 15:04:05")
+	
+	hashPass, _ := bao_mat.HashMatKhau(input.MatKhauHash)
+	hashPin, _ := bao_mat.HashMatKhau(input.MaPinHash)
+
+	newKH := mo_hinh.KhachHang{
+		MaKhachHang:    maMoi,
+		TenDangNhap:    input.TenDangNhap,
+		MatKhauHash:    hashPass,
+		MaPinHash:      hashPin,
+		
+		TenKhachHang:   input.TenKhachHang, 
+		Email:          input.Email,
+		DienThoai:      input.DienThoai,
+		GioiTinh:       input.GioiTinh,
+		NgaySinh:       input.NgaySinh,
+		
+		ChucVu:         chucVu,
+		VaiTroQuyenHan: vaiTro,
+		LoaiKhachHang:  "", // Để trống để Admin tự điền sau
+		TrangThai:      1,
+		
+		NgayTao:        now,
+		NgayCapNhat:    now,
+	}
+
+	// 5. Lưu Cache
+	CacheKhachHang.DuLieu[maMoi] = &newKH
+	CacheKhachHang.DuLieu[newKH.TenDangNhap] = &newKH
+	if newKH.Email != "" {
+		CacheKhachHang.DuLieu[newKH.Email] = &newKH
+	}
+
+	// 6. Đẩy vào Hàng chờ
+	row := ConvertKhachHangToRow(newKH)
+	ThemVaoHangCho("KHACH_HANG", 0, row, true) 
+
+	return nil
 }
 
-// 2. SINH MÃ & ĐẾM
-func DemSoLuongKhachHang() int {
-	khoa := BoQuanLyKhoa.LayKhoa(CacheKhachHang.TenKey)
-	khoa.RLock()
-	defer khoa.RUnlock()
-	return len(CacheKhachHang.DuLieu)
-}
-
+// Helper: Tạo mã KH
 func TaoMaKhachHangMoi() string {
-	khoa := BoQuanLyKhoa.LayKhoa(CacheKhachHang.TenKey)
-	khoa.RLock()
-	defer khoa.RUnlock()
-
 	maxID := 0
+	seen := make(map[string]bool)
 	for _, kh := range CacheKhachHang.DuLieu {
-		if strings.HasPrefix(kh.MaKhachHang, "KH_") {
-			parts := strings.Split(kh.MaKhachHang, "_")
-			if len(parts) == 2 {
-				id, err := strconv.Atoi(parts[1])
-				if err == nil && id > maxID {
-					maxID = id
-				}
-			}
+		if seen[kh.MaKhachHang] { continue }
+		seen[kh.MaKhachHang] = true
+		parts := strings.Split(kh.MaKhachHang, "_")
+		if len(parts) == 2 {
+			id, _ := fmt.Sscanf(parts[1], "%d", &maxID)
+			if id > maxID { maxID = id }
 		}
 	}
 	return fmt.Sprintf("KH_%04d", maxID+1)
 }
 
-func LayDongKhachHang(maKH string) int {
-	khoa := BoQuanLyKhoa.LayKhoa(CacheKhachHang.TenKey)
-	khoa.RLock()
-	defer khoa.RUnlock()
+// [UPDATED] Helper: Map ĐẦY ĐỦ các cột để Admin có thể sửa trên Sheet
+func ConvertKhachHangToRow(kh mo_hinh.KhachHang) []interface{} {
+	// Khởi tạo mảng có kích thước đủ lớn (ví dụ 35 cột) để chứa hết các trường
+	// Điều này đảm bảo vị trí cột luôn đúng chuẩn
+	row := make([]interface{}, 35)
 	
-	if kh, ok := CacheKhachHang.DuLieu[maKH]; ok {
-		return kh.DongTrongSheet
-	}
-	return 0
-}
+	// Nhóm 1: Định danh & Bảo mật
+	row[mo_hinh.CotKH_MaKhachHang] = kh.MaKhachHang
+	row[mo_hinh.CotKH_TenDangNhap] = kh.TenDangNhap
+	row[mo_hinh.CotKH_MatKhauHash] = kh.MatKhauHash
+	row[mo_hinh.CotKH_Cookie] = kh.Cookie
+	row[mo_hinh.CotKH_CookieExpired] = kh.CookieExpired
+	row[mo_hinh.CotKH_MaPinHash] = kh.MaPinHash
 
-// 3. GHI & CẬP NHẬT
-func CapNhatPhienDangNhapKH(maKH string, newCookie string, newExpired int64) {
-	mtxKH.Lock()
-	defer mtxKH.Unlock()
-
-	khoa := BoQuanLyKhoa.LayKhoa(CacheKhachHang.TenKey)
-	khoa.Lock() 
-	kh, ok := CacheKhachHang.DuLieu[maKH]
-	if ok {
-		kh.Cookie = newCookie
-		kh.CookieExpired = newExpired
-	}
-	khoa.Unlock()
-
-	if ok {
-		sID := cau_hinh.BienCauHinh.IdFileSheet
-		ThemVaoHangCho(sID, "KHACH_HANG", kh.DongTrongSheet, mo_hinh.CotKH_Cookie, newCookie)
-		ThemVaoHangCho(sID, "KHACH_HANG", kh.DongTrongSheet, mo_hinh.CotKH_CookieExpired, newExpired)
-	}
-}
-
-func ThemKhachHangMoi(kh *mo_hinh.KhachHang) {
-	mtxKH.Lock()
-	defer mtxKH.Unlock()
-
-	khoa := BoQuanLyKhoa.LayKhoa(CacheKhachHang.TenKey)
-	khoa.Lock()
+	// Nhóm 2: Thông tin cá nhân
+	row[mo_hinh.CotKH_LoaiKhachHang] = kh.LoaiKhachHang
+	row[mo_hinh.CotKH_TenKhachHang] = kh.TenKhachHang
+	row[mo_hinh.CotKH_DienThoai] = kh.DienThoai
+	row[mo_hinh.CotKH_Email] = kh.Email
 	
-	maxRow := mo_hinh.DongBatDauDuLieu - 1
-	for _, item := range CacheKhachHang.DuLieu {
-		if item.DongTrongSheet > maxRow {
-			maxRow = item.DongTrongSheet
-		}
-	}
-	newRow := maxRow + 1
-	kh.DongTrongSheet = newRow
-
-	CacheKhachHang.DuLieu[kh.MaKhachHang] = kh
-	khoa.Unlock()
-
-	sID := cau_hinh.BienCauHinh.IdFileSheet
-	sName := "KHACH_HANG"
-
-	ThemVaoHangCho(sID, sName, newRow, mo_hinh.CotKH_MaKhachHang, kh.MaKhachHang)
-	ThemVaoHangCho(sID, sName, newRow, mo_hinh.CotKH_TenDangNhap, kh.TenDangNhap)
-	ThemVaoHangCho(sID, sName, newRow, mo_hinh.CotKH_MatKhauHash, kh.MatKhauHash) 
-	ThemVaoHangCho(sID, sName, newRow, mo_hinh.CotKH_Cookie, kh.Cookie)
-	ThemVaoHangCho(sID, sName, newRow, mo_hinh.CotKH_CookieExpired, kh.CookieExpired)
-	ThemVaoHangCho(sID, sName, newRow, mo_hinh.CotKH_MaPinHash, kh.MaPinHash)
-	ThemVaoHangCho(sID, sName, newRow, mo_hinh.CotKH_LoaiKhachHang, kh.LoaiKhachHang)
-	ThemVaoHangCho(sID, sName, newRow, mo_hinh.CotKH_TenKhachHang, kh.TenKhachHang)
-	ThemVaoHangCho(sID, sName, newRow, mo_hinh.CotKH_DienThoai, kh.DienThoai)
-	ThemVaoHangCho(sID, sName, newRow, mo_hinh.CotKH_Email, kh.Email)
-	ThemVaoHangCho(sID, sName, newRow, mo_hinh.CotKH_UrlFb, kh.UrlFb)
-	ThemVaoHangCho(sID, sName, newRow, mo_hinh.CotKH_Zalo, kh.Zalo)
-	ThemVaoHangCho(sID, sName, newRow, mo_hinh.CotKH_UrlTele, kh.UrlTele)
-	ThemVaoHangCho(sID, sName, newRow, mo_hinh.CotKH_UrlTiktok, kh.UrlTiktok)
-	ThemVaoHangCho(sID, sName, newRow, mo_hinh.CotKH_DiaChi, kh.DiaChi)
-	ThemVaoHangCho(sID, sName, newRow, mo_hinh.CotKH_NgaySinh, kh.NgaySinh)
-	ThemVaoHangCho(sID, sName, newRow, mo_hinh.CotKH_GioiTinh, kh.GioiTinh)
-	ThemVaoHangCho(sID, sName, newRow, mo_hinh.CotKH_MaSoThue, kh.MaSoThue)
-	ThemVaoHangCho(sID, sName, newRow, mo_hinh.CotKH_DangNo, kh.DangNo)
-	ThemVaoHangCho(sID, sName, newRow, mo_hinh.CotKH_TongMua, kh.TongMua)
-	ThemVaoHangCho(sID, sName, newRow, mo_hinh.CotKH_ChucVu, kh.ChucVu)
-	ThemVaoHangCho(sID, sName, newRow, mo_hinh.CotKH_VaiTroQuyenHan, kh.VaiTroQuyenHan)
-	ThemVaoHangCho(sID, sName, newRow, mo_hinh.CotKH_TrangThai, kh.TrangThai)
-	ThemVaoHangCho(sID, sName, newRow, mo_hinh.CotKH_GhiChu, kh.GhiChu)
-	ThemVaoHangCho(sID, sName, newRow, mo_hinh.CotKH_NguoiTao, kh.NguoiTao)
+	// [MỚI] Map thêm các cột Mạng xã hội & Liên hệ (Admin sẽ điền sau)
+	row[mo_hinh.CotKH_UrlFb] = kh.UrlFb
+	row[mo_hinh.CotKH_Zalo] = kh.Zalo
+	row[mo_hinh.CotKH_UrlTele] = kh.UrlTele
+	row[mo_hinh.CotKH_UrlTiktok] = kh.UrlTiktok
+	row[mo_hinh.CotKH_DiaChi] = kh.DiaChi
 	
-	// [QUAN TRỌNG] Sử dụng time.Now() để tránh lỗi "imported and not used"
-	ThemVaoHangCho(sID, sName, newRow, mo_hinh.CotKH_NgayTao, time.Now().Format("2006-01-02 15:04:05"))
-	ThemVaoHangCho(sID, sName, newRow, mo_hinh.CotKH_NgayCapNhat, kh.NgayCapNhat)
-}
-
-func CapNhatHanCookieRAM(maKH string, newExpired int64) {
-	khoa := BoQuanLyKhoa.LayKhoa(CacheKhachHang.TenKey)
-	khoa.Lock()
-	defer khoa.Unlock()
+	row[mo_hinh.CotKH_NgaySinh] = kh.NgaySinh
+	row[mo_hinh.CotKH_GioiTinh] = kh.GioiTinh
 	
-	if kh, ok := CacheKhachHang.DuLieu[maKH]; ok {
-		kh.CookieExpired = newExpired
-	}
+	// Nhóm 3: Tài chính & Thuế
+	row[mo_hinh.CotKH_MaSoThue] = kh.MaSoThue
+	row[mo_hinh.CotKH_DangNo] = kh.DangNo
+	row[mo_hinh.CotKH_TongMua] = kh.TongMua
+
+	// Nhóm 4: Phân quyền & Quản trị
+	row[mo_hinh.CotKH_ChucVu] = kh.ChucVu
+	row[mo_hinh.CotKH_VaiTroQuyenHan] = kh.VaiTroQuyenHan
+	row[mo_hinh.CotKH_TrangThai] = kh.TrangThai
+	row[mo_hinh.CotKH_GhiChu] = kh.GhiChu
+	row[mo_hinh.CotKH_NguoiTao] = kh.NguoiTao
+	
+	// Nhóm 5: Thời gian
+	row[mo_hinh.CotKH_NgayTao] = kh.NgayTao
+	row[mo_hinh.CotKH_NgayCapNhat] = kh.NgayCapNhat
+
+	return row
 }

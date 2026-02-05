@@ -14,8 +14,7 @@ var DichVuSheet *sheets.Service
 func KhoiTaoKetNoiGoogle() {
 	ctx := context.Background()
 
-	// [FIX CRASH] Sử dụng chế độ "WithoutAuthentication"
-	// Giúp App chạy được ngay cả khi không có file JSON (dành cho Sheet Public)
+	// [FIX LỖI 3]: Dùng chế độ Public để không đòi file JSON gây Crash
 	srv, err := sheets.NewService(ctx, option.WithoutAuthentication())
 
 	if err != nil {
@@ -25,6 +24,3 @@ func KhoiTaoKetNoiGoogle() {
 	DichVuSheet = srv
 	log.Println("--- [KẾT NỐI] Đã kết nối Google Sheets (Public Mode) ---")
 }
-
-// [QUAN TRỌNG] ĐÃ XÓA HÀM DocToanBoSheet Ở ĐÂY
-// VÌ NÓ ĐÃ CÓ TRONG FILE kho_chung.go RỒI.

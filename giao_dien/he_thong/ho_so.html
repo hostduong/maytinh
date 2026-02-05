@@ -1,16 +1,17 @@
 {{ define "ho_so" }}
     {{ template "header" . }}
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/intl-tel-input@18.2.1/build/css/intlTelInput.css">
+    <script src="https://cdn.jsdelivr.net/npm/intl-tel-input@18.2.1/build/js/intlTelInput.min.js"></script>
     
     <style>
-        /* Style cho validation */
         .input-error { border-color: #ef4444 !important; background-color: #fef2f2; }
         .input-success { border-color: #22c55e !important; background-color: #f0fdf4; }
         .input-normal { border-color: #d1d5db !important; background-color: #fff; }
-        
         button:disabled { opacity: 0.5; cursor: not-allowed; background-color: #9ca3af !important; box-shadow: none; }
         .error-text { color: #ef4444; font-size: 0.75rem; margin-top: 0.25rem; display: block; }
         .hidden { display: none; }
+        .iti { width: 100%; }
     </style>
 
     <div class="max-w-3xl mx-auto py-10 px-4">
@@ -25,14 +26,15 @@
                     </div>
                 </div>
                 <h2 class="mt-3 text-3xl font-bold text-gray-800" id="lblHoTen">{{ .NhanVien.TenKhachHang }}</h2>
+                
                 <div class="text-blue-600 font-medium bg-blue-50 inline-block px-3 py-1 rounded-full text-sm mt-1 uppercase tracking-wide">
-                    {{ .NhanVien.LoaiKhachHang }}
+                    {{ if eq .NhanVien.LoaiKhachHang "khach_le" }}Khách hàng{{ else }}{{ .NhanVien.LoaiKhachHang }}{{ end }}
                 </div>
             </div>
             
             <div class="flex flex-wrap justify-center gap-3 py-6 px-6">
                 <button onclick="toggleModal('modalInfo')" class="bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 px-5 py-2.5 rounded-lg font-medium shadow-sm transition hover:-translate-y-0.5">
-                    ✏️ Cập nhật tên
+                    ✏️ Cập nhật thông tin
                 </button>
                 <button onclick="toggleModal('modalPass')" class="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-lg font-medium shadow-md transition hover:-translate-y-0.5">
                     🔐 Đổi mật khẩu
@@ -71,19 +73,19 @@
                 <div class="space-y-4">
                     <div>
                         <label class="text-xs text-gray-400 uppercase font-semibold">Số điện thoại</label>
-                        <div class="text-gray-900 font-medium">
+                        <div id="txtSdt" class="text-gray-900 font-medium">
                             {{ if .NhanVien.DienThoai }} {{ .NhanVien.DienThoai }} {{ else }} <span class="text-gray-400 italic">Chưa cập nhật</span> {{ end }}
                         </div>
                     </div>
                     <div>
                         <label class="text-xs text-gray-400 uppercase font-semibold">Ngày sinh</label>
-                        <div class="text-gray-900 font-medium">
+                        <div id="txtNgaySinh" class="text-gray-900 font-medium">
                             {{ if .NhanVien.NgaySinh }} {{ .NhanVien.NgaySinh }} {{ else }} <span class="text-gray-400 italic">--/--/----</span> {{ end }}
                         </div>
                     </div>
                     <div>
                         <label class="text-xs text-gray-400 uppercase font-semibold">Giới tính</label>
-                        <div class="text-gray-900 font-medium">
+                        <div id="txtGioiTinh" class="text-gray-900 font-medium">
                             {{ if .NhanVien.GioiTinh }} {{ .NhanVien.GioiTinh }} {{ else }} <span class="text-gray-400 italic">--</span> {{ end }}
                         </div>
                     </div>
@@ -93,12 +95,53 @@
         </div>
     </div>
 
+    <div id="modalInfo" class="hidden fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 backdrop-blur-sm">
+        <div class="bg-white p-6 rounded-2xl shadow-2xl w-full max-w-lg transform transition-all scale-100">
+            <h3 class="text-xl font-bold mb-4 text-gray-800">✏️ Cập nhật hồ sơ</h3>
+            <div class="space-y-4">
+                
+                <div>
+                    <label class="text-sm text-gray-500 mb-1 block">Họ và tên</label>
+                    <input type="text" id="newName" value="{{ .NhanVien.TenKhachHang }}" class="w-full p-3 border border-gray-300 rounded-lg outline-none input-normal">
+                    <p id="err_newName" class="error-text hidden"></p>
+                </div>
+
+                <div>
+                    <label class="text-sm text-gray-500 mb-1 block">Số điện thoại</label>
+                    <input type="tel" id="newPhone" value="{{ .NhanVien.DienThoai }}" class="w-full p-3 border border-gray-300 rounded-lg outline-none input-normal">
+                    <p id="err_newPhone" class="error-text hidden"></p>
+                    <input type="hidden" id="newPhoneFull">
+                </div>
+
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="text-sm text-gray-500 mb-1 block">Ngày sinh</label>
+                        <input type="date" id="newDob" value="{{ .NhanVien.NgaySinh }}" class="w-full p-3 border border-gray-300 rounded-lg outline-none bg-white">
+                    </div>
+                    <div>
+                        <label class="text-sm text-gray-500 mb-1 block">Giới tính</label>
+                        <select id="newGender" class="w-full p-3 border border-gray-300 rounded-lg outline-none bg-white">
+                            <option value="Nam" {{ if eq .NhanVien.GioiTinh "Nam" }}selected{{ end }}>Nam</option>
+                            <option value="Nữ" {{ if eq .NhanVien.GioiTinh "Nữ" }}selected{{ end }}>Nữ</option>
+                            <option value="Khác" {{ if eq .NhanVien.GioiTinh "Khác" }}selected{{ end }}>Khác</option>
+                        </select>
+                    </div>
+                </div>
+
+            </div>
+            <div class="mt-6 flex justify-end gap-3">
+                <button onclick="toggleModal('modalInfo')" class="text-gray-500 hover:bg-gray-100 px-4 py-2 rounded-lg font-medium">Hủy</button>
+                <button id="btnSaveInfo" onclick="capNhatThongTin()" class="bg-blue-600 text-white px-5 py-2 rounded-lg font-bold hover:bg-blue-700 shadow-md">Cập nhật</button>
+            </div>
+        </div>
+    </div>
+
     <div id="modalPass" class="hidden fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 backdrop-blur-sm">
         <div class="bg-white p-6 rounded-2xl shadow-2xl w-96 transform transition-all scale-100">
             <h3 class="text-xl font-bold mb-4 text-gray-800">🔐 Đổi Mật Khẩu</h3>
             <div class="space-y-4">
                 <div>
-                    <input type="password" id="oldPass" placeholder="Mật khẩu hiện tại" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none">
+                    <input type="password" id="oldPass" placeholder="Mật khẩu hiện tại" class="w-full p-3 border border-gray-300 rounded-lg outline-none">
                 </div>
                 <div>
                     <input type="password" id="newPass" placeholder="Mật khẩu mới (8-30 ký tự)" class="w-full p-3 border border-gray-300 rounded-lg outline-none input-normal">
@@ -112,32 +155,12 @@
         </div>
     </div>
 
-    <div id="modalInfo" class="hidden fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 backdrop-blur-sm">
-        <div class="bg-white p-6 rounded-2xl shadow-2xl w-96 transform transition-all scale-100">
-            <h3 class="text-xl font-bold mb-4 text-gray-800">✏️ Cập nhật tên hiển thị</h3>
-            <div class="space-y-4">
-                <div>
-                    <label class="text-sm text-gray-500 mb-1 block">Họ và tên mới</label>
-                    <input type="text" id="newName" value="{{ .NhanVien.TenKhachHang }}" class="w-full p-3 border border-gray-300 rounded-lg outline-none input-normal">
-                    <p id="err_newName" class="error-text hidden"></p>
-                </div>
-                <div class="text-xs text-gray-400 italic">
-                    * Các thông tin khác vui lòng liên hệ Admin để thay đổi.
-                </div>
-            </div>
-            <div class="mt-6 flex justify-end gap-3">
-                <button onclick="toggleModal('modalInfo')" class="text-gray-500 hover:bg-gray-100 px-4 py-2 rounded-lg font-medium">Hủy</button>
-                <button id="btnSaveName" onclick="doiTen()" class="bg-blue-600 text-white px-5 py-2 rounded-lg font-bold hover:bg-blue-700 shadow-md">Cập nhật</button>
-            </div>
-        </div>
-    </div>
-
     <div id="modalPin" class="hidden fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 backdrop-blur-sm">
         <div class="bg-white p-6 rounded-2xl shadow-2xl w-96 transform transition-all scale-100">
             <h3 class="text-xl font-bold mb-4 text-gray-800">🔢 Đổi Mã PIN</h3>
             <div class="space-y-4">
                 <div>
-                    <input type="password" id="oldPin" maxlength="8" placeholder="Mã PIN cũ" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none">
+                    <input type="password" id="oldPin" maxlength="8" placeholder="Mã PIN cũ" class="w-full p-3 border border-gray-300 rounded-lg outline-none">
                 </div>
                 <div>
                     <input type="text" id="newPin" maxlength="8" placeholder="Mã PIN mới (8 số)" class="w-full p-3 border border-gray-300 rounded-lg outline-none input-normal">
@@ -152,53 +175,58 @@
     </div>
 
     <script>
-        // HÀM BẬT TẮT MODAL
+        // CẤU HÌNH INPUT PHONE
+        const inputPhone = document.querySelector("#newPhone");
+        const iti = window.intlTelInput(inputPhone, {
+            initialCountry: "vn",
+            separateDialCode: true,
+            utilsScript: "https://cdn.jsdelivr.net/npm/intl-tel-input@18.2.1/build/js/utils.js",
+        });
+
         function toggleModal(id) {
             const modal = document.getElementById(id);
             if (modal.classList.contains('hidden')) {
                 modal.classList.remove('hidden');
-                // Reset form khi mở
-                const inputs = modal.querySelectorAll('input');
-                inputs.forEach(i => {
-                    if(i.id !== 'newName') i.value = ''; // Giữ lại tên cũ
-                    i.classList.remove('input-error', 'input-success');
-                    i.classList.add('input-normal');
-                });
-                modal.querySelectorAll('.error-text').forEach(e => e.classList.add('hidden'));
                 
-                // Disable nút Lưu ban đầu (trừ modal tên vì đã có sẵn tên)
-                const btn = modal.querySelector('button[id^="btnSave"]');
-                if(id !== 'modalInfo') btn.disabled = true;
-                
+                // Nếu là modal info, validate lại phone ngay khi mở để tránh lỗi trạng thái
+                if(id === 'modalInfo') checkInfoButton();
+
+                // Reset các input password/pin
+                if(id !== 'modalInfo') {
+                    modal.querySelectorAll('input').forEach(i => i.value = '');
+                    modal.querySelectorAll('.error-text').forEach(e => e.classList.add('hidden'));
+                    modal.querySelectorAll('input').forEach(i => i.classList.remove('input-error', 'input-success'));
+                }
             } else {
                 modal.classList.add('hidden');
             }
         }
 
         // ==========================================
-        // VALIDATION LOGIC (WHITELIST - NGHIÊM NGẶT)
+        // RULES (Dùng chung bộ quy tắc Whitelist)
         // ==========================================
         const RULES = {
             newName: {
-                not_allowed_regex: /[^a-zA-ZÀ-ỹ\s]/, // Cấm số, ký tự lạ
-                validate_regex: /^[a-zA-ZÀ-ỹ\s]{6,50}$/, // Độ dài 6-50
+                not_allowed_regex: /[^a-zA-ZÀ-ỹ\s]/, 
+                validate_regex: /^[a-zA-ZÀ-ỹ\s]{6,50}$/,
                 msg_forbidden: "Họ tên không được chứa số hoặc ký tự đặc biệt.",
                 msg_invalid: "Họ tên phải từ 6 - 50 ký tự."
             },
             newPass: {
-                not_allowed_regex: /[\s'"<>\`]/, // Cấm nháy, ngoặc, cách, backtick
-                validate_regex: /^[^'"<>\`\s]{8,30}$/, // Độ dài 8-30
+                not_allowed_regex: /[\s'"<>\`]/,
+                validate_regex: /^[^'"<>\`\s]{8,30}$/,
                 msg_forbidden: "Mật khẩu không chứa khoảng trắng hoặc ký tự lạ.",
                 msg_invalid: "Mật khẩu phải từ 8 - 30 ký tự."
             },
             newPin: {
-                not_allowed_regex: /[^0-9]/, // Cấm chữ
-                validate_regex: /^\d{8}$/,   // Đúng 8 số
+                not_allowed_regex: /[^0-9]/,
+                validate_regex: /^\d{8}$/,
                 msg_forbidden: "PIN chỉ được nhập số.",
                 msg_invalid: "PIN phải đúng 8 số."
             }
         };
 
+        // UI HELPERS
         function showError(id, msg) {
             const el = document.getElementById(id);
             const err = document.getElementById('err_' + id);
@@ -224,40 +252,30 @@
             err.classList.add('hidden');
         }
 
+        // VALIDATE THƯỜNG
         function setupValidation(inputId, btnId) {
             const input = document.getElementById(inputId);
             const btn = document.getElementById(btnId);
             const rule = RULES[inputId];
 
-            // 1. INPUT EVENT (Đang gõ)
             input.addEventListener('input', function() {
                 if (rule.not_allowed_regex.test(this.value)) {
                     showError(inputId, rule.msg_forbidden);
-                    btn.disabled = true; // Sai -> Khóa nút
+                    btn.disabled = true;
                 } else {
                     showNormal(inputId);
-                    // Chưa mở nút vội, đợi blur hoặc check đủ độ dài
-                    // (Với modal đơn giản này, ta có thể check luôn độ dài để bật nút cho tiện)
-                    if(rule.validate_regex.test(this.value)) {
-                         btn.disabled = false;
-                    } else {
-                         btn.disabled = true;
-                    }
+                    if(rule.validate_regex.test(this.value)) btn.disabled = false;
+                    else btn.disabled = true;
                 }
             });
 
-            // 2. BLUR EVENT (Rời đi)
             input.addEventListener('blur', function() {
                 if(this.value === "") return;
-                
-                // Kiểm tra forbidden lại
                 if (rule.not_allowed_regex.test(this.value)) {
                     showError(inputId, rule.msg_forbidden);
                     btn.disabled = true;
                     return;
                 }
-
-                // Kiểm tra độ dài/format
                 if (!rule.validate_regex.test(this.value)) {
                     showError(inputId, rule.msg_invalid);
                     btn.disabled = true;
@@ -268,11 +286,72 @@
             });
         }
 
-        // KÍCH HOẠT VALIDATION CHO CÁC MODAL
-        setupValidation('newPass', 'btnSavePass');
-        setupValidation('newName', 'btnSaveName');
-        setupValidation('newPin', 'btnSavePin');
+        // VALIDATE MODAL INFO (Gồm Tên + Phone)
+        function checkInfoButton() {
+            const nameEl = document.getElementById('newName');
+            const phoneEl = document.getElementById('newPhone');
+            const btn = document.getElementById('btnSaveInfo');
+            const ruleName = RULES.newName;
 
+            let nameOk = false;
+            let phoneOk = false;
+
+            // Check Name
+            if (!ruleName.not_allowed_regex.test(nameEl.value) && ruleName.validate_regex.test(nameEl.value)) {
+                nameOk = true;
+            }
+
+            // Check Phone
+            if (phoneEl.value.trim() !== "" && iti.isValidNumber()) {
+                phoneOk = true;
+            } else if (phoneEl.value.trim() === "") {
+                phoneOk = true; // Cho phép rỗng nếu muốn, hoặc bắt buộc tùy bạn (Ở đây tôi để cho phép cập nhật rỗng)
+            }
+
+            // Logic Disable
+            if (nameOk && phoneOk) btn.removeAttribute('disabled');
+            else btn.setAttribute('disabled', 'true');
+        }
+
+        // Event Listeners cho Info
+        const nameInput = document.getElementById('newName');
+        const ruleName = RULES.newName;
+        nameInput.addEventListener('input', function() {
+            if(ruleName.not_allowed_regex.test(this.value)) showError('newName', ruleName.msg_forbidden);
+            else showNormal('newName');
+            checkInfoButton();
+        });
+        nameInput.addEventListener('blur', function() {
+            if(this.value === "") return;
+            if(!ruleName.validate_regex.test(this.value)) showError('newName', ruleName.msg_invalid);
+            else showSuccess('newName');
+            checkInfoButton();
+        });
+
+        // Phone Listener
+        inputPhone.addEventListener('blur', () => {
+            const errPhone = document.getElementById('err_newPhone');
+            if (inputPhone.value.trim() !== "") {
+                if (!iti.isValidNumber()) {
+                    inputPhone.classList.add('input-error');
+                    errPhone.innerText = "SĐT không hợp lệ.";
+                    errPhone.classList.remove('hidden');
+                } else {
+                    inputPhone.classList.remove('input-error');
+                    inputPhone.classList.add('input-success');
+                    errPhone.classList.add('hidden');
+                }
+            } else {
+                // Reset nếu rỗng
+                inputPhone.classList.remove('input-error', 'input-success');
+                errPhone.classList.add('hidden');
+            }
+            checkInfoButton();
+        });
+
+        // Init Validation cho Pass và Pin
+        setupValidation('newPass', 'btnSavePass');
+        setupValidation('newPin', 'btnSavePin');
 
         // ==========================================
         // API CALLS
@@ -297,11 +376,25 @@
             handleRes(res, 'modalPass');
         }
 
-        async function doiTen() {
-            const newName = document.getElementById('newName').value;
-            const res = await postData('/api/user/update-info', { ho_ten_moi: newName });
+        // [SỬA] Đổi tên hàm thành Cập Nhật Thông Tin
+        async function capNhatThongTin() {
+            const fullPhone = inputPhone.value.trim() ? iti.getNumber() : "";
+            
+            const data = {
+                ho_ten: document.getElementById('newName').value,
+                dien_thoai: fullPhone,
+                ngay_sinh: document.getElementById('newDob').value,
+                gioi_tinh: document.getElementById('newGender').value
+            };
+
+            const res = await postData('/api/user/update-info', data);
+            
             if(res.status === 'ok') {
-                document.getElementById('lblHoTen').innerText = newName;
+                // Cập nhật giao diện ngay lập tức
+                document.getElementById('lblHoTen').innerText = data.ho_ten;
+                document.getElementById('txtSdt').innerText = data.dien_thoai || "Chưa cập nhật";
+                document.getElementById('txtNgaySinh').innerText = data.ngay_sinh || "--/--/----";
+                document.getElementById('txtGioiTinh').innerText = data.gioi_tinh || "--";
             }
             handleRes(res, 'modalInfo');
         }

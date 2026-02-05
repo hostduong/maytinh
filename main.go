@@ -8,9 +8,9 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
-    "time"
+    // Đã xóa "time" vì không dùng
+    // Đã xóa "app/bao_mat" vì không dùng trong main
 
-	"app/bao_mat"
 	"app/cau_hinh"
 	"app/chuc_nang"
 	"app/kho_du_lieu"
@@ -25,11 +25,8 @@ var f embed.FS
 // Middleware để bảo vệ người dùng khi hệ thống đang reload
 func MW_KiemTraHeThong(c *gin.Context) {
     // Xin quyền "Đọc" (RLock)
-    // Nếu hệ thống đang Reload (đang giữ Lock ghi), dòng này sẽ TỰ ĐỘNG ĐỢI
-    // Người dùng chỉ thấy web load chậm vài giây chứ không bị lỗi.
     nghiep_vu.KhoaHeThong.RLock()
     defer nghiep_vu.KhoaHeThong.RUnlock()
-    
     c.Next()
 }
 
@@ -60,7 +57,7 @@ func main() {
 	templ := template.Must(template.New("").ParseFS(f, "giao_dien/*.html"))
 	router.SetHTMLTemplate(templ)
 
-	// --- CÁC ROUTE KHÁC GIỮ NGUYÊN ---
+	// --- CÁC ROUTE ---
 	router.GET("/", chuc_nang.TrangChu)
 	router.GET("/san-pham/:id", chuc_nang.ChiTietSanPham)
 	router.GET("/login", chuc_nang.TrangDangNhap)
@@ -94,29 +91,26 @@ func main() {
 	admin.Use(chuc_nang.KiemTraQuyenHan)
 	{
 		admin.GET("/tong-quan", func(c *gin.Context) {
-            // ... (Giữ nguyên logic cũ) ...
             userID, _ := c.Get("USER_ID"); kh, _ := nghiep_vu.TimKhachHangTheoCookie(mustGetCookie(c))
 			c.HTML(http.StatusOK, "quan_tri", gin.H{"TieuDe": "Quản trị", "NhanVien": kh, "DaDangNhap": true, "TenNguoiDung": kh.TenKhachHang, "QuyenHan": kh.VaiTroQuyenHan, "UserID": userID})
 		})
 
-        // [LOGIC RELOAD CHUẨN: FLUSH -> LOCK -> RESET -> LOAD -> UNLOCK]
+        // [LOGIC RELOAD CHUẨN]
 		admin.GET("/reload", func(c *gin.Context) {
             log.Println("⚡ [RELOAD] Bắt đầu quy trình nạp lại dữ liệu...")
             
-            // B1: Ép ghi toàn bộ hàng chờ xuống Sheet (Tránh mất dữ liệu RAM)
-            // Lưu ý: Hàm này phải chạy TRƯỚC khi khóa để worker còn kịp thở
+            // B1: Ép ghi toàn bộ hàng chờ xuống Sheet
             nghiep_vu.ThucHienGhiSheet(true) 
             
-            // B2: Khóa toàn hệ thống (Chặn người dùng truy cập)
+            // B2: Khóa toàn hệ thống
             nghiep_vu.KhoaHeThong.Lock()
             log.Println("🔒 [LOCK] Đã khóa hệ thống.")
             
-            // Sử dụng goroutine để nạp dữ liệu xong mới mở khóa
-            // Để tránh timeout cho request reload này
+            // Chạy ngầm việc nạp để trả về response ngay cho admin đỡ treo
             go func() {
-                defer nghiep_vu.KhoaHeThong.Unlock() // B5: Mở khóa khi xong (defer đảm bảo luôn chạy)
+                defer nghiep_vu.KhoaHeThong.Unlock() // B5: Mở khóa khi xong
                 
-                // B3: Reset RAM (Xóa trắng)
+                // B3: Reset RAM
                 nghiep_vu.KhoiTaoCacStore()
                 
                 // B4: Tải lại từ Sheet

@@ -17,17 +17,24 @@ import (
 )
 
 func main() {
-	log.Println(">>> ĐANG KHỞI ĐỘNG HỆ THỐNG...")
+	log.Println(">>> ĐANG KHỞI ĐỘNG HỆ THỐNG MAYTINHSHOP (PUBLIC MODE)...")
 
+	// 1. Nạp cấu hình
 	cau_hinh.KhoiTaoCauHinh()
-	kho_du_lieu.KhoiTaoKetNoiGoogle() // Hàm này giờ nằm ở ket_noi_sheet.go
+
+	// 2. Kết nối Sheet (Chế độ Public - Không cần file JSON)
+	kho_du_lieu.KhoiTaoKetNoiGoogle()
+
+	// 3. Khởi tạo bộ nhớ & Worker
 	nghiep_vu.KhoiTaoBoNho()
 	nghiep_vu.KhoiTaoWorkerGhiSheet()
 	chuc_nang.KhoiTaoBoDemRateLimit()
 
+	// 4. Cấu hình Web Server
 	router := gin.Default()
 	router.LoadHTMLGlob("giao_dien/**/*")
 
+	// --- PUBLIC ROUTES ---
 	router.GET("/", chuc_nang.TrangChu)
 	router.GET("/san-pham/:id", chuc_nang.ChiTietSanPham)
 	
@@ -42,13 +49,13 @@ func main() {
 	router.POST("/api/auth/send-otp", chuc_nang.XuLyGuiOTPEmail)
 	router.POST("/api/auth/reset-by-otp", chuc_nang.XuLyQuenPassBangOTP)
 
+	// --- USER ROUTES ---
 	userGroup := router.Group("/api/user")
 	{
 		userGroup.POST("/update-info", chuc_nang.API_DoiThongTin)
 		userGroup.POST("/change-pass", chuc_nang.API_DoiMatKhau)
 		userGroup.POST("/change-pin", chuc_nang.API_DoiMaPin)
-		userGroup.POST("/send-otp-pin", chuc_nang.API_GuiOTPPin)
-		// Đã xóa dòng API_ResetPinBangOTP để không bị lỗi undefined
+		// Đã xóa dòng API_ResetPinBangOTP để fix lỗi build
 	}
 
 	router.GET("/tai-khoan", func(c *gin.Context) {
@@ -59,19 +66,25 @@ func main() {
 		}
 		if kh, ok := nghiep_vu.TimKhachHangTheoCookie(cookie); ok {
 			 c.HTML(http.StatusOK, "ho_so", gin.H{
-			 	"TieuDe": "Hồ sơ", "NhanVien": kh, "DaDangNhap": true, "TenNguoiDung": kh.TenKhachHang,
+			 	"TieuDe":       "Hồ sơ của bạn",
+			 	"NhanVien":     kh,
+			 	"DaDangNhap":   true,
+			 	"TenNguoiDung": kh.TenKhachHang,
+			 	"QuyenHan":     kh.VaiTroQuyenHan,
 			 })
 		} else {
 			 c.Redirect(http.StatusFound, "/login")
 		}
 	})
 
+	// Tool tiện ích (hash pass nhanh)
 	router.GET("/tool/hash/:pass", func(c *gin.Context) {
 		pass := c.Param("pass")
 		hash, _ := bao_mat.HashMatKhau(pass)
-		c.String(200, "Hash: %s", hash)
+		c.String(200, "Pass: %s\nHash: %s", pass, hash)
 	})
 
+	// --- ADMIN ROUTES ---
 	admin := router.Group("/admin")
 	admin.Use(chuc_nang.KiemTraQuyenHan)
 	{
@@ -79,30 +92,45 @@ func main() {
 			userID, _ := c.Get("USER_ID")
 			kh, _ := nghiep_vu.TimKhachHangTheoCookie(mustGetCookie(c))
 			c.HTML(http.StatusOK, "quan_tri", gin.H{
-				"TieuDe": "Quản trị", "NhanVien": kh, "DaDangNhap": true, "UserID": userID,
+				"TieuDe":       "Quản trị hệ thống",
+				"NhanVien":     kh,
+				"DaDangNhap":   true,
+				"TenNguoiDung": kh.TenKhachHang,
+				"QuyenHan":     kh.VaiTroQuyenHan,
+				"UserID":       userID,
 			})
 		})
 		admin.GET("/reload", chuc_nang.API_NapLaiDuLieu)
 	}
 
-	// [SỬA LẠI PORT CHO CLOUD RUN]
+	// [QUAN TRỌNG] Cloud Run Port Logic
 	port := os.Getenv("PORT")
-	if port == "" { port = "8080" }
+	if port == "" {
+		port = cau_hinh.BienCauHinh.CongChayWeb
+	}
+	if port == "" {
+		port = "8080"
+	}
 	
-	// QUAN TRỌNG: Thêm 0.0.0.0 vào trước port
-	srv := &http.Server{ Addr: "0.0.0.0:" + port, Handler: router }
+	// FIX LỖI DEPLOY: Thêm "0.0.0.0" để Cloud Run nhận diện
+	addr := "0.0.0.0:" + port
+	srv := &http.Server{ Addr: addr, Handler: router }
 
 	go func() {
-		log.Printf("Server đang chạy tại 0.0.0.0:%s", port)
+		log.Printf("✅ Server đang lắng nghe tại: %s", addr)
 		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			log.Fatalf("Lỗi server: %s\n", err)
+			log.Fatalf("❌ Lỗi server: %s\n", err)
 		}
 	}()
 
+	// Graceful Shutdown
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 	<-quit
+	
+	log.Println("⚠️ Đang tắt Server... Xả hàng đợi...")
 	nghiep_vu.ThucHienGhiSheet(true)
+	log.Println("✅ Server đã tắt an toàn.")
 }
 
 func mustGetCookie(c *gin.Context) string {

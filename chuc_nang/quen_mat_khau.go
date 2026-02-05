@@ -37,41 +37,40 @@ func XuLyQuenPassBangPIN(c *gin.Context) {
 	kh.MatKhauHash = hashMoi
 	nghiep_vu.ThemVaoHangCho(cau_hinh.BienCauHinh.IdFileSheet, "KHACH_HANG", kh.DongTrongSheet, mo_hinh.CotKH_MatKhauHash, hashMoi)
 
-	c.JSON(200, gin.H{"status": "ok", "msg": "Đã đặt lại mật khẩu thành công!"})
+	c.JSON(200, gin.H{"status": "ok", "msg": "Đã đặt lại mật khẩu thành công! Hãy đăng nhập."})
 }
 
-// CÁCH 2: Gửi OTP qua Email (NÂNG CẤP DÙNG API THẬT)
+// CÁCH 2: Gửi OTP qua Email (CẬP NHẬT DÙNG API THẬT)
 func XuLyGuiOTPEmail(c *gin.Context) {
 	email := strings.TrimSpace(c.PostForm("email"))
 	kh, ok := nghiep_vu.TimKhachHangTheoUserOrEmail(email)
 	
 	if !ok {
-		// Fake thành công để bảo mật
-		c.JSON(200, gin.H{"status": "ok", "msg": "Nếu email đúng, mã OTP đã được gửi!"})
+		c.JSON(200, gin.H{"status": "ok", "msg": "Nếu email đúng, mã OTP đã được gửi đi!"})
 		return
 	}
 
-	// 1. Check Rate Limit
-	theGui, msgLoi := nghiep_vu.KiemTraRateLimit(kh.Email)
-	if !theGui {
-		c.JSON(200, gin.H{"status": "error", "msg": msgLoi})
+	// 1. Chặn Spam
+	okLimit, msg := nghiep_vu.KiemTraRateLimit(kh.Email)
+	if !okLimit {
+		c.JSON(200, gin.H{"status": "error", "msg": msg})
 		return
 	}
 
-	// 2. Tạo mã OTP 6 số
-	otp := nghiep_vu.TaoMaOTP6So() 
+	// 2. Tạo mã OTP 6 số (Dùng hàm mới 6 số)
+	otp := nghiep_vu.TaoMaOTP6So()
 
-	// 3. Gửi Mail API
+	// 3. Gửi Mail thật
 	err := nghiep_vu.GuiMailXacMinhAPI(kh.Email, otp)
 	if err != nil {
 		c.JSON(200, gin.H{"status": "error", "msg": "Lỗi gửi mail: " + err.Error()})
 		return
 	}
 
-	// 4. Lưu RAM (QUAN TRỌNG: Dùng TenDangNhap làm key để khớp với hàm verify)
+	// 4. Lưu vào RAM (Dùng tên đăng nhập làm key)
 	nghiep_vu.LuuOTP(kh.TenDangNhap, otp)
 
-	c.JSON(200, gin.H{"status": "ok", "msg": "Mã xác minh 6 số đã được gửi vào email!"})
+	c.JSON(200, gin.H{"status": "ok", "msg": "Mã OTP (6 số) đã được gửi vào email!"})
 }
 
 // Xác nhận OTP (Giữ nguyên)
@@ -86,7 +85,6 @@ func XuLyQuenPassBangOTP(c *gin.Context) {
 		return
 	}
 
-	// Verify OTP
 	if !nghiep_vu.KiemTraOTP(kh.TenDangNhap, otpInput) {
 		c.JSON(200, gin.H{"status": "error", "msg": "Mã OTP sai hoặc đã hết hạn!"})
 		return

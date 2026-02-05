@@ -105,3 +105,61 @@ func API_DoiMaPin(c *gin.Context) {
 		c.JSON(401, gin.H{"status": "error", "msg": "Phiên đăng nhập hết hạn"})
 	}
 }
+
+// [THÊM VÀO FILE tai_khoan_api.go]
+
+// API: Yêu cầu gửi OTP PIN
+func API_GuiOTPPin(c *gin.Context) {
+	cookie, _ := c.Cookie("session_id")
+	kh, ok := nghiep_vu.TimKhachHangTheoCookie(cookie)
+	if !ok {
+		c.JSON(401, gin.H{"status": "error", "msg": "Hết phiên làm việc"})
+		return
+	}
+
+	// Check Rate
+	theGui, msgLoi := nghiep_vu.KiemTraRateLimit(kh.Email)
+	if !theGui {
+		c.JSON(200, gin.H{"status": "error", "msg": msgLoi})
+		return
+	}
+
+	code := nghiep_vu.TaoMaOTP6So()
+	err := nghiep_vu.GuiMailXacMinhAPI(kh.Email, code)
+	if err != nil {
+		c.JSON(200, gin.H{"status": "error", "msg": "Lỗi API gửi thư: " + err.Error()})
+		return
+	}
+
+	nghiep_vu.LuuOTPVaUpdateRate(kh.Email, code)
+	c.JSON(200, gin.H{"status": "ok", "msg": "Mã xác minh đã được gửi vào Email của bạn!"})
+}
+
+// API: Đặt lại PIN bằng OTP
+func API_ResetPinBangOTP(c *gin.Context) {
+	otpInput := strings.TrimSpace(c.PostForm("otp"))
+	pinMoi   := strings.TrimSpace(c.PostForm("pin_moi"))
+	cookie, _ := c.Cookie("session_id")
+
+	if !bao_mat.KiemTraMaPin(pinMoi) {
+		c.JSON(200, gin.H{"status": "error", "msg": "PIN mới phải đúng 8 số!"})
+		return
+	}
+
+	kh, ok := nghiep_vu.TimKhachHangTheoCookie(cookie)
+	if !ok {
+		c.JSON(401, gin.H{"status": "error", "msg": "Hết phiên làm việc"})
+		return
+	}
+
+	if !nghiep_vu.KiemTraOTP(kh.Email, otpInput) {
+		c.JSON(200, gin.H{"status": "error", "msg": "Mã xác minh sai hoặc đã hết hạn!"})
+		return
+	}
+
+	// Cập nhật RAM & Sheet
+	kh.MaPinHash = pinMoi
+	nghiep_vu.ThemVaoHangCho(cau_hinh.BienCauHinh.IdFileSheet, "KHACH_HANG", kh.DongTrongSheet, mo_hinh.CotKH_MaPinHash, pinMoi)
+
+	c.JSON(200, gin.H{"status": "ok", "msg": "Đã khôi phục mã PIN thành công!"})
+}

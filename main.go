@@ -22,26 +22,21 @@ func main() {
 	// 1. Nạp cấu hình
 	cau_hinh.KhoiTaoCauHinh()
 
-	// 2. Kết nối Sheet (Chế độ Public - Không file JSON)
-	// Lưu ý: Chế độ này có thể không đọc được dữ liệu nếu Google chặn API không khóa.
-	// Nhưng nó giúp App khởi động lên được (không bị Crash).
+	// 2. Kết nối Sheet (Chế độ Public - Tránh lỗi thiếu file JSON)
 	kho_du_lieu.KhoiTaoKetNoiGoogle()
 
-	// 3. Khởi tạo bộ nhớ & Worker
-	// (Chạy ngầm để không chặn việc khởi động Server nếu mạng chậm)
+	// 3. Khởi tạo bộ nhớ & Worker (Chạy ngầm để Server lên ngay lập tức)
 	go func() {
 		nghiep_vu.KhoiTaoBoNho()
 	}()
-	
 	nghiep_vu.KhoiTaoWorkerGhiSheet()
 	chuc_nang.KhoiTaoBoDemRateLimit()
 
 	// 4. Cấu hình Web Server
 	router := gin.Default()
 	
-	// [QUAN TRỌNG] Sửa lỗi Panic do không tìm thấy file
-	// Dùng "giao_dien/*" thay vì "giao_dien/**/*" vì bạn không có thư mục con
-	router.LoadHTMLGlob("giao_dien/*")
+	// [SỬA LỖI QUAN TRỌNG NHẤT]: Dùng *.html thay vì **/* // Vì thư mục giao_dien không có thư mục con, dùng ** sẽ gây Crash.
+	router.LoadHTMLGlob("giao_dien/*.html")
 
 	// --- PUBLIC ROUTES ---
 	router.GET("/", chuc_nang.TrangChu)
@@ -64,7 +59,8 @@ func main() {
 		userGroup.POST("/update-info", chuc_nang.API_DoiThongTin)
 		userGroup.POST("/change-pass", chuc_nang.API_DoiMatKhau)
 		userGroup.POST("/change-pin", chuc_nang.API_DoiMaPin)
-		// Đã xóa API_ResetPinBangOTP để tránh lỗi build
+		userGroup.POST("/send-otp-pin", chuc_nang.API_GuiOTPPin)
+		// Đã xóa API_ResetPinBangOTP để tránh lỗi Build
 	}
 
 	router.GET("/tai-khoan", func(c *gin.Context) {
@@ -111,7 +107,7 @@ func main() {
 		admin.GET("/reload", chuc_nang.API_NapLaiDuLieu)
 	}
 
-	// [PORT CLOUD RUN]
+	// [PORT CHO CLOUD RUN]
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = cau_hinh.BienCauHinh.CongChayWeb
@@ -120,10 +116,11 @@ func main() {
 		port = "8080"
 	}
 	
+	// FIX LỖI 2: Phải nghe 0.0.0.0
 	srv := &http.Server{ Addr: "0.0.0.0:" + port, Handler: router }
 
 	go func() {
-		log.Printf("✅ Server đang lắng nghe tại: 0.0.0.0:%s", port)
+		log.Printf("✅ Server đang lắng nghe tại 0.0.0.0:%s", port)
 		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			log.Fatalf("❌ Lỗi server: %s\n", err)
 		}

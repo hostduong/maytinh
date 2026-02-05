@@ -15,7 +15,6 @@ import (
 func TrangDangNhap(c *gin.Context) {
 	cookie, _ := c.Cookie("session_id")
 	if cookie != "" {
-		// [SỬA] TimKhachHangTheoCookie
 		if _, ok := nghiep_vu.TimKhachHangTheoCookie(cookie); ok {
 			c.Redirect(http.StatusFound, "/") 
 			return
@@ -25,10 +24,10 @@ func TrangDangNhap(c *gin.Context) {
 }
 
 func XuLyDangNhap(c *gin.Context) {
-	inputTaiKhoan := strings.TrimSpace(c.PostForm("ten_dang_nhap"))
+	// [SỬA] Ép về chữ thường để so sánh chính xác
+	inputTaiKhoan := strings.ToLower(strings.TrimSpace(c.PostForm("ten_dang_nhap")))
 	pass          := strings.TrimSpace(c.PostForm("mat_khau"))
 
-	// [SỬA] TimKhachHangTheoUserOrEmail
 	kh, ok := nghiep_vu.TimKhachHangTheoUserOrEmail(inputTaiKhoan)
 	if !ok {
 		c.HTML(http.StatusOK, "dang_nhap", gin.H{"Loi": "Tài khoản không tồn tại!"})
@@ -43,7 +42,6 @@ func XuLyDangNhap(c *gin.Context) {
 	sessionID := bao_mat.TaoSessionIDAnToan()
 	expiredTime := time.Now().Add(cau_hinh.ThoiGianHetHanCookie).Unix()
 
-	// [SỬA] CapNhatPhienDangNhapKH
 	nghiep_vu.CapNhatPhienDangNhapKH(kh.MaKhachHang, sessionID, expiredTime)
 
 	c.SetCookie("session_id", sessionID, int(cau_hinh.ThoiGianHetHanCookie.Seconds()), "/", "", false, true)

@@ -7,25 +7,28 @@
     
     <style>
         .iti { width: 100%; }
-        /* Ẩn icon mắt mặc định của trình duyệt để dùng icon custom */
         input::-ms-reveal, input::-ms-clear { display: none; }
+        /* Style cho nút disable */
+        button:disabled { opacity: 0.6; cursor: not-allowed; background-color: #9ca3af; }
     </style>
 
-    <div class="flex items-center justify-center min-h-[calc(100vh-200px)] py-12 px-4 sm:px-6 lg:px-8 bg-gray-50">
-        <div class="w-full max-w-2xl space-y-6 bg-white p-8 rounded-2xl shadow-lg border border-gray-100">
+    <div class="flex items-center justify-center min-h-[calc(100vh-200px)] py-12 px-4 bg-gray-50">
+        <div class="w-full max-w-2xl bg-white p-8 rounded-2xl shadow-lg border border-gray-100">
             
-            <div class="text-center">
+            <div class="text-center mb-8">
                 <h2 class="text-3xl font-bold text-green-600">Đăng Ký Thành Viên</h2>
-                <p class="mt-2 text-sm text-gray-600">Tham gia hệ thống MayTinhShop</p>
+                <p class="mt-2 text-sm text-gray-600">Hệ thống MayTinhShop</p>
             </div>
 
             {{ if .Loi }}
-            <div class="bg-red-50 border-l-4 border-red-500 text-red-700 p-4 rounded text-sm flex items-center shadow-sm">
-                <span class="mr-2 text-lg">⚠️</span> {{ .Loi }}
-            </div>
+            <script>
+                document.addEventListener('DOMContentLoaded', () => {
+                    Swal.fire({ icon: 'error', title: 'Lỗi', text: '{{ .Loi }}' });
+                });
+            </script>
             {{ end }}
 
-            <form id="formDangKy" class="mt-8 space-y-5" action="/register" method="POST" novalidate>
+            <form id="formDangKy" action="/register" method="POST" novalidate class="space-y-5">
                 
                 <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
                     <div class="sm:col-span-2">
@@ -35,7 +38,7 @@
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1">Giới tính</label>
-                        <select name="gioi_tinh" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 transition bg-white">
+                        <select name="gioi_tinh" class="w-full px-4 py-3 border border-gray-300 rounded-lg bg-white focus:ring-2 focus:ring-green-500">
                             <option value="Nam">Nam</option>
                             <option value="Nữ">Nữ</option>
                             <option value="Khác">Khác</option>
@@ -46,11 +49,11 @@
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1">Ngày sinh</label>
-                        <input id="ngay_sinh" name="ngay_sinh" type="date" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 transition text-gray-700">
+                        <input id="ngay_sinh" name="ngay_sinh" type="date" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 text-gray-700">
                     </div>
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Điện thoại (Tùy chọn)</label>
-                        <input id="dien_thoai" name="dien_thoai" type="tel" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 transition">
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Điện thoại</label>
+                        <input id="dien_thoai" name="dien_thoai" type="tel" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500">
                         <p id="err_dien_thoai" class="text-red-500 text-xs mt-1 hidden"></p>
                         <input type="hidden" name="dien_thoai_full" id="dien_thoai_full">
                     </div>
@@ -59,19 +62,19 @@
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1">Email <span class="text-red-500">*</span></label>
-                        <input id="email" name="email" type="email" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 transition" placeholder="abc@gmail.com">
+                        <input id="email" name="email" type="email" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500" placeholder="abc@gmail.com">
                         <p id="err_email" class="text-red-500 text-xs mt-1 hidden"></p>
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1">Mã PIN (8 số) <span class="text-red-500">*</span></label>
-                        <input id="ma_pin" name="ma_pin" type="text" maxlength="8" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 transition" placeholder="12345678">
+                        <input id="ma_pin" name="ma_pin" type="text" maxlength="8" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500" placeholder="12345678">
                         <p id="err_ma_pin" class="text-red-500 text-xs mt-1 hidden"></p>
                     </div>
                 </div>
 
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-1">Tên đăng nhập <span class="text-red-500">*</span></label>
-                    <input id="ten_dang_nhap" name="ten_dang_nhap" type="text" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 transition" placeholder="user123 (không dấu, không khoảng cách)">
+                    <input id="ten_dang_nhap" name="ten_dang_nhap" type="text" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500" placeholder="user123">
                     <p id="err_ten_dang_nhap" class="text-red-500 text-xs mt-1 hidden"></p>
                 </div>
 
@@ -79,7 +82,7 @@
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1">Mật khẩu <span class="text-red-500">*</span></label>
                         <div class="relative">
-                            <input id="mat_khau" name="mat_khau" type="password" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 transition" placeholder="••••••••">
+                            <input id="mat_khau" name="mat_khau" type="password" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500" placeholder="••••••••">
                             <button type="button" onclick="togglePass('mat_khau')" class="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400">👁️</button>
                         </div>
                         <p id="err_mat_khau" class="text-red-500 text-xs mt-1 hidden"></p>
@@ -87,7 +90,7 @@
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1">Nhập lại mật khẩu <span class="text-red-500">*</span></label>
                         <div class="relative">
-                            <input id="re_mat_khau" type="password" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 transition" placeholder="••••••••">
+                            <input id="re_mat_khau" type="password" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500" placeholder="••••••••">
                             <button type="button" onclick="togglePass('re_mat_khau')" class="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400">👁️</button>
                         </div>
                         <p id="err_re_mat_khau" class="text-red-500 text-xs mt-1 hidden"></p>
@@ -96,19 +99,16 @@
 
                 <div class="flex items-start">
                     <div class="flex items-center h-5">
-                        <input id="terms" name="terms" type="checkbox" class="w-4 h-4 text-green-600 border-gray-300 rounded focus:ring-green-500 transition cursor-pointer">
+                        <input id="terms" name="terms" type="checkbox" class="w-4 h-4 text-green-600 border-gray-300 rounded focus:ring-green-500 cursor-pointer">
                     </div>
                     <div class="ml-3 text-sm">
-                        <label for="terms" class="font-medium text-gray-700 cursor-pointer">Tôi đồng ý với <a href="#" class="text-green-600 hover:underline">Điều khoản và điều kiện</a></label>
+                        <label for="terms" class="font-medium text-gray-700 cursor-pointer">Tôi đồng ý với <a href="#" class="text-green-600 hover:underline">Điều khoản</a></label>
                     </div>
                 </div>
 
                 <div class="pt-2">
                     <button type="submit" id="btnSubmit" disabled
-                        class="w-full flex justify-center py-3 px-4 border border-transparent text-sm font-bold rounded-lg text-white 
-                               bg-gray-400 cursor-not-allowed transition transform 
-                               disabled:opacity-70 disabled:bg-gray-400 
-                               enabled:bg-green-600 enabled:hover:bg-green-700 enabled:active:scale-95 enabled:shadow-lg enabled:cursor-pointer">
+                        class="w-full flex justify-center py-3 px-4 border border-transparent text-sm font-bold rounded-lg text-white bg-green-600 hover:bg-green-700 shadow-lg transition transform active:scale-95">
                         ĐĂNG KÝ NGAY
                     </button>
                 </div>
@@ -121,7 +121,7 @@
     </div>
 
     <script>
-        // 1. CẤU HÌNH ĐIỆN THOẠI
+        // 1. INPUT PHONE
         const inputPhone = document.querySelector("#dien_thoai");
         const iti = window.intlTelInput(inputPhone, {
             initialCountry: "vn",
@@ -129,150 +129,171 @@
             utilsScript: "https://cdn.jsdelivr.net/npm/intl-tel-input@18.2.1/build/js/utils.js",
         });
 
-        // 2. BỘ LUẬT VALIDATION (Regex chặt hơn)
-        // - Họ tên: Chỉ chữ cái Unicode (Tiếng Việt) và khoảng trắng. Không số, không ký tự đặc biệt.
-        // - Username: Chỉ chữ thường a-z, số 0-9, dấu chấm, gạch dưới. Không in hoa, không @.
-        const VALIDATOR = {
+        // 2. RULES
+        const RULES = {
             ho_ten: {
-                // Regex: Chỉ cho phép chữ cái (bao gồm tiếng Việt) và khoảng trắng. Cấm số.
-                regex: /^[a-zA-ZÀ-ỹ\s]+$/, 
-                validate: val => val.trim().length >= 6 && val.trim().length <= 50 && /^[a-zA-ZÀ-ỹ\s]+$/.test(val),
-                msg: "Họ tên phải là chữ cái, từ 6-50 ký tự."
+                forbidden: /[0-9!@#$%^&*(),.?":{}|<>]/, // Cấm số và ký tự lạ
+                validate: val => val.trim().length >= 6 && val.trim().length <= 50,
+                msg_forbidden: "Họ tên không được chứa số hoặc ký tự đặc biệt.",
+                msg_invalid: "Họ tên phải từ 6 - 50 ký tự."
             },
             email: {
-                // Regex Email chuẩn
-                regex: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
-                validate: val => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val) && val.length >= 6 && val.length <= 100,
-                msg: "Email không hợp lệ."
+                forbidden: /\s/, // Cấm dấu cách
+                validate: val => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val),
+                msg_forbidden: "Email không được chứa dấu cách.",
+                msg_invalid: "Định dạng Email không hợp lệ."
             },
             ma_pin: {
-                regex: /^\d+$/,
+                forbidden: /[^0-9]/, // Cấm chữ
                 validate: val => /^\d{8}$/.test(val),
-                msg: "Mã PIN phải là 8 chữ số."
+                msg_forbidden: "Mã PIN chỉ được nhập số.",
+                msg_invalid: "Mã PIN phải đúng 8 số."
             },
             ten_dang_nhap: {
-                // Chỉ chữ thường, số, ., _
-                regex: /^[a-z0-9._]+$/,
-                validate: val => /^[a-z0-9._]+$/.test(val) && val.length >= 6 && val.length <= 30,
-                msg: "User từ 6-30 ký tự (chữ thường, số, dấu . _)"
+                forbidden: /[^a-z0-9._]/, // Cấm chữ hoa, dấu cách, ký tự lạ
+                validate: val => val.length >= 6 && val.length <= 30,
+                msg_forbidden: "Chỉ nhập chữ thường, số, dấu . và _",
+                msg_invalid: "Tên đăng nhập từ 6 - 30 ký tự."
             },
             mat_khau: {
-                regex: /^[^'"<>\s]+$/,
-                validate: val => val.length >= 8 && val.length <= 30 && !/['"<>\s]/.test(val),
-                msg: "Mật khẩu 8-30 ký tự, không có khoảng trắng."
+                forbidden: /[\s'"<>]/, // Cấm dấu cách, nháy, ngoặc
+                validate: val => val.length >= 8 && val.length <= 30,
+                msg_forbidden: "Không được chứa khoảng trắng hoặc ' \" < >",
+                msg_invalid: "Mật khẩu phải từ 8 - 30 ký tự."
             }
         };
 
-        // 3. HÀM KIỂM TRA TRẠNG THÁI INPUT
-        function validateField(id) {
-            const input = document.getElementById(id);
-            const msg = document.getElementById('err_' + id);
-            const val = input.value;
-            const rule = VALIDATOR[id];
-
-            // Reset style
-            input.classList.remove('border-red-500', 'focus:ring-red-500', 'border-green-500', 'focus:ring-green-500', 'border-gray-300');
-            msg.classList.add('hidden');
-
-            if (val === "") {
-                // Rỗng -> Trạng thái mặc định (xám)
-                input.classList.add('border-gray-300', 'focus:ring-green-500');
-                return false;
-            }
-
-            if (!rule.validate(val)) {
-                // Lỗi -> Đỏ
-                input.classList.add('border-red-500', 'focus:ring-red-500');
-                msg.innerText = rule.msg;
-                msg.classList.remove('hidden');
-                return false;
-            } else {
-                // Đúng -> Xanh
-                input.classList.add('border-green-500', 'focus:ring-green-500');
-                return true;
-            }
+        // 3. HÀM HIỂN THỊ TRẠNG THÁI
+        function setError(id, msg) {
+            const el = document.getElementById(id);
+            const err = document.getElementById('err_' + id);
+            el.classList.add('border-red-500', 'focus:ring-red-500');
+            el.classList.remove('border-green-500', 'focus:ring-green-500', 'border-gray-300');
+            err.innerText = msg;
+            err.classList.remove('hidden');
         }
 
-        // 4. KIỂM TRA TOÀN BỘ FORM ĐỂ BẬT NÚT SUBMIT
-        function checkFormValidity() {
-            const isNameOk = validateField('ho_ten');
-            const isEmailOk = validateField('email');
-            const isPinOk = validateField('ma_pin');
-            const isUserOk = validateField('ten_dang_nhap');
-            const isPassOk = validateField('mat_khau');
+        function setSuccess(id) {
+            const el = document.getElementById(id);
+            const err = document.getElementById('err_' + id);
+            el.classList.remove('border-red-500', 'focus:ring-red-500', 'border-gray-300');
+            el.classList.add('border-green-500', 'focus:ring-green-500');
+            err.classList.add('hidden');
+        }
+
+        function setNormal(id) {
+            const el = document.getElementById(id);
+            const err = document.getElementById('err_' + id);
+            el.classList.remove('border-red-500', 'focus:ring-red-500', 'border-green-500', 'focus:ring-green-500');
+            el.classList.add('border-gray-300');
+            err.classList.add('hidden');
+        }
+
+        // 4. CHECK TỔNG THỂ ĐỂ BẬT NÚT
+        function checkSubmitButton() {
+            // Kiểm tra xem có ô nào đang bị lỗi đỏ không
+            const hasError = document.querySelectorAll('.border-red-500').length > 0;
             
-            // Re-pass check
+            // Kiểm tra các ô bắt buộc có bị rỗng không
+            const requiredIds = ['ho_ten', 'email', 'ma_pin', 'ten_dang_nhap', 'mat_khau', 're_mat_khau'];
+            const hasEmpty = requiredIds.some(id => document.getElementById(id).value.trim() === "");
+
+            // Kiểm tra checkbox
+            const terms = document.getElementById('terms').checked;
+
+            // Kiểm tra pass khớp
             const p1 = document.getElementById('mat_khau').value;
             const p2 = document.getElementById('re_mat_khau').value;
-            const isRePassOk = (p1 !== "" && p1 === p2);
-            // Style cho ô Re-pass
-            const reInput = document.getElementById('re_mat_khau');
-            reInput.classList.remove('border-green-500', 'border-red-500', 'border-gray-300');
-            if(p2 === "") reInput.classList.add('border-gray-300');
-            else if(isRePassOk) reInput.classList.add('border-green-500');
-            else {
-                reInput.classList.add('border-red-500');
-                document.getElementById('err_re_mat_khau').innerText = "Mật khẩu không khớp";
-                document.getElementById('err_re_mat_khau').classList.remove('hidden');
-            }
-            if(isRePassOk) document.getElementById('err_re_mat_khau').classList.add('hidden');
+            const passMatch = (p1 === p2 && p1 !== "");
 
-            // Phone check (Optional)
-            let isPhoneOk = true;
-            if (inputPhone.value.trim() !== "") {
-                isPhoneOk = iti.isValidNumber();
-                inputPhone.classList.toggle('border-red-500', !isPhoneOk);
-                inputPhone.classList.toggle('border-green-500', isPhoneOk);
-            } else {
-                inputPhone.classList.remove('border-red-500', 'border-green-500');
-                inputPhone.classList.add('border-gray-300');
-            }
+            // Logic điện thoại (nếu nhập thì phải đúng)
+            let phoneOk = true;
+            if (inputPhone.value.trim() !== "" && !iti.isValidNumber()) phoneOk = false;
 
-            // Checkbox
-            const isTermsOk = document.getElementById('terms').checked;
-
-            // KẾT LUẬN: Bật hay Tắt nút Submit
             const btn = document.getElementById('btnSubmit');
-            if (isNameOk && isEmailOk && isPinOk && isUserOk && isPassOk && isRePassOk && isPhoneOk && isTermsOk) {
+            if (!hasError && !hasEmpty && terms && passMatch && phoneOk) {
                 btn.removeAttribute('disabled');
-                btn.classList.remove('bg-gray-400', 'cursor-not-allowed');
-                btn.classList.add('bg-green-600', 'hover:bg-green-700', 'cursor-pointer');
             } else {
                 btn.setAttribute('disabled', 'true');
-                btn.classList.add('bg-gray-400', 'cursor-not-allowed');
-                btn.classList.remove('bg-green-600', 'hover:bg-green-700', 'cursor-pointer');
             }
         }
 
-        // 5. GẮN SỰ KIỆN CHO CÁC INPUT
-        // Gắn sự kiện 'input' để check ngay khi gõ
-        ['ho_ten', 'email', 'ma_pin', 'ten_dang_nhap', 'mat_khau'].forEach(id => {
-            document.getElementById(id).addEventListener('input', () => checkFormValidity());
+        // 5. GẮN SỰ KIỆN TỪNG Ô
+        Object.keys(RULES).forEach(id => {
+            const el = document.getElementById(id);
+            const rule = RULES[id];
+
+            // SỰ KIỆN GÕ (INPUT): Báo lỗi ngay nếu ký tự cấm, Xóa lỗi nếu đang gõ đúng
+            el.addEventListener('input', function() {
+                if (rule.forbidden.test(this.value)) {
+                    setError(id, rule.msg_forbidden); // 1. Nhập sai -> Hiện cảnh báo ngay
+                } else {
+                    setNormal(id); // 2. Đang nhập đúng -> Không hiện cảnh báo (Reset về bình thường)
+                }
+                checkSubmitButton();
+            });
+
+            // SỰ KIỆN BLUR: Kiểm tra độ dài/định dạng khi nhập xong
+            el.addEventListener('blur', function() {
+                if (this.value === "") return; // Rỗng thì thôi (để check tổng thể lo)
+                
+                if (!rule.validate(this.value)) {
+                    setError(id, rule.msg_invalid); // 3. Nhập xong thiếu ký tự -> Hiện cảnh báo
+                } else {
+                    setSuccess(id);
+                }
+                checkSubmitButton();
+            });
         });
-        document.getElementById('re_mat_khau').addEventListener('input', () => checkFormValidity());
-        document.getElementById('terms').addEventListener('change', () => checkFormValidity());
-        inputPhone.addEventListener('input', () => checkFormValidity());
 
-        // 6. XỬ LÝ SUBMIT
+        // Xử lý riêng Re-Pass
+        const rePass = document.getElementById('re_mat_khau');
+        const pass = document.getElementById('mat_khau');
+        
+        rePass.addEventListener('input', () => {
+            setNormal('re_mat_khau');
+            checkSubmitButton();
+        });
+        
+        rePass.addEventListener('blur', () => {
+            if (rePass.value !== "" && rePass.value !== pass.value) {
+                setError('re_mat_khau', "Mật khẩu nhập lại không khớp.");
+            } else if (rePass.value !== "") {
+                setSuccess('re_mat_khau');
+            }
+            checkSubmitButton();
+        });
+
+        // Xử lý riêng Điện thoại
+        inputPhone.addEventListener('blur', () => {
+            if (inputPhone.value.trim() !== "") {
+                if (!iti.isValidNumber()) {
+                    inputPhone.classList.add('border-red-500');
+                    document.getElementById('err_dien_thoai').innerText = "Số điện thoại không hợp lệ";
+                    document.getElementById('err_dien_thoai').classList.remove('hidden');
+                } else {
+                    inputPhone.classList.remove('border-red-500');
+                    inputPhone.classList.add('border-green-500');
+                    document.getElementById('err_dien_thoai').classList.add('hidden');
+                }
+            } else {
+                inputPhone.classList.remove('border-red-500', 'border-green-500');
+            }
+            checkSubmitButton();
+        });
+
+        // Checkbox Terms
+        document.getElementById('terms').addEventListener('change', checkSubmitButton);
+
+        // FORM SUBMIT
         document.getElementById('formDangKy').addEventListener('submit', function(e) {
-            e.preventDefault(); // Chặn gửi mặc định để check lần cuối
-
-            // Lưu số điện thoại đầy đủ (VD: +84...) vào input ẩn
+            if (document.getElementById('btnSubmit').disabled) {
+                e.preventDefault();
+                return;
+            }
+            // Gán số full trước khi gửi
             if(inputPhone.value.trim() !== "") {
                 document.getElementById("dien_thoai_full").value = iti.getNumber();
-            }
-
-            // Nếu nút không disabled thì mới submit
-            if (!document.getElementById('btnSubmit').disabled) {
-                this.submit();
-            } else {
-                // Trường hợp hack bỏ disabled, hiện SweetAlert cảnh báo
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Chưa đủ thông tin',
-                    text: 'Vui lòng kiểm tra lại các ô báo đỏ hoặc chưa nhập.',
-                    confirmButtonColor: '#d33',
-                });
             }
         });
 

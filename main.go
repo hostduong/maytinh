@@ -6,6 +6,7 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"sync/atomic" // Thêm thư viện này để dùng cờ báo hiệu
 
 	"app/bao_mat"
 	"app/cau_hinh"
@@ -16,32 +17,47 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+// Biến cờ đánh dấu trạng thái nạp dữ liệu (0: chưa xong, 1: xong)
+var DaNapDuLieuXong int32 = 0
+
 func main() {
 	log.Println(">>> ĐANG KHỞI ĐỘNG HỆ THỐNG MAYTINHSHOP...")
 
-	// 1. Nạp cấu hình
+	// 1. Cấu hình cơ bản
 	cau_hinh.KhoiTaoCauHinh()
-
-	// 2. Kết nối Sheet (Chế độ Public - Không cần file JSON)
 	kho_du_lieu.KhoiTaoKetNoiGoogle()
 
-	// 3. Khởi tạo bộ nhớ (CHẠY TUẦN TỰ)
-	// Bắt buộc phải chạy xong cái này mới được mở Server
-	// Nếu không, truy cập vào web sẽ bị lỗi sập nguồn (Panic nil pointer)
-	log.Println("--- Đang nạp dữ liệu từ Google Sheet... ---")
-	nghiep_vu.KhoiTaoBoNho()
-	log.Println("--- Nạp dữ liệu thành công! ---")
+	// 2. [QUAN TRỌNG] Chạy nạp dữ liệu ở luồng riêng (Background)
+	// Để không chặn việc mở cổng Server bên dưới
+	go func() {
+		log.Println("--- [BACKGROUND] Bắt đầu nạp dữ liệu từ Sheet... ---")
+		nghiep_vu.KhoiTaoBoNho()
+		atomic.StoreInt32(&DaNapDuLieuXong, 1) // Bật cờ báo hiệu đã xong
+		log.Println("--- [BACKGROUND] Đã nạp xong toàn bộ dữ liệu! ---")
+	}()
 	
 	nghiep_vu.KhoiTaoWorkerGhiSheet()
 	chuc_nang.KhoiTaoBoDemRateLimit()
 
-	// 4. Cấu hình Web Server
+	// 3. Cấu hình Web Server
 	router := gin.Default()
-	
-	// Load giao diện phẳng (không có thư mục con)
-	router.LoadHTMLGlob("giao_dien/*.html")
+	router.LoadHTMLGlob("giao_dien/*.html") // Đã đúng từ phiên bản trước
 
-	// --- PUBLIC ROUTES ---
+	// Middleware kiểm tra trạng thái khởi động
+	// Nếu dữ liệu chưa nạp xong, trả về thông báo chờ thay vì để Crash
+	router.Use(func(c *gin.Context) {
+		if atomic.LoadInt32(&DaNapDuLieuXong) == 0 {
+			c.JSON(503, gin.H{
+				"status": "starting",
+				"msg": "Hệ thống đang khởi động và nạp dữ liệu. Vui lòng thử lại sau 30 giây.",
+			})
+			c.Abort()
+			return
+		}
+		c.Next()
+	})
+
+	// --- CÁC ROUTES GIỮ NGUYÊN ---
 	router.GET("/", chuc_nang.TrangChu)
 	router.GET("/san-pham/:id", chuc_nang.ChiTietSanPham)
 	
@@ -56,7 +72,6 @@ func main() {
 	router.POST("/api/auth/send-otp", chuc_nang.XuLyGuiOTPEmail)
 	router.POST("/api/auth/reset-by-otp", chuc_nang.XuLyQuenPassBangOTP)
 
-	// --- USER ROUTES ---
 	userGroup := router.Group("/api/user")
 	{
 		userGroup.POST("/update-info", chuc_nang.API_DoiThongTin)
@@ -90,7 +105,6 @@ func main() {
 		c.String(200, "Pass: %s\nHash: %s", pass, hash)
 	})
 
-	// --- ADMIN ROUTES ---
 	admin := router.Group("/admin")
 	admin.Use(chuc_nang.KiemTraQuyenHan)
 	{
@@ -109,19 +123,14 @@ func main() {
 		admin.GET("/reload", chuc_nang.API_NapLaiDuLieu)
 	}
 
-	// [PORT CLOUD RUN]
+	// 4. MỞ CỔNG NGAY LẬP TỨC
 	port := os.Getenv("PORT")
-	if port == "" {
-		port = cau_hinh.BienCauHinh.CongChayWeb
-	}
-	if port == "" {
-		port = "8080"
-	}
+	if port == "" { port = "8080" }
 	
 	srv := &http.Server{ Addr: "0.0.0.0:" + port, Handler: router }
 
 	go func() {
-		log.Printf("✅ Server đang lắng nghe tại: 0.0.0.0:%s", port)
+		log.Printf("✅ Server đang lắng nghe tại: 0.0.0.0:%s (Chờ dữ liệu nạp...)", port)
 		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			log.Fatalf("❌ Lỗi server: %s\n", err)
 		}

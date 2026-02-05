@@ -13,6 +13,11 @@ import (
 	"app/mo_hinh"
 )
 
+// [CƠ CHẾ KHÓA HỆ THỐNG]
+// Dùng RWMutex để reload không làm gián đoạn người dùng đang xem (Read Lock)
+// Chỉ chặn khi admin đang ghi đè dữ liệu mới (Write Lock)
+var KhoaHeThong sync.RWMutex
+
 // =================================================================================
 // 1. ĐỊNH NGHĨA KHO DỮ LIỆU (STORE STRUCTS)
 // =================================================================================
@@ -125,8 +130,8 @@ func TaoKeyCache(tenSheet string) string {
 
 // [SỬA ĐỔI QUAN TRỌNG]: Tách hàm khởi tạo biến ra (Public) để main.go gọi trước
 func KhoiTaoCacStore() {
-	// Nếu đã khởi tạo rồi thì thôi, tránh reset mất dữ liệu đang có
-	if CacheSanPham != nil { return }
+	// [THAY ĐỔI]: Bỏ dòng check nil để cho phép Reset RAM khi Reload
+	// if CacheSanPham != nil { return } <--- ĐÃ BỎ
 
 	CacheSanPham = &KhoSanPhamStore{DuLieu: make(map[string]mo_hinh.SanPham), TenKey: TaoKeyCache("SAN_PHAM")}
 	CacheDanhMuc = &KhoDanhMucStore{DuLieu: make(map[string]mo_hinh.DanhMuc), TenKey: TaoKeyCache("DANH_MUC")}
@@ -151,15 +156,14 @@ func KhoiTaoCacStore() {
 	CachePhieuThuChi = &KhoPhieuThuChiStore{DuLieu: make(map[string]mo_hinh.PhieuThuChi), TenKey: TaoKeyCache("PHIEU_THU_CHI")}
 	CachePhieuBaoHanh = &KhoPhieuBaoHanhStore{DuLieu: make(map[string]mo_hinh.PhieuBaoHanh), TenKey: TaoKeyCache("PHIEU_BAO_HANH")}
 	
-	log.Println("✅ [MEMORY] Đã khởi tạo xong bộ nhớ đệm (Rỗng)")
+	log.Println("✅ [MEMORY] Đã khởi tạo/Làm mới bộ nhớ đệm (Rỗng)")
 }
 
 // Hàm này dùng để nạp dữ liệu thật từ Google Sheet (Chạy nặng, nên chạy ngầm)
 func KhoiTaoBoNho() {
 	log.Println("--- [CACHE] Bắt đầu tải dữ liệu từ Google Sheets ---")
 	
-	// Gọi lại hàm tạo Store để đảm bảo an toàn (nếu main chưa gọi)
-	KhoiTaoCacStore()
+	// Lưu ý: Không gọi KhoiTaoCacStore ở đây nữa, để main.go kiểm soát việc Reset hay không
 
 	var wg sync.WaitGroup
 
@@ -210,7 +214,7 @@ func loadSheetData(sheetName string, keyCache string) ([][]interface{}, error) {
 	return duLieu, nil
 }
 
-// 1. KHACH_HANG (Đã sửa lại map đúng cột)
+// 1. KHACH_HANG (Đã sửa lại map đúng cột & Thêm logic map nhiều key)
 func napKhachHang() {
 	raw, err := loadSheetData("KHACH_HANG", CacheKhachHang.TenKey)
 	if err != nil { return }
@@ -251,7 +255,20 @@ func napKhachHang() {
 			NgayTao:        layString(r, mo_hinh.CotKH_NgayTao),
 			NgayCapNhat:    layString(r, mo_hinh.CotKH_NgayCapNhat),
 		}
+		
+		// [QUAN TRỌNG]: Lưu nhiều Key để đăng nhập được bằng cả User và Email
+		// 1. Lưu theo Mã (để dùng cho các hàm sửa thông tin)
 		CacheKhachHang.DuLieu[item.MaKhachHang] = item
+		
+		// 2. Lưu theo Tên đăng nhập (viết thường) để Đăng nhập
+		if item.TenDangNhap != "" {
+			CacheKhachHang.DuLieu[strings.ToLower(item.TenDangNhap)] = item
+		}
+		
+		// 3. Lưu theo Email (viết thường) để Đăng nhập bằng Email
+		if item.Email != "" {
+			CacheKhachHang.DuLieu[strings.ToLower(item.Email)] = item
+		}
 	}
 }
 

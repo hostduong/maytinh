@@ -48,7 +48,7 @@ func main() {
 		userGroup.POST("/change-pass", chuc_nang.API_DoiMatKhau)
 		userGroup.POST("/change-pin", chuc_nang.API_DoiMaPin)
 		userGroup.POST("/send-otp-pin", chuc_nang.API_GuiOTPPin)
-        userGroup.POST("/reset-pin-otp", chuc_nang.API_ResetPinBangOTP)
+		userGroup.POST("/reset-pin-otp", chuc_nang.API_ResetPinBangOTP)
 	}
 
 	router.GET("/tai-khoan", func(c *gin.Context) {
@@ -62,7 +62,7 @@ func main() {
 			 	"TieuDe":       "Hồ sơ của bạn",
 			 	"NhanVien":     kh,
 			 	"DaDangNhap":   true,
-			 	"TenNguoiDung": kh.TenKhachHang, // [CHUẨN] TenKhachHang
+			 	"TenNguoiDung": kh.TenKhachHang,
 			 	"QuyenHan":     kh.VaiTroQuyenHan,
 			 })
 		} else {
@@ -86,7 +86,7 @@ func main() {
 				"TieuDe":       "Quản trị hệ thống",
 				"NhanVien":     kh,
 				"DaDangNhap":   true,
-				"TenNguoiDung": kh.TenKhachHang, // [CHUẨN] TenKhachHang
+				"TenNguoiDung": kh.TenKhachHang,
 				"QuyenHan":     kh.VaiTroQuyenHan,
 				"UserID":       userID,
 			})
@@ -94,12 +94,15 @@ func main() {
 		admin.GET("/reload", chuc_nang.API_NapLaiDuLieu)
 	}
 
-	port := cau_hinh.BienCauHinh.CongChayWeb
+	// [SỬA] Đọc PORT từ os.Getenv cho Cloud Run
+	port := os.Getenv("PORT")
+	if port == "" { port = cau_hinh.BienCauHinh.CongChayWeb }
 	if port == "" { port = "8080" }
 	
-	srv := &http.Server{ Addr: ":" + port, Handler: router }
+	srv := &http.Server{ Addr: "0.0.0.0:" + port, Handler: router }
 
 	go func() {
+		log.Printf("Server đang chạy tại cổng %s...", port)
 		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			log.Fatalf("Lỗi server: %s\n", err)
 		}
@@ -109,7 +112,7 @@ func main() {
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 	<-quit
 	
-	log.Println("⚠️ Đang tắt Server... Xả hàng đợi...")
+	log.Println("⚠️ Đang tắt Server...")
 	nghiep_vu.ThucHienGhiSheet(true)
 	log.Println("✅ Server đã tắt an toàn.")
 }

@@ -2,23 +2,19 @@
     {{ template "header" . }}
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
-    <div class="flex items-center justify-center min-h-[calc(100vh-200px)] py-12 px-4 sm:px-6 lg:px-8 bg-gray-50">
-        <div class="w-full max-w-md space-y-8 bg-white p-8 rounded-2xl shadow-lg border border-gray-100">
-            <div class="text-center">
+    <style>button:disabled { opacity: 0.6; cursor: not-allowed; background-color: #9ca3af; }</style>
+
+    <div class="flex items-center justify-center min-h-[calc(100vh-200px)] py-12 px-4 bg-gray-50">
+        <div class="w-full max-w-md bg-white p-8 rounded-2xl shadow-lg border border-gray-100">
+            <div class="text-center mb-6">
                 <h2 class="text-3xl font-bold text-blue-600">Đăng Nhập</h2>
                 <p class="mt-2 text-sm text-gray-600">Truy cập hệ thống MayTinhShop</p>
             </div>
 
             {{ if .Loi }}
             <script>
-                // Dùng SweetAlert thay cho khung đỏ xấu xí nếu muốn, hoặc giữ cả 2
-                document.addEventListener('DOMContentLoaded', function() {
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'Đăng nhập thất bại',
-                        text: '{{ .Loi }}',
-                        confirmButtonColor: '#3085d6'
-                    });
+                document.addEventListener('DOMContentLoaded', () => {
+                    Swal.fire({ icon: 'error', title: 'Thất bại', text: '{{ .Loi }}' });
                 });
             </script>
             {{ end }}
@@ -26,56 +22,61 @@
             <form id="formLogin" class="mt-8 space-y-6" action="/login" method="POST" novalidate>
                 <div class="rounded-md shadow-sm space-y-4">
                     <div>
-                        <label for="user" class="block text-sm font-medium text-gray-700 mb-1">Tên đăng nhập / Email</label>
-                        <input id="user" name="ten_dang_nhap" type="text" 
-                            class="appearance-none relative block w-full px-4 py-3 border border-gray-300 placeholder-gray-400 text-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition" 
-                            placeholder="Ví dụ: duongyour">
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Tên đăng nhập / Email</label>
+                        <input id="user" name="ten_dang_nhap" type="text" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition" placeholder="Ví dụ: duongyour">
+                        <p id="err_user" class="text-red-500 text-xs mt-1 hidden"></p>
                     </div>
 
                     <div>
-                        <label for="pass" class="block text-sm font-medium text-gray-700 mb-1">Mật khẩu</label>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Mật khẩu</label>
                         <div class="relative">
-                            <input id="pass" name="mat_khau" type="password" 
-                                class="appearance-none relative block w-full px-4 py-3 border border-gray-300 placeholder-gray-400 text-gray-900 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition" 
-                                placeholder="••••••••">
-                            <button type="button" onclick="togglePass('pass')" class="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600 focus:outline-none">👁️</button>
+                            <input id="pass" name="mat_khau" type="password" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition" placeholder="••••••••">
+                            <button type="button" onclick="togglePass('pass')" class="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400">👁️</button>
                         </div>
+                        <p id="err_pass" class="text-red-500 text-xs mt-1 hidden"></p>
                     </div>
                 </div>
 
                 <div class="flex items-center justify-between">
-                    <div class="text-sm"><a href="/register" class="font-medium text-blue-600 hover:text-blue-500">Chưa có tài khoản?</a></div>
-                    <div class="text-sm"><a href="/forgot-password" class="font-medium text-gray-600 hover:text-blue-600">Quên mật khẩu?</a></div>
+                    <a href="/register" class="text-sm font-medium text-blue-600 hover:text-blue-500">Chưa có tài khoản?</a>
+                    <a href="/forgot-password" class="text-sm font-medium text-gray-600 hover:text-blue-600">Quên mật khẩu?</a>
                 </div>
 
-                <div>
-                    <button type="submit" id="btnSubmit" disabled
-                        class="group relative w-full flex justify-center py-3 px-4 border border-transparent text-sm font-bold rounded-lg text-white 
-                               bg-gray-400 cursor-not-allowed
-                               disabled:opacity-70 
-                               enabled:bg-blue-600 enabled:hover:bg-blue-700 enabled:cursor-pointer transition transform active:scale-95">
-                        ĐĂNG NHẬP
-                    </button>
-                </div>
+                <button type="submit" id="btnSubmit" disabled
+                    class="w-full flex justify-center py-3 px-4 border border-transparent text-sm font-bold rounded-lg text-white bg-blue-600 hover:bg-blue-700 shadow-lg transition transform active:scale-95">
+                    ĐĂNG NHẬP
+                </button>
             </form>
         </div>
     </div>
 
     <script>
         function checkLogin() {
-            const u = document.getElementById('user').value.trim();
-            const p = document.getElementById('pass').value;
+            const u = document.getElementById('user');
+            const p = document.getElementById('pass');
+            const errU = document.getElementById('err_user');
             const btn = document.getElementById('btnSubmit');
 
-            if (u.length >= 4 && p.length >= 1) {
-                btn.removeAttribute('disabled');
-                btn.classList.remove('bg-gray-400', 'cursor-not-allowed');
-                btn.classList.add('bg-blue-600', 'hover:bg-blue-700', 'cursor-pointer');
+            let valid = true;
+
+            // Logic: Cấm dấu cách ở User
+            if (u.value.includes(" ")) {
+                u.classList.add('border-red-500');
+                errU.innerText = "Tên đăng nhập không được chứa khoảng trắng.";
+                errU.classList.remove('hidden');
+                valid = false;
             } else {
-                btn.setAttribute('disabled', 'true');
-                btn.classList.add('bg-gray-400', 'cursor-not-allowed');
-                btn.classList.remove('bg-blue-600', 'hover:bg-blue-700', 'cursor-pointer');
+                u.classList.remove('border-red-500');
+                errU.classList.add('hidden');
+                if(u.value.length > 0) u.classList.add('border-blue-500');
             }
+
+            // Logic: Pass không rỗng
+            if (p.value === "") valid = false;
+            if (u.value === "") valid = false;
+
+            if (valid) btn.removeAttribute('disabled');
+            else btn.setAttribute('disabled', 'true');
         }
 
         document.getElementById('user').addEventListener('input', checkLogin);

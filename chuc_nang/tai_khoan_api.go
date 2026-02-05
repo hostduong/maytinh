@@ -102,18 +102,47 @@ func API_DoiMaPin(c *gin.Context) {
 
 // --- API BỔ SUNG CHO QUÊN MÃ PIN ---
 
+// [Cập nhật đoạn API_GuiOTPPin trong tai_khoan_api.go]
+
 func API_GuiOTPPin(c *gin.Context) {
 	cookie, _ := c.Cookie("session_id")
 	kh, ok := nghiep_vu.TimKhachHangTheoCookie(cookie)
 	if !ok { c.JSON(401, gin.H{"status": "error", "msg": "Hết phiên làm việc"}); return }
 
+	// 1. Rate Limit
 	theGui, msgLoi := nghiep_vu.KiemTraRateLimit(kh.Email)
 	if !theGui { c.JSON(200, gin.H{"status": "error", "msg": msgLoi}); return }
 
-	code := nghiep_vu.TaoMaOTP6So() // API mail cần 6 số
-	if err := nghiep_vu.GuiMailXacMinhAPI(kh.Email, code); err != nil {
-		c.JSON(200, gin.H{"status": "error", "msg": "Lỗi API gửi thư: " + err.Error()}); return
+	// 2. Tạo mã PIN mới ngẫu nhiên (8 số)
+	newPin := nghiep_vu.TaoMaOTP() 
+	
+	// 3. Soạn nội dung Email
+	body := fmt.Sprintf(`Xin chào,
+
+Chúng tôi đã tạo mã PIN mới cho tài khoản %s theo yêu cầu của bạn trên hệ thống.
+
+Mã PIN mới của bạn là: %s
+
+Vì lý do bảo mật, vui lòng đổi mã PIN này ngay sau khi đăng nhập.
+
+Nếu bạn không yêu cầu thay đổi mã PIN, bạn có thể bỏ qua email này.
+
+Trân trọng,
+Đội ngũ hỗ trợ`, kh.TenDangNhap, newPin)
+
+	// 4. Gửi Email (type: sender)
+	err := nghiep_vu.GuiMailThongBaoAPI(kh.Email, "Thông báo thay đổi mã PIN", "Hỗ trợ tài khoản", body)
+	if err != nil {
+		c.JSON(200, gin.H{"status": "error", "msg": "Không gửi được thư: " + err.Error()})
+		return
 	}
+
+	// 5. Cập nhật vào Database (RAM & Sheet)
+	kh.MaPinHash = newPin
+	nghiep_vu.ThemVaoHangCho(cau_hinh.BienCauHinh.IdFileSheet, "KHACH_HANG", kh.DongTrongSheet, mo_hinh.CotKH_MaPinHash, newPin)
+
+	c.JSON(200, gin.H{"status": "ok", "msg": "Mã PIN mới đã được gửi vào Email của bạn!"})
+}
 
 	nghiep_vu.LuuOTPVaUpdateRate(kh.Email, code)
 	c.JSON(200, gin.H{"status": "ok", "msg": "Mã xác minh đã được gửi vào Email của bạn!"})

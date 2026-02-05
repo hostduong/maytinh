@@ -22,20 +22,23 @@ func main() {
 	// 1. Nạp cấu hình
 	cau_hinh.KhoiTaoCauHinh()
 
-	// 2. Kết nối Sheet (Chế độ Public - Tránh lỗi thiếu file JSON)
+	// 2. Kết nối Sheet (Chế độ Public - Không cần file JSON)
 	kho_du_lieu.KhoiTaoKetNoiGoogle()
 
-	// 3. Khởi tạo bộ nhớ & Worker (Chạy ngầm để Server lên ngay lập tức)
-	go func() {
-		nghiep_vu.KhoiTaoBoNho()
-	}()
+	// 3. Khởi tạo bộ nhớ (CHẠY TUẦN TỰ)
+	// Bắt buộc phải chạy xong cái này mới được mở Server
+	// Nếu không, truy cập vào web sẽ bị lỗi sập nguồn (Panic nil pointer)
+	log.Println("--- Đang nạp dữ liệu từ Google Sheet... ---")
+	nghiep_vu.KhoiTaoBoNho()
+	log.Println("--- Nạp dữ liệu thành công! ---")
+	
 	nghiep_vu.KhoiTaoWorkerGhiSheet()
 	chuc_nang.KhoiTaoBoDemRateLimit()
 
 	// 4. Cấu hình Web Server
 	router := gin.Default()
 	
-	// [SỬA LỖI QUAN TRỌNG NHẤT]: Dùng *.html thay vì **/* // Vì thư mục giao_dien không có thư mục con, dùng ** sẽ gây Crash.
+	// Load giao diện phẳng (không có thư mục con)
 	router.LoadHTMLGlob("giao_dien/*.html")
 
 	// --- PUBLIC ROUTES ---
@@ -60,7 +63,6 @@ func main() {
 		userGroup.POST("/change-pass", chuc_nang.API_DoiMatKhau)
 		userGroup.POST("/change-pin", chuc_nang.API_DoiMaPin)
 		userGroup.POST("/send-otp-pin", chuc_nang.API_GuiOTPPin)
-		// Đã xóa API_ResetPinBangOTP để tránh lỗi Build
 	}
 
 	router.GET("/tai-khoan", func(c *gin.Context) {
@@ -107,7 +109,7 @@ func main() {
 		admin.GET("/reload", chuc_nang.API_NapLaiDuLieu)
 	}
 
-	// [PORT CHO CLOUD RUN]
+	// [PORT CLOUD RUN]
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = cau_hinh.BienCauHinh.CongChayWeb
@@ -116,11 +118,10 @@ func main() {
 		port = "8080"
 	}
 	
-	// FIX LỖI 2: Phải nghe 0.0.0.0
 	srv := &http.Server{ Addr: "0.0.0.0:" + port, Handler: router }
 
 	go func() {
-		log.Printf("✅ Server đang lắng nghe tại 0.0.0.0:%s", port)
+		log.Printf("✅ Server đang lắng nghe tại: 0.0.0.0:%s", port)
 		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			log.Fatalf("❌ Lỗi server: %s\n", err)
 		}

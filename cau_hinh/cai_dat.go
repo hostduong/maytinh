@@ -29,5 +29,5 @@ func KhoiTaoCauHinh() {
 		CongChayWeb: congWeb,
 	}
 
-	log.Println("--- [CẤU HÌNH] Đã tải xong (Chế độ Public Sheet) ---")
+	log.Println("--- Cấu hình đã tải xong ---")
 }

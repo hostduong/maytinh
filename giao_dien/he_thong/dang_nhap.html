@@ -2,7 +2,11 @@
     {{ template "header" . }}
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
-    <style>button:disabled { opacity: 0.6; cursor: not-allowed; background-color: #9ca3af; }</style>
+    <style>
+        .input-error { border-color: #ef4444 !important; }
+        .input-normal { border-color: #d1d5db !important; }
+        button:disabled { opacity: 0.6; cursor: not-allowed; background-color: #9ca3af !important; }
+    </style>
 
     <div class="flex items-center justify-center min-h-[calc(100vh-200px)] py-12 px-4 bg-gray-50">
         <div class="w-full max-w-md bg-white p-8 rounded-2xl shadow-lg border border-gray-100">
@@ -23,17 +27,16 @@
                 <div class="rounded-md shadow-sm space-y-4">
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1">Tên đăng nhập / Email</label>
-                        <input id="user" name="ten_dang_nhap" type="text" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition" placeholder="Ví dụ: duongyour">
+                        <input id="user" name="ten_dang_nhap" type="text" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition input-normal" placeholder="Ví dụ: duongyour">
                         <p id="err_user" class="text-red-500 text-xs mt-1 hidden"></p>
                     </div>
 
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1">Mật khẩu</label>
                         <div class="relative">
-                            <input id="pass" name="mat_khau" type="password" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition" placeholder="••••••••">
+                            <input id="pass" name="mat_khau" type="password" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition input-normal" placeholder="••••••••">
                             <button type="button" onclick="togglePass('pass')" class="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400">👁️</button>
                         </div>
-                        <p id="err_pass" class="text-red-500 text-xs mt-1 hidden"></p>
                     </div>
                 </div>
 
@@ -57,26 +60,29 @@
             const errU = document.getElementById('err_user');
             const btn = document.getElementById('btnSubmit');
 
-            let valid = true;
+            // --- [MỚI] Tự động chuyển thường ---
+            u.value = u.value.toLowerCase();
+            // ---------------------------------
 
-            // Logic: Cấm dấu cách ở User
-            if (u.value.includes(" ")) {
-                u.classList.add('border-red-500');
-                errU.innerText = "Tên đăng nhập không được chứa khoảng trắng.";
+            // Logic User: Cấm ký tự lạ (nháy, ngoặc, backtick)
+            if (/[\s'"<>\`]/.test(u.value)) {
+                u.classList.add('input-error');
+                u.classList.remove('input-normal');
+                errU.innerText = "Không được chứa dấu cách hoặc ký tự lạ.";
                 errU.classList.remove('hidden');
-                valid = false;
+                btn.disabled = true;
+                return;
             } else {
-                u.classList.remove('border-red-500');
+                u.classList.remove('input-error');
+                u.classList.add('input-normal');
                 errU.classList.add('hidden');
-                if(u.value.length > 0) u.classList.add('border-blue-500');
             }
 
-            // Logic: Pass không rỗng
-            if (p.value === "") valid = false;
-            if (u.value === "") valid = false;
-
-            if (valid) btn.removeAttribute('disabled');
-            else btn.setAttribute('disabled', 'true');
+            if (u.value.length >= 6 && p.value.length >= 8) {
+                btn.removeAttribute('disabled');
+            } else {
+                btn.setAttribute('disabled', 'true');
+            }
         }
 
         document.getElementById('user').addEventListener('input', checkLogin);

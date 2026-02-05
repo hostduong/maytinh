@@ -1,4 +1,4 @@
-package nghiep_vu // <--- ĐÃ SỬA CHUẨN
+package nghiep_vu
 
 import (
 	"fmt"
@@ -11,90 +11,111 @@ import (
 	"google.golang.org/api/sheets/v4"
 )
 
-// Cấu trúc lệnh ghi (Buffer trong RAM)
-type LenhGhi struct {
-	TenSheet string
-	Dong     int
-	DuLieu   []interface{}
-	LaGhiMoi bool // True = Append, False = Update
+// Cấu trúc Hàng Chờ: [SpreadsheetID][SheetName][CellKey] -> Giá trị
+// CellKey dạng "row_col"
+type CauTrucHangCho struct {
+	sync.Mutex
+	DuLieu map[string]map[string]map[string]interface{}
 }
 
-var (
-	HangChoGhi []LenhGhi
-	KhoaHangCho sync.Mutex
-)
-
-// Hàm 1: Đẩy dữ liệu vào hàng chờ
-func ThemVaoHangCho(tenSheet string, dong int, duLieu []interface{}, laGhiMoi bool) {
-	KhoaHangCho.Lock()
-	defer KhoaHangCho.Unlock()
-
-	HangChoGhi = append(HangChoGhi, LenhGhi{
-		TenSheet: tenSheet,
-		Dong:     dong,
-		DuLieu:   duLieu,
-		LaGhiMoi: laGhiMoi,
-	})
+// Khởi tạo hàng chờ rỗng
+var HangCho = &CauTrucHangCho{
+	DuLieu: make(map[string]map[string]map[string]interface{}),
 }
 
-// Hàm 2: Worker chạy ngầm (Trigger mỗi 5 giây)
+// Giữ nguyên tên hàm và 5 tham số để KHÔNG LỖI các file cũ
+func ThemVaoHangCho(spreadsheetId string, sheetName string, row int, col int, value interface{}) {
+	HangCho.Lock()
+	defer HangCho.Unlock()
+
+	// Init map nếu chưa có
+	if HangCho.DuLieu[spreadsheetId] == nil {
+		HangCho.DuLieu[spreadsheetId] = make(map[string]map[string]interface{})
+	}
+	if HangCho.DuLieu[spreadsheetId][sheetName] == nil {
+		HangCho.DuLieu[spreadsheetId][sheetName] = make(map[string]interface{})
+	}
+
+	// Lưu giá trị vào RAM
+	cellKey := fmt.Sprintf("%d_%d", row, col)
+	HangCho.DuLieu[spreadsheetId][sheetName][cellKey] = value
+}
+
+// Worker 5 giây
 func KhoiTaoWorkerGhiSheet() {
 	go func() {
-		log.Printf("⏳ [WORKER] Đã kích hoạt chế độ ghi Batch (%v/lần)", cau_hinh.ChuKyGhiSheet)
+		// Dùng chu kỳ từ config (5s)
+		log.Printf("⏳ [WORKER] Kích hoạt ghi Batch theo ô (%v/lần)", cau_hinh.ChuKyGhiSheet)
 		ticker := time.NewTicker(cau_hinh.ChuKyGhiSheet)
-		
 		for range ticker.C {
-			ThucHienGhiSheet(false)
+			ThucHienGhiSheet()
 		}
 	}()
 }
 
-// Hàm 3: Xử lý ghi thực tế
-func ThucHienGhiSheet(epBuoc bool) {
-	KhoaHangCho.Lock()
-	count := len(HangChoGhi)
-	if count == 0 {
-		KhoaHangCho.Unlock()
+func ThucHienGhiSheet() {
+	HangCho.Lock()
+	if len(HangCho.DuLieu) == 0 {
+		HangCho.Unlock()
 		return
 	}
 
-	dsCanGhi := make([]LenhGhi, count)
-	copy(dsCanGhi, HangChoGhi)
-	HangChoGhi = make([]LenhGhi, 0)
-	KhoaHangCho.Unlock()
+	// Copy dữ liệu ra để giải phóng lock
+	dataCopy := HangCho.DuLieu
+	HangCho.DuLieu = make(map[string]map[string]map[string]interface{})
+	HangCho.Unlock()
 
-	log.Printf("💾 [BATCH] Worker tỉnh giấc - Đang ghi %d lệnh xuống Sheet...", count)
+	log.Println("💾 [BATCH] Đang ghi dữ liệu xuống Sheet...")
 
 	srv := kho_du_lieu.DichVuSheet
-	if srv == nil {
-		log.Println("❌ Lỗi: Mất kết nối Google Sheet API")
-		return
-	}
-	
-	spreadId := cau_hinh.BienCauHinh.IdFileSheet
+	if srv == nil { return }
 
-	for _, lenh := range dsCanGhi {
-		if lenh.LaGhiMoi {
-			// APPEND
-			rangeVal := fmt.Sprintf("%s!A1", lenh.TenSheet)
-			rb := &sheets.ValueRange{
-				Values: [][]interface{}{lenh.DuLieu},
-			}
-			_, err := srv.Spreadsheets.Values.Append(spreadId, rangeVal, rb).ValueInputOption("RAW").Do()
-			if err != nil {
-				log.Printf("❌ Lỗi Append %s: %v", lenh.TenSheet, err)
-			}
-		} else {
-			// UPDATE
-			rangeVal := fmt.Sprintf("%s!A%d", lenh.TenSheet, lenh.Dong)
-			rb := &sheets.ValueRange{
-				Values: [][]interface{}{lenh.DuLieu},
-			}
-			_, err := srv.Spreadsheets.Values.Update(spreadId, rangeVal, rb).ValueInputOption("RAW").Do()
-			if err != nil {
-				log.Printf("❌ Lỗi Update %s dòng %d: %v", lenh.TenSheet, lenh.Dong, err)
+	// Duyệt qua từng File ID
+	for spreadId, sheetsMap := range dataCopy {
+		var valueRanges []*sheets.ValueRange
+
+		// Duyệt qua từng Sheet (KHACH_HANG, SAN_PHAM...)
+		for sheetName, cells := range sheetsMap {
+			for cellKey, val := range cells {
+				var r, c int
+				fmt.Sscanf(cellKey, "%d_%d", &r, &c)
+
+				// Chuyển đổi tọa độ (Row 10, Col 0 -> A10)
+				// Lưu ý: Row người dùng truyền vào thường là số thực tế (bắt đầu từ 1)
+				cotchu := layTenCot(c)
+				rangeStr := fmt.Sprintf("%s!%s%d", sheetName, cotchu, r)
+
+				vr := &sheets.ValueRange{
+					Range:  rangeStr,
+					Values: [][]interface{}{{val}},
+				}
+				valueRanges = append(valueRanges, vr)
 			}
 		}
+
+		if len(valueRanges) == 0 { continue }
+
+		// Gửi 1 request duy nhất chứa hàng trăm ô thay đổi
+		req := &sheets.BatchUpdateValuesRequest{
+			ValueInputOption: "RAW",
+			Data:             valueRanges,
+		}
+
+		_, err := srv.Spreadsheets.Values.BatchUpdate(spreadId, req).Do()
+		if err != nil {
+			log.Printf("❌ Lỗi BatchUpdate file %s: %v", spreadId, err)
+			// Nếu cần, bạn có thể thêm logic retry hoặc rollback tại đây
+		}
 	}
-	log.Println("✅ [BATCH] Hoàn tất đợt ghi dữ liệu.")
+	log.Println("✅ [BATCH] Hoàn tất.")
+}
+
+// Hàm hỗ trợ đổi số thành chữ (0 -> A, 1 -> B, ... 26 -> AA)
+func layTenCot(i int) string {
+	if i < 0 { return "" }
+	const abc = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+	if i < 26 {
+		return string(abc[i])
+	}
+	return layTenCot(i/26-1) + string(abc[i%26])
 }

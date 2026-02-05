@@ -4,6 +4,7 @@
 
     <style>
         .input-error { border-color: #ef4444 !important; }
+        .input-success { border-color: #22c55e !important; }
         .input-normal { border-color: #d1d5db !important; }
         button:disabled { opacity: 0.6; cursor: not-allowed; background-color: #9ca3af !important; }
     </style>
@@ -54,39 +55,58 @@
     </div>
 
     <script>
-        function checkLogin() {
-            const u = document.getElementById('user');
-            const p = document.getElementById('pass');
-            const errU = document.getElementById('err_user');
-            const btn = document.getElementById('btnSubmit');
+        const u = document.getElementById('user');
+        const p = document.getElementById('pass');
+        const errU = document.getElementById('err_user');
+        const btn = document.getElementById('btnSubmit');
 
-            // --- [MỚI] Tự động chuyển thường ---
-            u.value = u.value.toLowerCase();
-            // ---------------------------------
-
-            // Logic User: Cấm ký tự lạ (nháy, ngoặc, backtick)
-            if (/[\s'"<>\`]/.test(u.value)) {
-                u.classList.add('input-error');
-                u.classList.remove('input-normal');
-                errU.innerText = "Không được chứa dấu cách hoặc ký tự lạ.";
-                errU.classList.remove('hidden');
-                btn.disabled = true;
-                return;
-            } else {
-                u.classList.remove('input-error');
-                u.classList.add('input-normal');
-                errU.classList.add('hidden');
-            }
-
-            if (u.value.length >= 6 && p.value.length >= 8) {
+        function checkSubmit() {
+            // Nút chỉ sáng khi không có lỗi đỏ VÀ độ dài đủ
+            const hasError = document.querySelectorAll('.input-error').length > 0;
+            const validLen = u.value.length >= 6 && p.value.length >= 8; // User >=6, Pass >=8
+            
+            if (!hasError && validLen) {
                 btn.removeAttribute('disabled');
             } else {
                 btn.setAttribute('disabled', 'true');
             }
         }
 
-        document.getElementById('user').addEventListener('input', checkLogin);
-        document.getElementById('pass').addEventListener('input', checkLogin);
+        // 1. USER
+        u.addEventListener('input', function() {
+            this.value = this.value.toLowerCase(); // Tự động thường
+            
+            // Check Forbidden
+            if (/[\s'"<>\`]/.test(this.value)) {
+                u.classList.add('input-error');
+                u.classList.remove('input-normal', 'input-success');
+                errU.innerText = "Không chứa dấu cách hoặc ký tự lạ.";
+                errU.classList.remove('hidden');
+            } else {
+                u.classList.add('input-normal');
+                u.classList.remove('input-error', 'input-success');
+                errU.classList.add('hidden');
+            }
+            checkSubmit();
+        });
+
+        u.addEventListener('blur', function() {
+            if (this.value === "") return;
+            // Check độ dài khi blur
+            if (this.value.length < 6) {
+                u.classList.add('input-error');
+                u.classList.remove('input-success');
+                errU.innerText = "Tên đăng nhập/Email quá ngắn.";
+                errU.classList.remove('hidden');
+            } else if (!u.classList.contains('input-error')) {
+                // Nếu không dính forbidden thì Xanh
+                u.classList.add('input-success');
+            }
+            checkSubmit();
+        });
+
+        // 2. PASS
+        p.addEventListener('input', checkSubmit); // Pass chỉ cần check độ dài ở submit và input thôi (đơn giản hóa)
 
         function togglePass(id) {
             const el = document.getElementById(id);

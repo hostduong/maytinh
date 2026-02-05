@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+    "time"
 
 	"app/bao_mat"
 	"app/cau_hinh"
@@ -18,42 +19,48 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// [CÔNG NGHỆ EMBED]
-// Dòng này ra lệnh cho Go: "Hãy nhét toàn bộ thư mục giao_dien vào trong file chạy này"
 //go:embed giao_dien/*.html
 var f embed.FS
 
+// Middleware để bảo vệ người dùng khi hệ thống đang reload
+func MW_KiemTraHeThong(c *gin.Context) {
+    // Xin quyền "Đọc" (RLock)
+    // Nếu hệ thống đang Reload (đang giữ Lock ghi), dòng này sẽ TỰ ĐỘNG ĐỢI
+    // Người dùng chỉ thấy web load chậm vài giây chứ không bị lỗi.
+    nghiep_vu.KhoaHeThong.RLock()
+    defer nghiep_vu.KhoaHeThong.RUnlock()
+    
+    c.Next()
+}
+
 func main() {
-	log.Println(">>> [EMBED MODE] ĐANG KHỞI ĐỘNG HỆ THỐNG...")
+	log.Println(">>> [SYSTEM] KHỞI ĐỘNG...")
 
-	// 1. Cấu hình & Kết nối (Chạy an toàn)
 	cau_hinh.KhoiTaoCauHinh()
-	// Gọi kết nối nhưng không để chết chương trình nếu lỗi
-	func() {
-		defer func() { recover() }() 
-		kho_du_lieu.KhoiTaoKetNoiGoogle()
-	}()
+    // Sử dụng ADC mặc định của Cloud Run (Không JSON)
+	func() { defer func() { recover() }(); kho_du_lieu.KhoiTaoKetNoiGoogle() }()
 
-	// 2. Tạo kho rỗng & Chạy ngầm nạp dữ liệu
+    // Tạo hộp rỗng trước
 	nghiep_vu.KhoiTaoCacStore()
+    
+    // Nạp dữ liệu lần đầu
 	go func() {
-		log.Println("--- [BACKGROUND] Đang nạp dữ liệu... ---")
-		nghiep_vu.KhoiTaoBoNho()
-		log.Println("--- [BACKGROUND] Nạp xong! ---")
+		log.Println("--- [BOOT] Đang nạp dữ liệu khởi động... ---")
+		nghiep_vu.KhoiTaoBoNho() 
 	}()
 	
 	nghiep_vu.KhoiTaoWorkerGhiSheet()
 	chuc_nang.KhoiTaoBoDemRateLimit()
 
-	// 3. Cấu hình Web Server
 	router := gin.Default()
+    
+    // Áp dụng Middleware "Êm ái" cho toàn bộ web
+    router.Use(MW_KiemTraHeThong)
 
-	// [QUAN TRỌNG] Nạp HTML từ bộ nhớ Embed (Không phụ thuộc file bên ngoài nữa)
 	templ := template.Must(template.New("").ParseFS(f, "giao_dien/*.html"))
 	router.SetHTMLTemplate(templ)
-	log.Println("✅ Đã nạp giao diện từ Embed (An toàn tuyệt đối)")
 
-	// --- ROUTES ---
+	// --- CÁC ROUTE KHÁC GIỮ NGUYÊN ---
 	router.GET("/", chuc_nang.TrangChu)
 	router.GET("/san-pham/:id", chuc_nang.ChiTietSanPham)
 	router.GET("/login", chuc_nang.TrangDangNhap)
@@ -74,7 +81,7 @@ func main() {
 		userGroup.POST("/send-otp-pin", chuc_nang.API_GuiOTPPin)
 	}
 
-	router.GET("/tai-khoan", func(c *gin.Context) {
+    router.GET("/tai-khoan", func(c *gin.Context) {
 		cookie, _ := c.Cookie("session_id")
 		if cookie == "" { c.Redirect(http.StatusFound, "/login"); return }
 		if kh, ok := nghiep_vu.TimKhachHangTheoCookie(cookie); ok {
@@ -82,22 +89,46 @@ func main() {
 		} else { c.Redirect(http.StatusFound, "/login") }
 	})
 
-	router.GET("/tool/hash/:pass", func(c *gin.Context) {
-		pass := c.Param("pass"); hash, _ := bao_mat.HashMatKhau(pass)
-		c.String(200, "Hash: %s", hash)
-	})
-
+    // --- ADMIN & RELOAD ---
 	admin := router.Group("/admin")
 	admin.Use(chuc_nang.KiemTraQuyenHan)
 	{
 		admin.GET("/tong-quan", func(c *gin.Context) {
-			userID, _ := c.Get("USER_ID"); kh, _ := nghiep_vu.TimKhachHangTheoCookie(mustGetCookie(c))
+            // ... (Giữ nguyên logic cũ) ...
+            userID, _ := c.Get("USER_ID"); kh, _ := nghiep_vu.TimKhachHangTheoCookie(mustGetCookie(c))
 			c.HTML(http.StatusOK, "quan_tri", gin.H{"TieuDe": "Quản trị", "NhanVien": kh, "DaDangNhap": true, "TenNguoiDung": kh.TenKhachHang, "QuyenHan": kh.VaiTroQuyenHan, "UserID": userID})
 		})
-		admin.GET("/reload", chuc_nang.API_NapLaiDuLieu)
+
+        // [LOGIC RELOAD CHUẨN: FLUSH -> LOCK -> RESET -> LOAD -> UNLOCK]
+		admin.GET("/reload", func(c *gin.Context) {
+            log.Println("⚡ [RELOAD] Bắt đầu quy trình nạp lại dữ liệu...")
+            
+            // B1: Ép ghi toàn bộ hàng chờ xuống Sheet (Tránh mất dữ liệu RAM)
+            // Lưu ý: Hàm này phải chạy TRƯỚC khi khóa để worker còn kịp thở
+            nghiep_vu.ThucHienGhiSheet(true) 
+            
+            // B2: Khóa toàn hệ thống (Chặn người dùng truy cập)
+            nghiep_vu.KhoaHeThong.Lock()
+            log.Println("🔒 [LOCK] Đã khóa hệ thống.")
+            
+            // Sử dụng goroutine để nạp dữ liệu xong mới mở khóa
+            // Để tránh timeout cho request reload này
+            go func() {
+                defer nghiep_vu.KhoaHeThong.Unlock() // B5: Mở khóa khi xong (defer đảm bảo luôn chạy)
+                
+                // B3: Reset RAM (Xóa trắng)
+                nghiep_vu.KhoiTaoCacStore()
+                
+                // B4: Tải lại từ Sheet
+                nghiep_vu.KhoiTaoBoNho()
+                
+                log.Println("🔓 [UNLOCK] Đã mở khóa hệ thống.")
+            }()
+
+            c.JSON(200, gin.H{"status": "ok", "msg": "Hệ thống đang nạp lại. Vui lòng đợi 10-20 giây."})
+		})
 	}
 
-	// [PORT]
 	port := os.Getenv("PORT")
 	if port == "" { port = "8080" }
 	
@@ -106,14 +137,17 @@ func main() {
 	go func() {
 		log.Printf("✅ Server chạy tại 0.0.0.0:%s", port)
 		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			log.Printf("❌ LỖI SERVER: %v", err)
+			log.Fatalf("❌ LỖI SERVER: %v", err)
 		}
 	}()
 
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 	<-quit
+	
+	log.Println("⚠️ Đang tắt Server...")
 	nghiep_vu.ThucHienGhiSheet(true)
+	log.Println("✅ Server tắt an toàn.")
 }
 
 func mustGetCookie(c *gin.Context) string { cookie, _ := c.Cookie("session_id"); return cookie }

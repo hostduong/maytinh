@@ -94,11 +94,16 @@ func main() {
 		admin.GET("/reload", chuc_nang.API_NapLaiDuLieu)
 	}
 
-	// [SỬA] Đọc PORT từ os.Getenv cho Cloud Run
+	// Cloud Run Port Logic
 	port := os.Getenv("PORT")
-	if port == "" { port = cau_hinh.BienCauHinh.CongChayWeb }
-	if port == "" { port = "8080" }
+	if port == "" {
+		port = cau_hinh.BienCauHinh.CongChayWeb
+	}
+	if port == "" {
+		port = "8080"
+	}
 	
+	// QUAN TRỌNG: Phải có 0.0.0.0 để Cloud Run nhận diện
 	srv := &http.Server{ Addr: "0.0.0.0:" + port, Handler: router }
 
 	go func() {
@@ -112,7 +117,7 @@ func main() {
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 	<-quit
 	
-	log.Println("⚠️ Đang tắt Server...")
+	log.Println("⚠️ Đang tắt Server... Xả hàng đợi...")
 	nghiep_vu.ThucHienGhiSheet(true)
 	log.Println("✅ Server đã tắt an toàn.")
 }

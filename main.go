@@ -116,28 +116,47 @@ func main() {
 		admin.GET("/reload", chuc_nang.API_NapLaiDuLieu)
 	}
 
-	// [PORT CHUẨN] Dùng biến môi trường PORT (Cloud Run yêu cầu)
-	port := os.Getenv("PORT")
-	if port == "" { port = "8080" }
-	
-	// QUAN TRỌNG: Phải bind vào 0.0.0.0
-	addr := fmt.Sprintf("0.0.0.0:%s", port)
-	srv := &http.Server{ Addr: addr, Handler: router }
-
-	go func() {
-		log.Printf("✅ Server đang chạy tại: %s", addr)
-		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			log.Printf("❌ LỖI SERVER: %v", err)
-		}
-	}()
-
-	quit := make(chan os.Signal, 1)
-	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
-	<-quit
-	
-	log.Println("⚠️ Đang tắt Server...")
-	nghiep_vu.ThucHienGhiSheet(true)
-	log.Println("✅ Server tắt an toàn.")
+	// ======== [PORT CHO CLOUD RUN] ========
+port := os.Getenv("PORT")
+if port == "" {
+    port = cau_hinh.BienCauHinh.CongChayWeb
 }
+if port == "" {
+    port = "8080"
+}
+
+// ======== KHỞI TẠO SERVER NGAY (QUAN TRỌNG) ========
+srv := &http.Server{
+    Addr:    "0.0.0.0:" + port,
+    Handler: router,
+}
+
+go func() {
+    log.Printf("✅ Server đang lắng nghe tại 0.0.0.0:%s", port)
+    if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+        log.Fatalf("❌ Lỗi server: %s\n", err)
+    }
+}()
+
+// ======== CHỈ LÀM VIỆC NẶNG SAU KHI SERVER ĐÃ CHẠY ========
+go func() {
+    log.Println("🔄 Khởi tạo Google Sheet (chạy nền)...")
+    kho_du_lieu.KhoiTaoKetNoiGoogle()
+
+    log.Println("🔄 Khởi tạo bộ nhớ & worker (chạy nền)...")
+    nghiep_vu.KhoiTaoBoNho()
+    nghiep_vu.KhoiTaoWorkerGhiSheet()
+    chuc_nang.KhoiTaoBoDemRateLimit()
+}()
+
+// ======== GRACEFUL SHUTDOWN ========
+quit := make(chan os.Signal, 1)
+signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
+<-quit
+
+log.Println("⚠️ Đang tắt Server...")
+nghiep_vu.ThucHienGhiSheet(true)
+log.Println("✅ Server đã tắt an toàn.")
+
 
 func mustGetCookie(c *gin.Context) string { cookie, _ := c.Cookie("session_id"); return cookie }

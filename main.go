@@ -47,8 +47,8 @@ func main() {
 		userGroup.POST("/update-info", chuc_nang.API_DoiThongTin)
 		userGroup.POST("/change-pass", chuc_nang.API_DoiMatKhau)
 		userGroup.POST("/change-pin", chuc_nang.API_DoiMaPin)
+		// [BỔ SUNG] Route cho tính năng quên PIN mới
 		userGroup.POST("/send-otp-pin", chuc_nang.API_GuiOTPPin)
-		userGroup.POST("/reset-pin-otp", chuc_nang.API_ResetPinBangOTP)
 	}
 
 	router.GET("/tai-khoan", func(c *gin.Context) {
@@ -94,7 +94,7 @@ func main() {
 		admin.GET("/reload", chuc_nang.API_NapLaiDuLieu)
 	}
 
-	// Cloud Run Port Logic
+	// [QUAN TRỌNG] Logic Port chuẩn cho Cloud Run
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = cau_hinh.BienCauHinh.CongChayWeb
@@ -103,11 +103,11 @@ func main() {
 		port = "8080"
 	}
 	
-	// QUAN TRỌNG: Phải có 0.0.0.0 để Cloud Run nhận diện
+	// Thêm "0.0.0.0" để đảm bảo Cloud Run nhận diện được Container
 	srv := &http.Server{ Addr: "0.0.0.0:" + port, Handler: router }
 
 	go func() {
-		log.Printf("Server đang chạy tại cổng %s...", port)
+		log.Printf("Server đang lắng nghe tại: 0.0.0.0:%s", port)
 		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			log.Fatalf("Lỗi server: %s\n", err)
 		}

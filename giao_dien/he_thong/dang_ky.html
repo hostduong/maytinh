@@ -8,9 +8,11 @@
     <style>
         .iti { width: 100%; }
         input::-ms-reveal, input::-ms-clear { display: none; }
+        
         .input-error { border-color: #ef4444 !important; ring: 2px; ring-color: #ef4444; }
         .input-success { border-color: #22c55e !important; }
         .input-normal { border-color: #d1d5db !important; }
+
         button:disabled { opacity: 0.6; cursor: not-allowed; background-color: #9ca3af !important; box-shadow: none; }
     </style>
 
@@ -31,6 +33,7 @@
             {{ end }}
 
             <form id="formDangKy" action="/register" method="POST" novalidate class="space-y-5">
+                
                 <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
                     <div class="sm:col-span-2">
                         <label class="block text-sm font-medium text-gray-700 mb-1">Họ và tên <span class="text-red-500">*</span></label>
@@ -129,6 +132,7 @@
             utilsScript: "https://cdn.jsdelivr.net/npm/intl-tel-input@18.2.1/build/js/utils.js",
         });
 
+        // QUY TẮC
         const RULES = {
             ho_ten: {
                 forbidden: /[0-9!@#$%^&*(),.?":{}|<>\`~_=\-\+\[\]\\\/]/, 
@@ -149,9 +153,9 @@
                 msg_invalid: "Mã PIN phải đúng 8 số."
             },
             ten_dang_nhap: {
-                forbidden: /[^a-z0-9._]/, // Chữ hoa sẽ bị replace nên không cần cấm ở đây nữa
+                forbidden: /[^a-z0-9._]/,
                 validate: val => val.length >= 6 && val.length <= 30,
-                msg_forbidden: "Chỉ nhập chữ, số, dấu chấm (.) và gạch dưới (_)",
+                msg_forbidden: "Chỉ nhập chữ thường, số, dấu . _",
                 msg_invalid: "Tên đăng nhập từ 6 - 30 ký tự."
             },
             mat_khau: {
@@ -162,6 +166,7 @@
             }
         };
 
+        // UI HELPERS
         function showError(id, msg) {
             const el = document.getElementById(id);
             const err = document.getElementById('err_' + id);
@@ -176,7 +181,7 @@
             const err = document.getElementById('err_' + id);
             el.classList.add('input-normal');
             el.classList.remove('input-error', 'input-success');
-            err.classList.add('hidden');
+            err.classList.add('hidden'); // Ẩn lỗi khi đang gõ đúng
         }
 
         function showSuccess(id) {
@@ -187,65 +192,93 @@
             err.classList.add('hidden');
         }
 
+        // CHECK NÚT SUBMIT
         function checkSubmitButton() {
-            const hasError = document.querySelectorAll('.input-error').length > 0;
-            const requiredIds = ['ho_ten', 'email', 'ma_pin', 'ten_dang_nhap', 'mat_khau', 're_mat_khau'];
-            const hasEmpty = requiredIds.some(id => document.getElementById(id).value.trim() === "");
-            const p1 = document.getElementById('mat_khau').value;
-            const p2 = document.getElementById('re_mat_khau').value;
-            const passMatch = (p1 !== "" && p1 === p2);
-            const terms = document.getElementById('terms').checked;
+            // Nút chỉ bật khi:
+            // 1. Không có input nào đang bị lỗi đỏ (input-error)
+            // 2. Các input bắt buộc đều đã có trạng thái xanh (input-success)
+            //    -> Cách này chặt chẽ hơn: bắt buộc người dùng phải blur qua hết các ô.
             
+            const requiredIds = ['ho_ten', 'email', 'ma_pin', 'ten_dang_nhap', 'mat_khau', 're_mat_khau'];
+            
+            // Check nếu có bất kỳ lỗi đỏ nào
+            const hasError = document.querySelectorAll('.input-error').length > 0;
+            
+            // Check nếu có ô nào chưa thành công (chưa xanh)
+            // Lưu ý: re_mat_khau xử lý riêng class, nên check value rỗng thôi
+            const hasEmptyOrUnchecked = requiredIds.some(id => {
+                const el = document.getElementById(id);
+                // Nếu rỗng -> Chắc chắn fail
+                if (el.value.trim() === "") return true;
+                // Nếu chưa xanh (và không đỏ) -> Tức là đang gõ dở -> Cũng fail
+                if (!el.classList.contains('input-success')) return true;
+                return false;
+            });
+
+            // Check Terms
+            const terms = document.getElementById('terms').checked;
+
+            // Check Phone (Optional nhưng nếu nhập phải đúng)
             let phoneOk = true;
             if (inputPhone.value.trim() !== "" && !iti.isValidNumber()) phoneOk = false;
 
             const btn = document.getElementById('btnSubmit');
-            if (!hasError && !hasEmpty && passMatch && terms && phoneOk) {
+            if (!hasError && !hasEmptyOrUnchecked && terms && phoneOk) {
                 btn.removeAttribute('disabled');
             } else {
                 btn.setAttribute('disabled', 'true');
             }
         }
 
+        // EVENT LISTENERS
         Object.keys(RULES).forEach(id => {
             const el = document.getElementById(id);
             const rule = RULES[id];
 
+            // 1. INPUT (Đang gõ)
             el.addEventListener('input', function() {
-                // --- [MỚI] Tự động chuyển thường ---
-                if (id === 'email' || id === 'ten_dang_nhap') {
-                    this.value = this.value.toLowerCase();
-                }
-                // ---------------------------------
+                // Tự động thường
+                if (id === 'email' || id === 'ten_dang_nhap') this.value = this.value.toLowerCase();
 
                 if (rule.forbidden.test(this.value)) {
+                    // Phạm cấm -> ĐỎ NGAY
                     showError(id, rule.msg_forbidden);
                 } else {
+                    // Không phạm cấm -> XÁM (Bình thường)
+                    // (Dù có ngắn quá cũng chưa báo lỗi vội, để người dùng gõ tiếp)
                     showNormal(id);
                 }
                 checkSubmitButton();
             });
 
+            // 2. BLUR (Nhập xong)
             el.addEventListener('blur', function() {
-                if (this.value === "") return;
+                if (this.value === "") return; // Rỗng thì thôi
+
+                // Kiểm tra toàn diện (Độ dài, Format...)
                 if (!rule.validate(this.value)) {
-                    if (!rule.forbidden.test(this.value)) {
-                        showError(id, rule.msg_invalid);
-                    }
+                    // Nếu sai -> ĐỎ
+                    // Ưu tiên báo lỗi ký tự cấm trước nếu có
+                    if (rule.forbidden.test(this.value)) showError(id, rule.msg_forbidden);
+                    else showError(id, rule.msg_invalid);
                 } else {
+                    // Đúng -> XANH
                     showSuccess(id);
                 }
                 checkSubmitButton();
             });
         });
 
+        // XỬ LÝ RE-PASS
         const rePass = document.getElementById('re_mat_khau');
         const pass = document.getElementById('mat_khau');
+        
         rePass.addEventListener('input', function() {
             if (/[\s'"<>\`]/.test(this.value)) showError('re_mat_khau', "Không chứa ký tự cấm.");
             else showNormal('re_mat_khau');
             checkSubmitButton();
         });
+
         rePass.addEventListener('blur', function() {
             if (this.value === "") return;
             if (this.value !== pass.value) showError('re_mat_khau', "Mật khẩu không khớp.");
@@ -253,6 +286,7 @@
             checkSubmitButton();
         });
 
+        // XỬ LÝ ĐIỆN THOẠI
         inputPhone.addEventListener('blur', () => {
             const errPhone = document.getElementById('err_dien_thoai');
             if (inputPhone.value.trim() !== "") {

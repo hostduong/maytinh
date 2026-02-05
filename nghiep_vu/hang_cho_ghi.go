@@ -1,4 +1,4 @@
-package nghiep_vu // <--- Đã sửa từ 'cau_hinh' thành 'nghiep_vu'
+package nghiep_vu // <--- ĐÃ SỬA CHUẨN
 
 import (
 	"fmt"

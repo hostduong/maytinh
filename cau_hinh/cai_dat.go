@@ -3,15 +3,21 @@ package cau_hinh
 import (
 	"log"
 	"os"
+	"time"
 )
 
+// Giữ nguyên struct cũ của bạn
 type CauHinhHeThong struct {
 	IdFileSheet string
 	CongChayWeb string
-	// Đã xóa FileChungThuc
 }
 
 var BienCauHinh CauHinhHeThong
+
+// Thêm cấu hình Batch Write (Hằng số)
+const (
+	ChuKyGhiSheet = 5 * time.Second
+)
 
 func KhoiTaoCauHinh() {
 	idSheet := os.Getenv("SHEET_ID")

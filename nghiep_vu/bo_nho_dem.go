@@ -122,49 +122,12 @@ func TaoKeyCache(tenSheet string) string {
 // =================================================================================
 // 3. KHỞI TẠO VÀ NẠP DỮ LIỆU
 // =================================================================================
-func KhoiTaoBoNho() {
-	log.Println("--- [CACHE] Bắt đầu khởi tạo bộ nhớ ---")
-	
-	khoiTaoCacStore()
 
-	var wg sync.WaitGroup
+// [SỬA ĐỔI QUAN TRỌNG]: Tách hàm khởi tạo biến ra (Public) để main.go gọi trước
+func KhoiTaoCacStore() {
+	// Nếu đã khởi tạo rồi thì thôi, tránh reset mất dữ liệu đang có
+	if CacheSanPham != nil { return }
 
-	log.Println(">> Đợt 1: Nạp Master Data...")
-	wg.Add(6)
-	go func() { defer wg.Done(); napDanhMuc() }()
-	go func() { defer wg.Done(); napThuongHieu() }()
-	go func() { defer wg.Done(); napSanPham() }()
-	go func() { defer wg.Done(); napKhachHang() }()
-	go func() { defer wg.Done(); napNhaCungCap() }()
-	go func() { defer wg.Done(); napCauHinhWeb() }()
-	wg.Wait()
-	
-	time.Sleep(1 * time.Second)
-
-	log.Println(">> Đợt 2: Nạp Giao dịch chính...")
-	wg.Add(6)
-	go func() { defer wg.Done(); napPhieuNhap() }()
-	go func() { defer wg.Done(); napChiTietPhieuNhap() }()
-	go func() { defer wg.Done(); napPhieuXuat() }()
-	go func() { defer wg.Done(); napChiTietPhieuXuat() }()
-	go func() { defer wg.Done(); napSerial() }()
-	go func() { defer wg.Done(); napKhuyenMai() }()
-	wg.Wait()
-
-	time.Sleep(1 * time.Second)
-
-	log.Println(">> Đợt 3: Nạp Tài chính & CSKH...")
-	wg.Add(4)
-	go func() { defer wg.Done(); napHoaDon() }()
-	go func() { defer wg.Done(); napHoaDonChiTiet() }()
-	go func() { defer wg.Done(); napPhieuThuChi() }()
-	go func() { defer wg.Done(); napPhieuBaoHanh() }()
-	wg.Wait()
-
-	log.Println("--- [CACHE] HOÀN TẤT NẠP 100% DỮ LIỆU ---")
-}
-
-func khoiTaoCacStore() {
 	CacheSanPham = &KhoSanPhamStore{DuLieu: make(map[string]mo_hinh.SanPham), TenKey: TaoKeyCache("SAN_PHAM")}
 	CacheDanhMuc = &KhoDanhMucStore{DuLieu: make(map[string]mo_hinh.DanhMuc), TenKey: TaoKeyCache("DANH_MUC")}
 	CacheThuongHieu = &KhoThuongHieuStore{DuLieu: make(map[string]mo_hinh.ThuongHieu), TenKey: TaoKeyCache("THUONG_HIEU")}
@@ -187,6 +150,53 @@ func khoiTaoCacStore() {
 	CacheHoaDonChiTiet = &KhoHoaDonChiTietStore{TenKey: TaoKeyCache("HOA_DON_CHI_TIET")}
 	CachePhieuThuChi = &KhoPhieuThuChiStore{DuLieu: make(map[string]mo_hinh.PhieuThuChi), TenKey: TaoKeyCache("PHIEU_THU_CHI")}
 	CachePhieuBaoHanh = &KhoPhieuBaoHanhStore{DuLieu: make(map[string]mo_hinh.PhieuBaoHanh), TenKey: TaoKeyCache("PHIEU_BAO_HANH")}
+	
+	log.Println("✅ [MEMORY] Đã khởi tạo xong bộ nhớ đệm (Rỗng)")
+}
+
+// Hàm này dùng để nạp dữ liệu thật từ Google Sheet (Chạy nặng, nên chạy ngầm)
+func KhoiTaoBoNho() {
+	log.Println("--- [CACHE] Bắt đầu tải dữ liệu từ Google Sheets ---")
+	
+	// Gọi lại hàm tạo Store để đảm bảo an toàn (nếu main chưa gọi)
+	KhoiTaoCacStore()
+
+	var wg sync.WaitGroup
+
+	log.Println(">> Đợt 1: Nạp Master Data...")
+	wg.Add(6)
+	go func() { defer wg.Done(); napDanhMuc() }()
+	go func() { defer wg.Done(); napThuongHieu() }()
+	go func() { defer wg.Done(); napSanPham() }()
+	go func() { defer wg.Done(); napKhachHang() }()
+	go func() { defer wg.Done(); napNhaCungCap() }()
+	go func() { defer wg.Done(); napCauHinhWeb() }()
+	wg.Wait()
+	
+	// Nghỉ 1 chút để tránh Google Rate Limit
+	time.Sleep(500 * time.Millisecond)
+
+	log.Println(">> Đợt 2: Nạp Giao dịch chính...")
+	wg.Add(6)
+	go func() { defer wg.Done(); napPhieuNhap() }()
+	go func() { defer wg.Done(); napChiTietPhieuNhap() }()
+	go func() { defer wg.Done(); napPhieuXuat() }()
+	go func() { defer wg.Done(); napChiTietPhieuXuat() }()
+	go func() { defer wg.Done(); napSerial() }()
+	go func() { defer wg.Done(); napKhuyenMai() }()
+	wg.Wait()
+
+	time.Sleep(500 * time.Millisecond)
+
+	log.Println(">> Đợt 3: Nạp Tài chính & CSKH...")
+	wg.Add(4)
+	go func() { defer wg.Done(); napHoaDon() }()
+	go func() { defer wg.Done(); napHoaDonChiTiet() }()
+	go func() { defer wg.Done(); napPhieuThuChi() }()
+	go func() { defer wg.Done(); napPhieuBaoHanh() }()
+	wg.Wait()
+
+	log.Println("--- [CACHE] HOÀN TẤT NẠP 100% DỮ LIỆU ---")
 }
 
 func loadSheetData(sheetName string, keyCache string) ([][]interface{}, error) {

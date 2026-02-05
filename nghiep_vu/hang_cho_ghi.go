@@ -28,7 +28,6 @@ var BoNhoGhi = &SmartQueue{
 }
 
 // [HYBRID TRIGGER] Kênh báo thức Worker
-// Buffer = 1: Chỉ cần biết "có hàng", không cần đếm bao nhiêu hàng
 var KenhBaoThuc = make(chan struct{}, 1)
 
 // =============================================================================
@@ -54,12 +53,9 @@ func ThemVaoHangCho(spreadId string, sheetName string, row int, col int, value i
 	BoNhoGhi.Unlock()
 
 	// 3. [HYBRID] Bắn tín hiệu đánh thức Worker
-	// Sử dụng select non-blocking: Nếu worker đang thức rồi thì thôi, không cần chặn
 	select {
 	case KenhBaoThuc <- struct{}{}:
-		// Đã gửi tín hiệu thành công
 	default:
-		// Kênh đã đầy (Worker đang chuẩn bị chạy), không làm gì cả
 	}
 }
 
@@ -71,26 +67,26 @@ func KhoiTaoWorkerGhiSheet() {
 	go func() {
 		log.Printf("🚀 [HYBRID WORKER] Đã khởi động. Chế độ: Ngủ đông -> Chờ %v -> Ghi.", cau_hinh.ChuKyGhiSheet)
 		
-		// Vòng lặp vô tận xử lý tín hiệu
 		for {
-			// A. NGỦ ĐÔNG: Chờ tín hiệu từ kênh (Block CPU tại đây)
+			// A. NGỦ ĐÔNG: Chờ tín hiệu từ kênh
 			<-KenhBaoThuc
 			
 			// B. TỈNH GIẤC & GOM HÀNG (Debounce)
-			// Khi có tín hiệu, chờ thêm 5 giây để gom các request tiếp theo
 			time.Sleep(cau_hinh.ChuKyGhiSheet)
 
-			// C. THỰC THI
-			XuLyGhiThongMinh()
+			// C. THỰC THI (Gọi hàm chuẩn tên)
+			ThucHienGhiSheet(false)
 		}
 	}()
 }
 
 // =============================================================================
-// PHẦN 4: LOGIC TỐI ƯU QUOTA & GHI SHEET (GIỮ NGUYÊN LOGIC GOM CỘT)
+// PHẦN 4: LOGIC TỐI ƯU QUOTA & GHI SHEET
 // =============================================================================
 
-func XuLyGhiThongMinh() {
+// [ĐÃ SỬA TÊN] Đổi từ XuLyGhiThongMinh -> ThucHienGhiSheet
+// Thêm tham số 'epBuoc' để khớp với main.go
+func ThucHienGhiSheet(epBuoc bool) {
 	BoNhoGhi.Lock()
 	if len(BoNhoGhi.Data) == 0 {
 		BoNhoGhi.Unlock()

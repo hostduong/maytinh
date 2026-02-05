@@ -12,16 +12,17 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// --- [HÀM CŨ 1] ---
+// [GIỮ NGUYÊN 3 HÀM CŨ: API_DoiThongTin, API_DoiMatKhau, API_DoiMaPin NHƯ FILE GỐC CỦA BẠN]
 func API_DoiThongTin(c *gin.Context) {
 	hoTenMoi    := strings.TrimSpace(c.PostForm("ho_ten"))
 	sdtMoi      := strings.TrimSpace(c.PostForm("dien_thoai"))
 	ngaySinhMoi := strings.TrimSpace(c.PostForm("ngay_sinh"))
 	gioiTinhMoi := strings.TrimSpace(c.PostForm("gioi_tinh"))
+	
 	cookie, _ := c.Cookie("session_id")
 
 	if !bao_mat.KiemTraHoTen(hoTenMoi) {
-		c.JSON(200, gin.H{"status": "error", "msg": "Tên không hợp lệ!"})
+		c.JSON(200, gin.H{"status": "error", "msg": "Tên không hợp lệ (6-50 ký tự, không số)!"})
 		return
 	}
 	if len(sdtMoi) > 0 && (len(sdtMoi) < 8 || len(sdtMoi) > 15) {
@@ -37,18 +38,18 @@ func API_DoiThongTin(c *gin.Context) {
 
 		sID := cau_hinh.BienCauHinh.IdFileSheet
 		row := kh.DongTrongSheet
+		
 		nghiep_vu.ThemVaoHangCho(sID, "KHACH_HANG", row, mo_hinh.CotKH_TenKhachHang, hoTenMoi)
 		nghiep_vu.ThemVaoHangCho(sID, "KHACH_HANG", row, mo_hinh.CotKH_DienThoai, sdtMoi)
 		nghiep_vu.ThemVaoHangCho(sID, "KHACH_HANG", row, mo_hinh.CotKH_NgaySinh, ngaySinhMoi)
 		nghiep_vu.ThemVaoHangCho(sID, "KHACH_HANG", row, mo_hinh.CotKH_GioiTinh, gioiTinhMoi)
 
-		c.JSON(200, gin.H{"status": "ok", "msg": "Cập nhật thành công!"})
+		c.JSON(200, gin.H{"status": "ok", "msg": "Cập nhật hồ sơ thành công!"})
 	} else {
 		c.JSON(401, gin.H{"status": "error", "msg": "Phiên đăng nhập hết hạn"})
 	}
 }
 
-// --- [HÀM CŨ 2] ---
 func API_DoiMatKhau(c *gin.Context) {
 	passCu := strings.TrimSpace(c.PostForm("pass_cu"))
 	passMoi := strings.TrimSpace(c.PostForm("pass_moi"))
@@ -73,7 +74,6 @@ func API_DoiMatKhau(c *gin.Context) {
 	}
 }
 
-// --- [HÀM CŨ 3] ---
 func API_DoiMaPin(c *gin.Context) {
 	pinCu := strings.TrimSpace(c.PostForm("pin_cu"))
 	pinMoi := strings.TrimSpace(c.PostForm("pin_moi"))
@@ -97,7 +97,8 @@ func API_DoiMaPin(c *gin.Context) {
 	}
 }
 
-// --- [HÀM MỚI BỔ SUNG - QUÊN MÃ PIN] ---
+// --- [BỔ SUNG HÀM MỚI - KHÔNG ẢNH HƯỞNG CŨ] ---
+
 func API_GuiOTPPin(c *gin.Context) {
 	cookie, _ := c.Cookie("session_id")
 	kh, ok := nghiep_vu.TimKhachHangTheoCookie(cookie)
@@ -106,41 +107,27 @@ func API_GuiOTPPin(c *gin.Context) {
 		return
 	}
 
-	// 1. Kiểm tra Rate Limit
-	theGui, msgLoi := nghiep_vu.KiemTraRateLimit(kh.Email)
-	if !theGui {
-		c.JSON(200, gin.H{"status": "error", "msg": msgLoi})
+	// 1. Chặn Spam
+	okLimit, msg := nghiep_vu.KiemTraRateLimit(kh.Email)
+	if !okLimit {
+		c.JSON(200, gin.H{"status": "error", "msg": msg})
 		return
 	}
 
-	// 2. Tạo mã PIN mới (8 số)
+	// 2. Tạo PIN mới 8 số (Dùng hàm cũ TaoMaOTP 8 số)
 	newPin := nghiep_vu.TaoMaOTP()
 
-	// 3. Soạn nội dung Email
-	body := fmt.Sprintf(`Xin chào,
-
-Chúng tôi đã tạo mã PIN mới cho tài khoản %s theo yêu cầu.
-
-Mã PIN mới của bạn là: %s
-
-Trân trọng,
-MayTinhShop`, kh.TenDangNhap, newPin)
-
-	// 4. Gửi Mail
-	err := nghiep_vu.GuiMailThongBaoAPI(kh.Email, "Thông báo mã PIN mới", "Hỗ trợ tài khoản", body)
+	// 3. Gửi Mail
+	body := fmt.Sprintf("Chào %s,\n\nMã PIN mới của bạn là: %s\n\nVui lòng đổi lại ngay.", kh.TenDangNhap, newPin)
+	err := nghiep_vu.GuiMailThongBaoAPI(kh.Email, "Cấp lại Mã PIN", "Hỗ trợ", body)
 	if err != nil {
-		c.JSON(200, gin.H{"status": "error", "msg": "Lỗi gửi mail: " + err.Error()})
+		c.JSON(200, gin.H{"status": "error", "msg": "Lỗi gửi thư: " + err.Error()})
 		return
 	}
 
-	// 5. Cập nhật vào DB
+	// 4. Lưu PIN mới
 	kh.MaPinHash = newPin
 	nghiep_vu.ThemVaoHangCho(cau_hinh.BienCauHinh.IdFileSheet, "KHACH_HANG", kh.DongTrongSheet, mo_hinh.CotKH_MaPinHash, newPin)
 
-	c.JSON(200, gin.H{"status": "ok", "msg": "Mã PIN mới đã được gửi vào Email!"})
-}
-
-// Hàm placeholder cho API reset pin (không dùng nữa vì đã gửi thẳng PIN)
-func API_ResetPinBangOTP(c *gin.Context) {
-	c.JSON(200, gin.H{"status": "error", "msg": "Vui lòng dùng tính năng gửi PIN qua Email."})
+	c.JSON(200, gin.H{"status": "ok", "msg": "Đã gửi mã PIN mới vào Email!"})
 }

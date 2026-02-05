@@ -19,9 +19,9 @@
         </div>
 
         <div id="formPin" class="space-y-4">
-            <input type="text" id="pinUser" placeholder="Tên đăng nhập hoặc Email" class="w-full p-3 border rounded-lg bg-gray-50 focus:ring-2 focus:ring-blue-500 outline-none">
-            <input type="password" id="pinCode" placeholder="Mã PIN bảo mật (6 số)" class="w-full p-3 border rounded-lg bg-gray-50 focus:ring-2 focus:ring-blue-500 outline-none">
-            <input type="password" id="pinNewPass" placeholder="Mật khẩu mới" class="w-full p-3 border rounded-lg bg-gray-50 focus:ring-2 focus:ring-blue-500 outline-none">
+            <input type="text" id="pinUser" placeholder="Tên đăng nhập" class="w-full p-3 border rounded-lg bg-gray-50 focus:ring-2 focus:ring-blue-500 outline-none">
+            <input type="password" id="pinCode" maxlength="8" placeholder="Mã PIN bảo mật (8 số)" class="w-full p-3 border rounded-lg bg-gray-50 focus:ring-2 focus:ring-blue-500 outline-none">
+            <input type="password" id="pinNewPass" placeholder="Mật khẩu mới (min 8 ký tự)" class="w-full p-3 border rounded-lg bg-gray-50 focus:ring-2 focus:ring-blue-500 outline-none">
             <button onclick="resetByPin()" class="w-full bg-blue-600 text-white py-3 rounded-lg font-bold hover:bg-blue-700 shadow-lg shadow-blue-500/30 transition">ĐỔI MẬT KHẨU</button>
         </div>
 
@@ -36,7 +36,7 @@
                     <span>✅</span> Đã gửi mã OTP 8 số về email của bạn.
                 </div>
                 <input type="text" id="otpInput" placeholder="Nhập mã OTP (8 số)" class="w-full p-3 border rounded-lg bg-gray-50 focus:ring-2 focus:ring-green-500 outline-none">
-                <input type="password" id="otpNewPass" placeholder="Mật khẩu mới" class="w-full p-3 border rounded-lg bg-gray-50 focus:ring-2 focus:ring-green-500 outline-none">
+                <input type="password" id="otpNewPass" placeholder="Mật khẩu mới (min 8 ký tự)" class="w-full p-3 border rounded-lg bg-gray-50 focus:ring-2 focus:ring-green-500 outline-none">
                 <button onclick="resetByOtp()" class="w-full bg-green-600 text-white py-3 rounded-lg font-bold hover:bg-green-700 shadow-lg shadow-green-500/30 transition">XÁC NHẬN ĐỔI</button>
             </div>
         </div>
@@ -69,12 +69,28 @@
             return await res.json();
         }
 
+        function validateCommon(pass) {
+            if(pass.length < 8) {
+                Swal.fire('Lỗi', 'Mật khẩu mới phải từ 8 ký tự trở lên', 'warning');
+                return false;
+            }
+            return true;
+        }
+
         // --- RESET BẰNG PIN ---
         async function resetByPin() {
+            const user = document.getElementById('pinUser').value;
+            const pin = document.getElementById('pinCode').value;
+            const pass = document.getElementById('pinNewPass').value;
+
+            if(!user || !pin || !pass) return Swal.fire('Thiếu thông tin', 'Vui lòng nhập đầy đủ', 'warning');
+            if(pin.length !== 8) return Swal.fire('Lỗi PIN', 'Mã PIN phải đúng 8 chữ số', 'warning');
+            if(!validateCommon(pass)) return;
+
             const res = await postData('/api/auth/reset-by-pin', {
-                user: document.getElementById('pinUser').value,
-                pin: document.getElementById('pinCode').value,
-                pass_moi: document.getElementById('pinNewPass').value
+                user: user,
+                pin: pin,
+                pass_moi: pass
             });
             
             if(res.status === 'ok') {
@@ -89,6 +105,8 @@
         // --- GỬI OTP ---
         async function sendOtp() {
             const email = document.getElementById('emailInput').value;
+            if(!email.includes('@')) return Swal.fire('Lỗi', 'Email không hợp lệ', 'warning');
+
             const res = await postData('/api/auth/send-otp', { email: email });
             
             if(res.status === 'ok') {
@@ -102,10 +120,13 @@
 
         // --- RESET BẰNG OTP ---
         async function resetByOtp() {
+            const pass = document.getElementById('otpNewPass').value;
+            if(!validateCommon(pass)) return;
+
             const res = await postData('/api/auth/reset-by-otp', {
                 email: document.getElementById('emailInput').value,
                 otp: document.getElementById('otpInput').value,
-                pass_moi: document.getElementById('otpNewPass').value
+                pass_moi: pass
             });
             
             if(res.status === 'ok') {

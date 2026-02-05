@@ -1,154 +1,178 @@
 {{ define "ho_so" }}
     {{ template "header" . }}
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/intl-tel-input@18.2.1/build/css/intlTelInput.css">
+    <script src="https://cdn.jsdelivr.net/npm/intl-tel-input@18.2.1/build/js/intlTelInput.min.js"></script>
     
     <style>
+        /* Màu sắc trạng thái Validation */
         .input-error { border-color: #ef4444 !important; background-color: #fef2f2; }
         .input-success { border-color: #22c55e !important; background-color: #f0fdf4; }
         .input-normal { border-color: #d1d5db !important; background-color: #fff; }
+        
+        /* Hiệu ứng nút */
         button:disabled { opacity: 0.5; cursor: not-allowed; background-color: #9ca3af !important; box-shadow: none; }
         .error-text { color: #ef4444; font-size: 0.75rem; margin-top: 0.25rem; display: block; }
         .hidden { display: none; }
         .iti { width: 100%; }
-        /* Ẩn icon mắt mặc định của một số trình duyệt */
+        
+        /* Tinh chỉnh input */
         input::-ms-reveal, input::-ms-clear { display: none; }
+        input:focus { outline: none; ring: 2px; ring-color: #3b82f6; }
     </style>
 
     <div class="max-w-3xl mx-auto py-10 px-4">
         
         <div class="bg-white rounded-2xl shadow-xl overflow-hidden border border-gray-100 mb-6">
-            <div class="bg-gradient-to-r from-blue-500 to-indigo-600 h-32 relative"></div>
+            <div class="bg-gradient-to-r from-blue-600 to-indigo-700 h-32 relative"></div>
             
             <div class="text-center -mt-16 relative px-6">
                  <div class="inline-block p-1 bg-white rounded-full shadow-md">
-                    <div class="w-28 h-28 bg-gray-100 rounded-full flex items-center justify-center overflow-hidden border-2 border-white">
-                        <img src="https://api.dicebear.com/7.x/avataaars/svg?seed={{ .NhanVien.TenDangNhap }}" alt="Avatar" class="w-full h-full">
+                    <div class="w-28 h-28 bg-gray-100 rounded-full flex items-center justify-center overflow-hidden border-2 border-white shadow-inner">
+                        <img src="https://api.dicebear.com/7.x/avataaars/svg?seed={{ .NhanVien.TenDangNhap }}" alt="Avatar" class="w-full h-full object-cover">
                     </div>
                 </div>
                 <h2 class="mt-3 text-3xl font-bold text-gray-800" id="lblHoTen">{{ .NhanVien.TenKhachHang }}</h2>
                 
-                <div class="text-blue-600 font-medium bg-blue-50 inline-block px-3 py-1 rounded-full text-sm mt-1 uppercase tracking-wide">
+                <div class="text-blue-600 font-bold bg-blue-50 inline-block px-4 py-1 rounded-full text-xs mt-2 uppercase tracking-widest border border-blue-100">
                     {{ if eq .NhanVien.LoaiKhachHang "khach_le" }}Khách hàng{{ else }}{{ .NhanVien.LoaiKhachHang }}{{ end }}
                 </div>
             </div>
             
-            <div class="flex flex-wrap justify-center gap-3 py-6 px-6">
-                <button onclick="toggleModal('modalInfo')" class="bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 px-5 py-2.5 rounded-lg font-medium shadow-sm transition hover:-translate-y-0.5">
-                    ✏️ Cập nhật thông tin
+            <div class="flex flex-wrap justify-center gap-3 py-8 px-6">
+                <button onclick="toggleModal('modalInfo')" class="bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 px-5 py-2.5 rounded-xl font-semibold shadow-sm transition transform hover:-translate-y-0.5 active:scale-95 flex items-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-4 h-4">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" />
+                    </svg>
+                    Cập nhật thông tin
                 </button>
-                <button onclick="toggleModal('modalPass')" class="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-lg font-medium shadow-md transition hover:-translate-y-0.5">
-                    🔐 Đổi mật khẩu
+                <button onclick="toggleModal('modalPass')" class="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-xl font-semibold shadow-md transition transform hover:-translate-y-0.5 active:scale-95 flex items-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-4 h-4">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 5.25a3 3 0 013 3m3 0a6 6 0 01-7.029 5.912c-.563-.097-1.159.026-1.563.43L10.5 17.25H8.25v2.25H6v2.25H2.25v-2.818c0-.597.237-1.17.659-1.591l6.499-6.499c.404-.404.527-1 .43-1.563A6 6 0 1121.75 8.25z" />
+                    </svg>
+                    Đổi mật khẩu
                 </button>
-                <button onclick="toggleModal('modalPin')" class="bg-purple-600 hover:bg-purple-700 text-white px-5 py-2.5 rounded-lg font-medium shadow-md transition hover:-translate-y-0.5">
-                    🔢 Đổi mã PIN
+                <button onclick="toggleModal('modalPin')" class="bg-purple-600 hover:bg-purple-700 text-white px-5 py-2.5 rounded-xl font-semibold shadow-md transition transform hover:-translate-y-0.5 active:scale-95 flex items-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-4 h-4">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M4.75 6.75a.75.75 0 01.75-.75h13a.75.75 0 010 1.5H5.5a.75.75 0 01-.75-.75zM4.75 12a.75.75 0 01.75-.75h13a.75.75 0 010 1.5H5.5A.75.75 0 014.75 12zm.75 4.5a.75.75 0 000 1.5h13a.75.75 0 000-1.5H5.5z" />
+                    </svg>
+                    Đổi mã PIN
                 </button>
             </div>
         </div>
 
-        <div class="bg-white rounded-2xl shadow-lg border border-gray-100 p-6">
-            <h3 class="text-xl font-bold text-gray-800 mb-4 border-b pb-2">Thông tin cá nhân</h3>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                
-                <div class="space-y-4">
+        <div class="bg-white rounded-2xl shadow-lg border border-gray-100 p-8">
+            <div class="flex items-center gap-3 mb-6 border-b pb-4">
+                <div class="p-2 bg-blue-50 text-blue-600 rounded-lg">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-6 h-6">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M15 9h3.75M15 12h3.75M15 15h3.75M4.5 19.5h15a2.25 2.25 0 002.25-2.25V6.75A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25v10.5A2.25 2.25 0 004.5 19.5zm6-10.125a1.875 1.875 0 11-3.75 0 1.875 1.875 0 013.75 0zm1.294 6.336a6.721 6.721 0 01-3.17.789 6.721 6.721 0 01-3.168-.789 3.376 3.376 0 016.338 0z" />
+                    </svg>
+                </div>
+                <h3 class="text-xl font-bold text-gray-800">Thông tin tài khoản</h3>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-6">
+                <div class="space-y-6">
                     <div>
-                        <label class="text-xs text-gray-400 uppercase font-semibold">Tên đăng nhập</label>
-                        <div class="text-gray-900 font-medium bg-gray-50 p-2 rounded border border-gray-200">
+                        <label class="text-[10px] text-gray-400 uppercase font-bold tracking-widest block mb-1">Tên đăng nhập</label>
+                        <div class="text-gray-900 font-semibold bg-gray-50 px-3 py-2 rounded-lg border border-gray-100 italic">
                             {{ .NhanVien.TenDangNhap }}
                         </div>
                     </div>
                     <div>
-                        <label class="text-xs text-gray-400 uppercase font-semibold">Email</label>
-                        <div class="text-gray-900 font-medium bg-gray-50 p-2 rounded border border-gray-200">
+                        <label class="text-[10px] text-gray-400 uppercase font-bold tracking-widest block mb-1">Địa chỉ Email</label>
+                        <div class="text-gray-900 font-semibold bg-gray-50 px-3 py-2 rounded-lg border border-gray-100">
                             {{ .NhanVien.Email }}
                         </div>
                     </div>
                     <div>
-                        <label class="text-xs text-gray-400 uppercase font-semibold">Mã khách hàng</label>
-                        <div class="text-gray-500 font-mono text-sm">
+                        <label class="text-[10px] text-gray-400 uppercase font-bold tracking-widest block mb-1">ID Hệ thống</label>
+                        <div class="text-gray-400 font-mono text-xs">
                             {{ .NhanVien.MaKhachHang }}
                         </div>
                     </div>
                 </div>
 
-                <div class="space-y-4">
+                <div class="space-y-6">
                     <div>
-                        <label class="text-xs text-gray-400 uppercase font-semibold">Số điện thoại</label>
-                        <div id="txtSdt" class="text-gray-900 font-medium">
-                            {{ if .NhanVien.DienThoai }} {{ .NhanVien.DienThoai }} {{ else }} <span class="text-gray-400 italic">Chưa cập nhật</span> {{ end }}
+                        <label class="text-[10px] text-gray-400 uppercase font-bold tracking-widest block mb-1">Số điện thoại</label>
+                        <div id="txtSdt" class="text-gray-900 font-semibold py-2 flex items-center gap-2">
+                            <span class="text-blue-500">📱</span>
+                            {{ if .NhanVien.DienThoai }} {{ .NhanVien.DienThoai }} {{ else }} <span class="text-gray-300 italic font-normal">Chưa cập nhật</span> {{ end }}
                         </div>
                     </div>
                     <div>
-                        <label class="text-xs text-gray-400 uppercase font-semibold">Ngày sinh</label>
-                        <div id="txtNgaySinh" class="text-gray-900 font-medium">
-                            {{ if .NhanVien.NgaySinh }} {{ .NhanVien.NgaySinh }} {{ else }} <span class="text-gray-400 italic">--/--/----</span> {{ end }}
+                        <label class="text-[10px] text-gray-400 uppercase font-bold tracking-widest block mb-1">Ngày sinh</label>
+                        <div id="txtNgaySinh" class="text-gray-900 font-semibold py-2 flex items-center gap-2">
+                            <span class="text-pink-500">🎂</span>
+                            {{ if .NhanVien.NgaySinh }} {{ .NhanVien.NgaySinh }} {{ else }} <span class="text-gray-300 italic font-normal">--/--/----</span> {{ end }}
                         </div>
                     </div>
                     <div>
-                        <label class="text-xs text-gray-400 uppercase font-semibold">Giới tính</label>
-                        <div id="txtGioiTinh" class="text-gray-900 font-medium">
-                            {{ if .NhanVien.GioiTinh }} {{ .NhanVien.GioiTinh }} {{ else }} <span class="text-gray-400 italic">--</span> {{ end }}
+                        <label class="text-[10px] text-gray-400 uppercase font-bold tracking-widest block mb-1">Giới tính</label>
+                        <div id="txtGioiTinh" class="text-gray-900 font-semibold py-2 flex items-center gap-2">
+                            <span class="text-indigo-500">🚻</span>
+                            {{ if .NhanVien.GioiTinh }} {{ .NhanVien.GioiTinh }} {{ else }} <span class="text-gray-300 italic font-normal">Chưa xác định</span> {{ end }}
                         </div>
                     </div>
                 </div>
-
             </div>
         </div>
     </div>
 
-    <div id="modalPass" class="hidden fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 backdrop-blur-sm">
-        <div class="bg-white p-6 rounded-2xl shadow-2xl w-96 transform transition-all scale-100">
-            <h3 class="text-xl font-bold mb-4 text-gray-800">🔐 Đổi Mật Khẩu</h3>
+    <div id="modalPass" class="hidden fixed inset-0 bg-slate-900/60 flex items-center justify-center z-50 backdrop-blur-sm">
+        <div class="bg-white p-8 rounded-3xl shadow-2xl w-96 transform transition-all">
+            <h3 class="text-2xl font-bold mb-6 text-gray-800">🔐 Đổi mật khẩu</h3>
             <div class="space-y-4">
                 <div class="relative">
-                    <input type="password" id="oldPass" placeholder="Mật khẩu hiện tại" class="w-full p-3 pr-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none">
-                    <button type="button" onclick="togglePass('oldPass')" class="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-blue-600 transition">
+                    <input type="password" id="oldPass" placeholder="Mật khẩu hiện tại" class="w-full p-3.5 pr-10 border border-gray-300 rounded-xl outline-none transition">
+                    <button type="button" onclick="togglePass('oldPass')" class="absolute inset-y-0 right-0 pr-3.5 flex items-center text-gray-400 hover:text-blue-600">
                         <svg id="eye_oldPass" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" />
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" /><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                         </svg>
                     </button>
                 </div>
                 <div class="relative">
-                    <input type="password" id="newPass" placeholder="Mật khẩu mới (8-30 ký tự)" class="w-full p-3 pr-10 border border-gray-300 rounded-lg outline-none input-normal">
-                    <button type="button" onclick="togglePass('newPass')" class="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-blue-600 transition">
+                    <input type="password" id="newPass" placeholder="Mật khẩu mới (8-30 ký tự)" class="w-full p-3.5 pr-10 border border-gray-300 rounded-xl outline-none input-normal transition">
+                    <button type="button" onclick="togglePass('newPass')" class="absolute inset-y-0 right-0 pr-3.5 flex items-center text-gray-400 hover:text-blue-600">
                         <svg id="eye_newPass" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" />
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" /><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                         </svg>
                     </button>
                     <p id="err_newPass" class="error-text hidden"></p>
                 </div>
             </div>
-            <div class="mt-6 flex justify-end gap-3">
-                <button onclick="toggleModal('modalPass')" class="text-gray-500 hover:bg-gray-100 px-4 py-2 rounded-lg font-medium">Hủy</button>
-                <button id="btnSavePass" onclick="doiPass()" disabled class="bg-blue-600 text-white px-5 py-2 rounded-lg font-bold hover:bg-blue-700 shadow-md">Lưu</button>
+            <div class="mt-8 flex justify-end gap-3 border-t pt-5">
+                <button onclick="toggleModal('modalPass')" class="text-gray-500 hover:bg-gray-100 px-5 py-2.5 rounded-xl font-semibold">Hủy</button>
+                <button id="btnSavePass" onclick="doiPass()" disabled class="bg-blue-600 text-white px-6 py-2.5 rounded-xl font-bold shadow-lg shadow-blue-200">Lưu thay đổi</button>
             </div>
         </div>
     </div>
 
-    <div id="modalInfo" class="hidden fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 backdrop-blur-sm">
-        <div class="bg-white p-6 rounded-2xl shadow-2xl w-full max-w-lg transform transition-all scale-100">
-            <h3 class="text-xl font-bold mb-4 text-gray-800">✏️ Cập nhật hồ sơ</h3>
-            <div class="space-y-4">
+    <div id="modalInfo" class="hidden fixed inset-0 bg-slate-900/60 flex items-center justify-center z-50 backdrop-blur-sm">
+        <div class="bg-white p-8 rounded-3xl shadow-2xl w-full max-w-lg transform transition-all">
+            <h3 class="text-2xl font-bold mb-6 text-gray-800 flex items-center gap-2">
+                <span class="text-blue-600">✏️</span> Cập nhật hồ sơ
+            </h3>
+            <div class="space-y-5">
                 <div>
-                    <label class="text-sm text-gray-500 mb-1 block">Họ và tên</label>
-                    <input type="text" id="newName" value="{{ .NhanVien.TenKhachHang }}" class="w-full p-3 border border-gray-300 rounded-lg outline-none input-normal">
+                    <label class="text-xs font-bold text-gray-400 uppercase mb-1 block">Họ và tên đầy đủ</label>
+                    <input type="text" id="newName" value="{{ .NhanVien.TenKhachHang }}" class="w-full p-3.5 border border-gray-300 rounded-xl outline-none input-normal transition">
                     <p id="err_newName" class="error-text hidden"></p>
                 </div>
                 <div>
-                    <label class="text-sm text-gray-500 mb-1 block">Số điện thoại</label>
-                    <input type="tel" id="newPhone" value="{{ .NhanVien.DienThoai }}" class="w-full p-3 border border-gray-300 rounded-lg outline-none input-normal">
+                    <label class="text-xs font-bold text-gray-400 uppercase mb-1 block">Số điện thoại</label>
+                    <input type="tel" id="newPhone" value="{{ .NhanVien.DienThoai }}" class="w-full p-3.5 border border-gray-300 rounded-xl outline-none input-normal transition">
                     <p id="err_newPhone" class="error-text hidden"></p>
-                    <input type="hidden" id="newPhoneFull">
                 </div>
                 <div class="grid grid-cols-2 gap-4">
                     <div>
-                        <label class="text-sm text-gray-500 mb-1 block">Ngày sinh</label>
-                        <input type="date" id="newDob" value="{{ .NhanVien.NgaySinh }}" class="w-full p-3 border border-gray-300 rounded-lg outline-none bg-white">
+                        <label class="text-xs font-bold text-gray-400 uppercase mb-1 block">Ngày sinh</label>
+                        <input type="date" id="newDob" value="{{ .NhanVien.NgaySinh }}" class="w-full p-3.5 border border-gray-300 rounded-xl outline-none bg-white">
                     </div>
                     <div>
-                        <label class="text-sm text-gray-500 mb-1 block">Giới tính</label>
-                        <select id="newGender" class="w-full p-3 border border-gray-300 rounded-lg outline-none bg-white">
+                        <label class="text-xs font-bold text-gray-400 uppercase mb-1 block">Giới tính</label>
+                        <select id="newGender" class="w-full p-3.5 border border-gray-300 rounded-xl outline-none bg-white">
                             <option value="Nam" {{ if eq .NhanVien.GioiTinh "Nam" }}selected{{ end }}>Nam</option>
                             <option value="Nữ" {{ if eq .NhanVien.GioiTinh "Nữ" }}selected{{ end }}>Nữ</option>
                             <option value="Khác" {{ if eq .NhanVien.GioiTinh "Khác" }}selected{{ end }}>Khác</option>
@@ -156,45 +180,79 @@
                     </div>
                 </div>
             </div>
-            <div class="mt-6 flex justify-end gap-3">
-                <button onclick="toggleModal('modalInfo')" class="text-gray-500 hover:bg-gray-100 px-4 py-2 rounded-lg font-medium">Hủy</button>
-                <button id="btnSaveInfo" onclick="capNhatThongTin()" class="bg-blue-600 text-white px-5 py-2 rounded-lg font-bold hover:bg-blue-700 shadow-md">Cập nhật</button>
+            <div class="mt-8 flex justify-end gap-3 border-t pt-5">
+                <button onclick="toggleModal('modalInfo')" class="text-gray-500 hover:bg-gray-100 px-5 py-2.5 rounded-xl font-semibold">Hủy</button>
+                <button id="btnSaveInfo" onclick="capNhatThongTin()" class="bg-blue-600 text-white px-8 py-2.5 rounded-xl font-bold shadow-lg shadow-blue-200">Cập nhật ngay</button>
             </div>
         </div>
     </div>
 
-    <div id="modalPin" class="hidden fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 backdrop-blur-sm">
-        <div class="bg-white p-6 rounded-2xl shadow-2xl w-96 transform transition-all scale-100">
-            <h3 class="text-xl font-bold mb-4 text-gray-800">🔢 Đổi Mã PIN</h3>
-            <div class="space-y-4">
+    <div id="modalPin" class="hidden fixed inset-0 bg-slate-900/60 flex items-center justify-center z-50 backdrop-blur-sm">
+        <div class="bg-white p-8 rounded-3xl shadow-2xl w-96 transform transition-all">
+            <h3 class="text-2xl font-bold mb-2 text-gray-800">🔢 Mã PIN bảo mật</h3>
+            
+            <div id="viewChangePin" class="space-y-4 pt-4">
                 <div class="relative">
-                    <input type="password" id="oldPin" maxlength="8" placeholder="Mã PIN cũ" class="w-full p-3 pr-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none">
-                    <button type="button" onclick="togglePass('oldPin')" class="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-purple-600 transition">
+                    <input type="password" id="oldPin" maxlength="8" placeholder="Mã PIN hiện tại" class="w-full p-3.5 pr-10 border border-gray-300 rounded-xl outline-none transition">
+                    <button type="button" onclick="togglePass('oldPin')" class="absolute inset-y-0 right-0 pr-3.5 flex items-center text-gray-400 hover:text-purple-600">
                         <svg id="eye_oldPin" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" />
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" /><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                         </svg>
                     </button>
                 </div>
                 <div class="relative">
-                    <input type="password" id="newPin" maxlength="8" placeholder="Mã PIN mới (8 số)" class="w-full p-3 pr-10 border border-gray-300 rounded-lg outline-none input-normal">
-                    <button type="button" onclick="togglePass('newPin')" class="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-purple-600 transition">
+                    <input type="password" id="newPin" maxlength="8" placeholder="Mã PIN mới (8 số)" class="w-full p-3.5 pr-10 border border-gray-300 rounded-xl outline-none input-normal transition">
+                    <button type="button" onclick="togglePass('newPin')" class="absolute inset-y-0 right-0 pr-3.5 flex items-center text-gray-400 hover:text-purple-600">
                         <svg id="eye_newPin" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" />
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" /><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                         </svg>
                     </button>
                     <p id="err_newPin" class="error-text hidden"></p>
                 </div>
+                <div class="text-right">
+                    <button onclick="switchPinView('forgot')" class="text-xs text-blue-600 hover:underline font-bold">Quên mã PIN?</button>
+                </div>
+                <div class="mt-6 flex justify-end gap-3 border-t pt-5">
+                    <button onclick="toggleModal('modalPin')" class="text-gray-500 hover:bg-gray-100 px-4 py-2.5 rounded-xl font-semibold transition">Hủy</button>
+                    <button id="btnSavePin" onclick="doiPin()" disabled class="bg-purple-600 text-white px-6 py-2.5 rounded-xl font-bold shadow-lg shadow-purple-200">Lưu PIN</button>
+                </div>
             </div>
-            <div class="mt-6 flex justify-end gap-3">
-                <button onclick="toggleModal('modalPin')" class="text-gray-500 hover:bg-gray-100 px-4 py-2 rounded-lg font-medium">Hủy</button>
-                <button id="btnSavePin" onclick="doiPin()" disabled class="bg-purple-600 text-white px-5 py-2 rounded-lg font-bold hover:bg-purple-700 shadow-md">Lưu PIN</button>
+
+            <div id="viewForgotPin" class="hidden space-y-4 pt-4">
+                <div class="bg-blue-50 p-4 rounded-2xl text-xs text-blue-700 leading-relaxed border border-blue-100">
+                    Hệ thống sẽ gửi mã xác minh 6 số tới Email đăng ký để đặt lại PIN.
+                </div>
+                <button id="btnSendOTPPin" onclick="guiOTPPin()" class="w-full bg-blue-600 text-white py-3 rounded-xl font-bold shadow-md hover:bg-blue-700 transition">
+                    NHẬN MÃ QUA EMAIL
+                </button>
+                
+                <div id="groupOtpInput" class="space-y-4 hidden animate-pulse-once">
+                    <input type="text" id="otpCode" maxlength="6" placeholder="Mã OTP 6 số" class="w-full p-3.5 border border-blue-400 rounded-xl text-center text-2xl font-black tracking-[1em] focus:ring-4 focus:ring-blue-100 outline-none">
+                    <div class="relative">
+                        <input type="password" id="forgotNewPin" maxlength="8" placeholder="Thiết lập PIN mới (8 số)" class="w-full p-3.5 pr-10 border border-gray-300 rounded-xl outline-none input-normal transition">
+                        <button type="button" onclick="togglePass('forgotNewPin')" class="absolute inset-y-0 right-0 pr-3.5 flex items-center text-gray-400 hover:text-blue-600">
+                            <svg id="eye_forgotNewPin" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" /><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                            </svg>
+                        </button>
+                        <p id="err_forgotNewPin" class="error-text hidden"></p>
+                    </div>
+                </div>
+
+                <div class="mt-8 flex justify-between items-center border-t pt-5">
+                    <button onclick="switchPinView('change')" class="text-gray-400 text-sm font-bold hover:text-gray-600 transition flex items-center gap-1">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-4 h-4">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
+                        </svg> Quay lại
+                    </button>
+                    <button id="btnConfirmForgot" onclick="xacNhanResetPin()" disabled class="bg-green-600 text-white px-8 py-2.5 rounded-xl font-bold shadow-lg shadow-green-100">Xác nhận</button>
+                </div>
             </div>
         </div>
     </div>
 
     <script>
+        // --- 1. KHỞI TẠO ĐIỆN THOẠI ---
         const inputPhone = document.querySelector("#newPhone");
         const iti = window.intlTelInput(inputPhone, {
             initialCountry: "vn",
@@ -202,16 +260,15 @@
             utilsScript: "https://cdn.jsdelivr.net/npm/intl-tel-input@18.2.1/build/js/utils.js",
         });
 
+        // --- 2. HÀM TIỆN ÍCH UI ---
         function togglePass(id) {
             const input = document.getElementById(id);
             const eyeIcon = document.getElementById('eye_' + id);
             if (input.type === "password") {
                 input.type = "text";
-                // Đổi icon sang 'eye-slash' (Gạch chéo)
                 eyeIcon.innerHTML = `<path stroke-linecap="round" stroke-linejoin="round" d="M3.98 8.223A10.477 10.477 0 001.934 12C3.226 16.338 7.244 19.5 12 19.5c.993 0 1.953-.138 2.863-.395M6.228 6.228A10.45 10.45 0 0112 4.5c4.756 0 8.773 3.162 10.065 7.498a10.523 10.523 0 01-4.293 5.774M6.228 6.228L3 3m3.228 3.228l3.65 3.65m7.894 7.894L21 21m-3.228-3.228l-3.65-3.65m0 0a3 3 0 10-4.243-4.243m4.242 4.242L9.88 9.88" />`;
             } else {
                 input.type = "password";
-                // Đổi icon về 'eye' (Bình thường)
                 eyeIcon.innerHTML = `<path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" /><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />`;
             }
         }
@@ -226,24 +283,37 @@
             }
         }
 
+        function switchPinView(mode) {
+            const vChange = document.getElementById('viewChangePin');
+            const vForgot = document.getElementById('viewForgotPin');
+            if(mode === 'forgot') {
+                vChange.classList.add('hidden');
+                vForgot.classList.remove('hidden');
+            } else {
+                vForgot.classList.add('hidden');
+                vChange.classList.remove('hidden');
+            }
+        }
+
+        // --- 3. QUY TẮC WHITELIST (ĐỒNG BỘ) ---
         const RULES = {
             newName: {
-                not_allowed_regex: /[^a-zA-ZÀ-ỹ\s]/, 
-                validate_regex: /^[a-zA-ZÀ-ỹ\s]{6,50}$/,
-                msg_forbidden: "Họ tên không chứa số hoặc ký tự lạ.",
-                msg_invalid: "Họ tên phải từ 6 - 50 ký tự."
+                not_allowed: /[^a-zA-ZÀ-ỹ\s]/, 
+                validate: /^[a-zA-ZÀ-ỹ\s]{6,50}$/,
+                msg_forbidden: "Không chứa số hoặc ký tự lạ.",
+                msg_invalid: "Tên phải từ 6 - 50 ký tự."
             },
             newPass: {
-                not_allowed_regex: /[\s'"<>\`]/,
-                validate_regex: /^[^'"<>\`\s]{8,30}$/,
-                msg_forbidden: "Mật khẩu không chứa khoảng trắng hoặc ký tự lạ.",
-                msg_invalid: "Mật khẩu phải từ 8 - 30 ký tự."
+                not_allowed: /[\s'"<>\`]/,
+                validate: /^[^'"<>\` \s]{8,30}$/,
+                msg_forbidden: "Không chứa khoảng trắng hoặc ', \", <, >, `",
+                msg_invalid: "Mật khẩu từ 8 - 30 ký tự."
             },
             newPin: {
-                not_allowed_regex: /[^0-9]/,
-                validate_regex: /^\d{8}$/,
-                msg_forbidden: "PIN chỉ được nhập số.",
-                msg_invalid: "PIN phải đúng 8 số."
+                not_allowed: /[^0-9]/,
+                validate: /^\d{8}$/,
+                msg_forbidden: "Chỉ được nhập số.",
+                msg_invalid: "PIN phải đúng 8 chữ số."
             }
         };
 
@@ -272,25 +342,26 @@
             err.classList.add('hidden');
         }
 
-        function setupValidation(inputId, btnId) {
+        // --- 4. VALIDATION LOGIC ---
+        function setupValidation(inputId, btnId, ruleKey) {
             const input = document.getElementById(inputId);
             const btn = document.getElementById(btnId);
-            const rule = RULES[inputId];
+            const rule = RULES[ruleKey || inputId];
 
             input.addEventListener('input', function() {
-                if (rule.not_allowed_regex.test(this.value)) {
+                if (rule.not_allowed.test(this.value)) {
                     showError(inputId, rule.msg_forbidden);
                     btn.disabled = true;
                 } else {
                     showNormal(inputId);
-                    btn.disabled = !rule.validate_regex.test(this.value);
+                    btn.disabled = !rule.validate.test(this.value);
                 }
             });
 
             input.addEventListener('blur', function() {
                 if(this.value === "") return;
-                if (!rule.validate_regex.test(this.value)) {
-                    showError(inputId, rule.not_allowed_regex.test(this.value) ? rule.msg_forbidden : rule.msg_invalid);
+                if (!rule.validate.test(this.value)) {
+                    showError(inputId, rule.not_allowed.test(this.value) ? rule.msg_forbidden : rule.msg_invalid);
                     btn.disabled = true;
                 } else {
                     showSuccess(inputId);
@@ -304,41 +375,37 @@
             const phoneEl = document.getElementById('newPhone');
             const btn = document.getElementById('btnSaveInfo');
             const ruleName = RULES.newName;
-            const nameOk = !ruleName.not_allowed_regex.test(nameEl.value) && ruleName.validate_regex.test(nameEl.value);
+            const nameOk = !ruleName.not_allowed.test(nameEl.value) && ruleName.validate.test(nameEl.value);
             const phoneOk = phoneEl.value.trim() === "" || iti.isValidNumber();
             btn.disabled = !(nameOk && phoneOk);
         }
 
-        document.getElementById('newName').addEventListener('input', function() {
-            const rule = RULES.newName;
-            if(rule.not_allowed_regex.test(this.value)) showError('newName', rule.msg_forbidden);
-            else showNormal('newName');
-            checkInfoButton();
-        });
+        // Cài đặt validation cho từng modal
+        setupValidation('newPass', 'btnSavePass');
+        setupValidation('newPin', 'btnSavePin');
+        setupValidation('forgotNewPin', 'btnConfirmForgot', 'newPin');
+        
+        document.getElementById('newName').addEventListener('input', checkInfoButton);
         document.getElementById('newName').addEventListener('blur', function() {
-            if(this.value === "") return;
-            if(!RULES.newName.validate_regex.test(this.value)) showError('newName', RULES.newName.msg_invalid);
-            else showSuccess('newName');
+            if(this.value !== "" && !RULES.newName.validate.test(this.value)) showError('newName', RULES.newName.msg_invalid);
+            else if(this.value !== "") showSuccess('newName');
             checkInfoButton();
         });
-
-        inputPhone.addEventListener('blur', () => {
-            const errPhone = document.getElementById('err_newPhone');
-            if (inputPhone.value.trim() !== "" && !iti.isValidNumber()) {
-                inputPhone.classList.add('input-error');
-                errPhone.innerText = "SĐT không hợp lệ.";
-                errPhone.classList.remove('hidden');
+        document.getElementById('newPhone').addEventListener('blur', function() {
+            const err = document.getElementById('err_newPhone');
+            if(this.value.trim() !== "" && !iti.isValidNumber()) {
+                this.classList.add('input-error');
+                err.innerText = "SĐT không hợp lệ.";
+                err.classList.remove('hidden');
             } else {
-                inputPhone.classList.remove('input-error');
-                if(inputPhone.value.trim() !== "") inputPhone.classList.add('input-success');
-                errPhone.classList.add('hidden');
+                this.classList.remove('input-error');
+                if(this.value.trim() !== "") this.classList.add('input-success');
+                err.classList.add('hidden');
             }
             checkInfoButton();
         });
 
-        setupValidation('newPass', 'btnSavePass');
-        setupValidation('newPin', 'btnSavePin');
-
+        // --- 5. API CALLS ---
         async function postData(url, data) {
             const formData = new FormData();
             for(const k in data) formData.append(k, data[k]);
@@ -357,10 +424,9 @@
         }
 
         async function capNhatThongTin() {
-            const fullPhone = inputPhone.value.trim() ? iti.getNumber() : "";
             const data = {
                 ho_ten: document.getElementById('newName').value,
-                dien_thoai: fullPhone,
+                dien_thoai: inputPhone.value.trim() ? iti.getNumber() : "",
                 ngay_sinh: document.getElementById('newDob').value,
                 gioi_tinh: document.getElementById('newGender').value
             };
@@ -382,13 +448,37 @@
             handleRes(res, 'modalPin');
         }
 
+        async function guiOTPPin() {
+            const btn = document.getElementById('btnSendOTPPin');
+            const res = await postData('/api/user/send-otp-pin', {});
+            if(res.status === 'ok') {
+                Swal.fire({ icon: 'success', title: 'Đã gửi!', text: res.msg, timer: 2000, showConfirmButton: false });
+                document.getElementById('groupOtpInput').classList.remove('hidden');
+                let s = 60; btn.disabled = true;
+                const t = setInterval(() => {
+                    btn.innerText = `GỬI LẠI SAU (${--s}s)`;
+                    if(s <= 0) { clearInterval(t); btn.disabled = false; btn.innerText = "NHẬN MÃ QUA EMAIL"; }
+                }, 1000);
+            } else Swal.fire('Lỗi', res.msg, 'error');
+        }
+
+        async function xacNhanResetPin() {
+            const res = await postData('/api/user/reset-pin-otp', {
+                otp: document.getElementById('otpCode').value,
+                pin_moi: document.getElementById('forgotNewPin').value
+            });
+            if(res.status === 'ok') {
+                Swal.fire('Thành công!', res.msg, 'success');
+                toggleModal('modalPin');
+                switchPinView('change');
+            } else Swal.fire('Thất bại', res.msg, 'error');
+        }
+
         function handleRes(res, modalId) {
             if(res.status === 'ok') {
                 Swal.fire({ icon: 'success', title: 'Thành công', text: res.msg, timer: 1500, showConfirmButton: false });
                 toggleModal(modalId);
-            } else {
-                Swal.fire({ icon: 'error', title: 'Lỗi', text: res.msg });
-            }
+            } else Swal.fire({ icon: 'error', title: 'Lỗi', text: res.msg });
         }
     </script>
     {{ template "footer" . }}

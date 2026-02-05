@@ -47,6 +47,8 @@ func main() {
 		userGroup.POST("/update-info", chuc_nang.API_DoiThongTin)
 		userGroup.POST("/change-pass", chuc_nang.API_DoiMatKhau)
 		userGroup.POST("/change-pin", chuc_nang.API_DoiMaPin)
+		userGroup.POST("/send-otp-pin", chuc_nang.API_GuiOTPPin)
+        userGroup.POST("/reset-pin-otp", chuc_nang.API_ResetPinBangOTP)
 	}
 
 	router.GET("/tai-khoan", func(c *gin.Context) {

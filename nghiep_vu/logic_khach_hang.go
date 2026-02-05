@@ -2,6 +2,7 @@ package nghiep_vu
 
 import (
 	"errors"
+	"fmt" // <--- ĐÃ THÊM IMPORT NÀY
 	"log"
 	"strings"
 	"time"
@@ -11,7 +12,10 @@ import (
 	"app/mo_hinh"
 )
 
-// Các hàm tìm kiếm giữ nguyên (đã chuẩn)
+// =============================================================
+// CÁC HÀM TRA CỨU & KIỂM TRA
+// =============================================================
+
 func TimKhachHangTheoCookie(cookie string) (*mo_hinh.KhachHang, bool) {
 	for _, kh := range CacheKhachHang.DuLieu {
 		if kh.Cookie == cookie && kh.Cookie != "" {
@@ -56,13 +60,16 @@ func LayDongKhachHang(maKH string) int {
 }
 
 func CapNhatPhienDangNhapKH(kh *mo_hinh.KhachHang) {
-	// Gọi 5 tham số để không lỗi build
+	// Gọi 5 tham số để tương thích hệ thống
 	idFile := cau_hinh.BienCauHinh.IdFileSheet
 	ThemVaoHangCho(idFile, "KHACH_HANG", kh.DongTrongSheet, mo_hinh.CotKH_Cookie, kh.Cookie)
 	ThemVaoHangCho(idFile, "KHACH_HANG", kh.DongTrongSheet, mo_hinh.CotKH_CookieExpired, kh.CookieExpired)
 }
 
+// =============================================================
 // LOGIC ĐĂNG KÝ CHÍNH
+// =============================================================
+
 func ThemKhachHangMoi(input *mo_hinh.KhachHang) error {
 	input.TenDangNhap = strings.ToLower(strings.TrimSpace(input.TenDangNhap))
 	input.Email = strings.ToLower(strings.TrimSpace(input.Email))
@@ -80,11 +87,17 @@ func ThemKhachHangMoi(input *mo_hinh.KhachHang) error {
 		chucVu = "Khách hàng"; vaiTro = "customer"
 	}
 
-	// Tính toán dòng mới (Giả sử dòng bắt đầu dữ liệu + số lượng hiện có)
-	// Để chính xác nhất, ta nên +1 vào dòng của người cuối cùng
-	dongMoi := mo_hinh.DongBatDauDuLieu + 1
-	for _, v := range CacheKhachHang.DuLieu {
-		if v.DongTrongSheet >= dongMoi { dongMoi = v.DongTrongSheet + 1 }
+	// Tính toán dòng mới: Lấy dòng lớn nhất hiện có + 1
+	dongMoi := mo_hinh.DongBatDauDuLieu
+	// Nếu có dữ liệu thì tìm dòng max, nếu không thì ghi vào dòng bắt đầu
+	if len(CacheKhachHang.DuLieu) > 0 {
+		maxRow := 0
+		for _, v := range CacheKhachHang.DuLieu {
+			if v.DongTrongSheet > maxRow { maxRow = v.DongTrongSheet }
+		}
+		if maxRow >= mo_hinh.DongBatDauDuLieu {
+			dongMoi = maxRow + 1
+		}
 	}
 
 	maMoi := TaoMaKhachHangMoi()
@@ -101,18 +114,17 @@ func ThemKhachHangMoi(input *mo_hinh.KhachHang) error {
 	input.TrangThai = 1
 	input.NgayTao = now
 	input.NgayCapNhat = now
-	input.DongTrongSheet = dongMoi // Quan trọng để update sau này
+	input.DongTrongSheet = dongMoi // Quan trọng
 
 	// Lưu Cache
 	CacheKhachHang.DuLieu[maMoi] = input
 	CacheKhachHang.DuLieu[input.TenDangNhap] = input
 	if input.Email != "" { CacheKhachHang.DuLieu[input.Email] = input }
 
-	// GHI XUỐNG SHEET (Ghi từng ô - Tương thích 100% với hàm 5 tham số)
+	// GHI XUỐNG SHEET (Ghi từng ô - Batch worker sẽ tự gom lại)
 	idFile := cau_hinh.BienCauHinh.IdFileSheet
 	sheet := "KHACH_HANG"
 	
-	// Bung lụa từng cột ra ghi (Batch worker sẽ gom lại nên không lo chậm)
 	ThemVaoHangCho(idFile, sheet, dongMoi, mo_hinh.CotKH_MaKhachHang, input.MaKhachHang)
 	ThemVaoHangCho(idFile, sheet, dongMoi, mo_hinh.CotKH_TenDangNhap, input.TenDangNhap)
 	ThemVaoHangCho(idFile, sheet, dongMoi, mo_hinh.CotKH_MatKhauHash, input.MatKhauHash)
@@ -127,6 +139,9 @@ func ThemKhachHangMoi(input *mo_hinh.KhachHang) error {
 	ThemVaoHangCho(idFile, sheet, dongMoi, mo_hinh.CotKH_TrangThai, input.TrangThai)
 	ThemVaoHangCho(idFile, sheet, dongMoi, mo_hinh.CotKH_NgayTao, input.NgayTao)
 	ThemVaoHangCho(idFile, sheet, dongMoi, mo_hinh.CotKH_NgayCapNhat, input.NgayCapNhat)
+	
+	// Map thêm các cột rỗng để giữ chỗ nếu cần (Zalo, Fb...) - Tuỳ chọn
+	ThemVaoHangCho(idFile, sheet, dongMoi, mo_hinh.CotKH_LoaiKhachHang, "")
 
 	return nil
 }
@@ -139,7 +154,9 @@ func TaoMaKhachHangMoi() string {
 		seen[kh.MaKhachHang] = true
 		parts := strings.Split(kh.MaKhachHang, "_")
 		if len(parts) == 2 {
-			id, _ := 0, error(nil); fmt.Sscanf(parts[1], "%d", &id)
+			var id int
+			// Fix lỗi cú pháp Sscanf
+			fmt.Sscanf(parts[1], "%d", &id)
 			if id > maxID { maxID = id }
 		}
 	}

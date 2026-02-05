@@ -26,9 +26,12 @@ func TrangDangKy(c *gin.Context) {
 
 func XuLyDangKy(c *gin.Context) {
 	hoTen     := strings.TrimSpace(c.PostForm("ho_ten"))
-	user      := strings.TrimSpace(c.PostForm("ten_dang_nhap"))
+	
+	// [SỬA] Ép về chữ thường ngay lập tức
+	user      := strings.ToLower(strings.TrimSpace(c.PostForm("ten_dang_nhap")))
+	email     := strings.ToLower(strings.TrimSpace(c.PostForm("email")))
+	
 	pass      := strings.TrimSpace(c.PostForm("mat_khau"))
-	email     := strings.TrimSpace(c.PostForm("email"))
 	maPin     := strings.TrimSpace(c.PostForm("ma_pin"))
 	
 	dienThoai := strings.TrimSpace(c.PostForm("dien_thoai_full")) 
@@ -65,12 +68,12 @@ func XuLyDangKy(c *gin.Context) {
 
 	newKH := &mo_hinh.KhachHang{
 		MaKhachHang:    maKH,
-		TenDangNhap:    user,     // [CHUẨN] Dùng TenDangNhap
-		Email:          email,
+		TenDangNhap:    user,     // Đã lowercase
+		Email:          email,    // Đã lowercase
 		DienThoai:      dienThoai,
 		MatKhauHash:    passHash,
 		MaPinHash:      maPin, 
-		TenKhachHang:   hoTen,    // [CHUẨN] Dùng TenKhachHang
+		TenKhachHang:   hoTen,
 		NgaySinh:       ngaySinh,
 		GioiTinh:       gioiTinh,
 		LoaiKhachHang:  loaiKH,

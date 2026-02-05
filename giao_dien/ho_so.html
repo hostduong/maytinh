@@ -28,9 +28,15 @@
                 </div>
                 <h2 class="mt-3 text-3xl font-bold text-gray-800" id="lblHoTen">{{ .NhanVien.TenKhachHang }}</h2>
                 
-                <div class="text-blue-600 font-bold bg-blue-50 inline-block px-4 py-1 rounded-full text-xs mt-2 uppercase tracking-widest border border-blue-100">
-                    {{ if eq .NhanVien.LoaiKhachHang "khach_le" }}Khách hàng{{ else }}{{ .NhanVien.LoaiKhachHang }}{{ end }}
-                </div>
+<div class="text-blue-600 font-bold bg-blue-50 inline-block px-4 py-1 rounded-full text-xs mt-2 tracking-widest border border-blue-100">
+    {{ if eq .NhanVien.LoaiKhachHang "khach_le" }}
+        Khách hàng
+    {{ else if eq .NhanVien.LoaiKhachHang "quan_tri_vien" }}
+        Quản trị viên cấp cao
+    {{ else }}
+        {{ .NhanVien.LoaiKhachHang }}
+    {{ end }}
+</div>
             </div>
             
             <div class="flex flex-wrap justify-center gap-3 py-8 px-6">

@@ -11,35 +11,103 @@ import (
 	"app/mo_hinh"
 )
 
-// Hàm xử lý nghiệp vụ Đăng ký mới
-func ThemKhachHangMoi(input mo_hinh.KhachHang) error {
-	// 1. Chuẩn hóa dữ liệu
-	input.TenDangNhap = strings.ToLower(strings.TrimSpace(input.TenDangNhap))
-	input.Email = strings.ToLower(strings.TrimSpace(input.Email))
+// =============================================================
+// CÁC HÀM TRA CỨU & KIỂM TRA (Fix lỗi undefined)
+// =============================================================
 
-	// 2. Kiểm tra trùng lặp trong Cache
-	if _, ok := CacheKhachHang.DuLieu[input.TenDangNhap]; ok {
-		return errors.New("Tên đăng nhập đã tồn tại")
-	}
-	if input.Email != "" {
-		if _, ok := CacheKhachHang.DuLieu[input.Email]; ok {
-			return errors.New("Email này đã được sử dụng")
+// 1. Tìm theo Cookie (Session)
+func TimKhachHangTheoCookie(cookie string) (*mo_hinh.KhachHang, bool) {
+	// Vì map lưu theo User/Email nên phải duyệt (Tuy chậm hơn chút nhưng an toàn)
+	// Do số lượng user trong RAM ít nên không đáng kể.
+	// Nếu user lớn > 10.000, ta sẽ tối ưu sau.
+	for _, kh := range CacheKhachHang.DuLieu {
+		if kh.Cookie == cookie && kh.Cookie != "" {
+			// Kiểm tra hạn sử dụng cookie
+			if time.Now().Unix() > kh.CookieExpired {
+				return nil, false
+			}
+			return kh, true
 		}
 	}
+	return nil, false
+}
 
-	// 3. Logic Founder & Phân quyền
-	var chucVu, vaiTro string
-	countUsers := 0
+// 2. Tìm theo User HOẶC Email (Dùng Map nên cực nhanh)
+func TimKhachHangTheoUserOrEmail(input string) (*mo_hinh.KhachHang, bool) {
+	input = strings.ToLower(strings.TrimSpace(input))
+	if kh, ok := CacheKhachHang.DuLieu[input]; ok {
+		return kh, true
+	}
+	return nil, false
+}
+
+// 3. Kiểm tra tồn tại (Trả về bool)
+func KiemTraTonTaiUserEmail(user, email string) bool {
+	user = strings.ToLower(strings.TrimSpace(user))
+	email = strings.ToLower(strings.TrimSpace(email))
 	
+	if _, ok := CacheKhachHang.DuLieu[user]; ok {
+		return true
+	}
+	if email != "" {
+		if _, ok := CacheKhachHang.DuLieu[email]; ok {
+			return true
+		}
+	}
+	return false
+}
+
+// 4. Đếm tổng số khách hàng (Unique)
+func DemSoLuongKhachHang() int {
+	count := 0
 	seen := make(map[string]bool)
 	for _, v := range CacheKhachHang.DuLieu {
 		if !seen[v.MaKhachHang] {
 			seen[v.MaKhachHang] = true
-			countUsers++
+			count++
 		}
 	}
+	return count
+}
 
-	if countUsers == 0 {
+// 5. Lấy dòng trong Sheet
+func LayDongKhachHang(maKH string) int {
+	if kh, ok := CacheKhachHang.DuLieu[maKH]; ok {
+		return kh.DongTrongSheet
+	}
+	return 0
+}
+
+// 6. Cập nhật Phiên đăng nhập (Cookie)
+func CapNhatPhienDangNhapKH(kh *mo_hinh.KhachHang) {
+	// Cập nhật trong RAM (Vì kh là con trỏ nên nó tự update vào Cache)
+	// Chỉ cần đẩy lệnh Update xuống Sheet
+	
+	// Map struct ra mảng dữ liệu
+	row := ConvertKhachHangToRow(*kh) // Hàm này nhận value nên phải *kh
+	
+	// Đẩy vào hàng chờ (LaGhiMoi = false => Update)
+	ThemVaoHangCho("KHACH_HANG", kh.DongTrongSheet, row, false)
+}
+
+// =============================================================
+// LOGIC NGHIỆP VỤ CHÍNH
+// =============================================================
+
+// Hàm xử lý đăng ký tài khoản mới (Input là con trỏ để khớp với code cũ)
+func ThemKhachHangMoi(input *mo_hinh.KhachHang) error {
+	// 1. Chuẩn hóa
+	input.TenDangNhap = strings.ToLower(strings.TrimSpace(input.TenDangNhap))
+	input.Email = strings.ToLower(strings.TrimSpace(input.Email))
+
+	// 2. Kiểm tra trùng
+	if KiemTraTonTaiUserEmail(input.TenDangNhap, input.Email) {
+		return errors.New("Tên đăng nhập hoặc Email đã tồn tại")
+	}
+
+	// 3. Logic Founder
+	var chucVu, vaiTro string
+	if DemSoLuongKhachHang() == 0 {
 		chucVu = "Quản trị viên cấp cao"
 		vaiTro = "admin_root"
 		log.Println("👑 [FOUNDER] Admin Root khởi tạo")
@@ -55,37 +123,28 @@ func ThemKhachHangMoi(input mo_hinh.KhachHang) error {
 	hashPass, _ := bao_mat.HashMatKhau(input.MatKhauHash)
 	hashPin, _ := bao_mat.HashMatKhau(input.MaPinHash)
 
-	newKH := mo_hinh.KhachHang{
-		MaKhachHang:    maMoi,
-		TenDangNhap:    input.TenDangNhap,
-		MatKhauHash:    hashPass,
-		MaPinHash:      hashPin,
-		
-		TenKhachHang:   input.TenKhachHang, 
-		Email:          input.Email,
-		DienThoai:      input.DienThoai,
-		GioiTinh:       input.GioiTinh,
-		NgaySinh:       input.NgaySinh,
-		
-		ChucVu:         chucVu,
-		VaiTroQuyenHan: vaiTro,
-		LoaiKhachHang:  "", // Để trống để Admin tự điền sau
-		TrangThai:      1,
-		
-		NgayTao:        now,
-		NgayCapNhat:    now,
+	// Cập nhật trực tiếp vào con trỏ input để trả về cho Controller nếu cần
+	input.MaKhachHang = maMoi
+	input.MatKhauHash = hashPass
+	input.MaPinHash = hashPin
+	input.ChucVu = chucVu
+	input.VaiTroQuyenHan = vaiTro
+	input.TrangThai = 1
+	input.NgayTao = now
+	input.NgayCapNhat = now
+
+	// 5. Lưu vào Cache (RAM)
+	// Lưu ý: Phải tạo bản copy hoặc lưu con trỏ cẩn thận. 
+	// Ở đây ta lưu con trỏ input vào map.
+	CacheKhachHang.DuLieu[maMoi] = input
+	CacheKhachHang.DuLieu[input.TenDangNhap] = input
+	if input.Email != "" {
+		CacheKhachHang.DuLieu[input.Email] = input
 	}
 
-	// 5. Lưu Cache
-	CacheKhachHang.DuLieu[maMoi] = &newKH
-	CacheKhachHang.DuLieu[newKH.TenDangNhap] = &newKH
-	if newKH.Email != "" {
-		CacheKhachHang.DuLieu[newKH.Email] = &newKH
-	}
-
-	// 6. Đẩy vào Hàng chờ
-	row := ConvertKhachHangToRow(newKH)
-	ThemVaoHangCho("KHACH_HANG", 0, row, true) 
+	// 6. Đẩy vào Hàng chờ (Worker 5s sẽ ghi)
+	row := ConvertKhachHangToRow(*input)
+	ThemVaoHangCho("KHACH_HANG", 0, row, true) // Append
 
 	return nil
 }
@@ -108,11 +167,8 @@ func TaoMaKhachHangMoi() string {
 
 // [UPDATED] Helper: Map ĐẦY ĐỦ các cột để Admin có thể sửa trên Sheet
 func ConvertKhachHangToRow(kh mo_hinh.KhachHang) []interface{} {
-	// Khởi tạo mảng có kích thước đủ lớn (ví dụ 35 cột) để chứa hết các trường
-	// Điều này đảm bảo vị trí cột luôn đúng chuẩn
 	row := make([]interface{}, 35)
 	
-	// Nhóm 1: Định danh & Bảo mật
 	row[mo_hinh.CotKH_MaKhachHang] = kh.MaKhachHang
 	row[mo_hinh.CotKH_TenDangNhap] = kh.TenDangNhap
 	row[mo_hinh.CotKH_MatKhauHash] = kh.MatKhauHash
@@ -120,13 +176,11 @@ func ConvertKhachHangToRow(kh mo_hinh.KhachHang) []interface{} {
 	row[mo_hinh.CotKH_CookieExpired] = kh.CookieExpired
 	row[mo_hinh.CotKH_MaPinHash] = kh.MaPinHash
 
-	// Nhóm 2: Thông tin cá nhân
 	row[mo_hinh.CotKH_LoaiKhachHang] = kh.LoaiKhachHang
 	row[mo_hinh.CotKH_TenKhachHang] = kh.TenKhachHang
 	row[mo_hinh.CotKH_DienThoai] = kh.DienThoai
 	row[mo_hinh.CotKH_Email] = kh.Email
 	
-	// [MỚI] Map thêm các cột Mạng xã hội & Liên hệ (Admin sẽ điền sau)
 	row[mo_hinh.CotKH_UrlFb] = kh.UrlFb
 	row[mo_hinh.CotKH_Zalo] = kh.Zalo
 	row[mo_hinh.CotKH_UrlTele] = kh.UrlTele
@@ -136,19 +190,16 @@ func ConvertKhachHangToRow(kh mo_hinh.KhachHang) []interface{} {
 	row[mo_hinh.CotKH_NgaySinh] = kh.NgaySinh
 	row[mo_hinh.CotKH_GioiTinh] = kh.GioiTinh
 	
-	// Nhóm 3: Tài chính & Thuế
 	row[mo_hinh.CotKH_MaSoThue] = kh.MaSoThue
 	row[mo_hinh.CotKH_DangNo] = kh.DangNo
 	row[mo_hinh.CotKH_TongMua] = kh.TongMua
 
-	// Nhóm 4: Phân quyền & Quản trị
 	row[mo_hinh.CotKH_ChucVu] = kh.ChucVu
 	row[mo_hinh.CotKH_VaiTroQuyenHan] = kh.VaiTroQuyenHan
 	row[mo_hinh.CotKH_TrangThai] = kh.TrangThai
 	row[mo_hinh.CotKH_GhiChu] = kh.GhiChu
 	row[mo_hinh.CotKH_NguoiTao] = kh.NguoiTao
 	
-	// Nhóm 5: Thời gian
 	row[mo_hinh.CotKH_NgayTao] = kh.NgayTao
 	row[mo_hinh.CotKH_NgayCapNhat] = kh.NgayCapNhat
 

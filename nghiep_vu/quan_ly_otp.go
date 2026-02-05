@@ -11,7 +11,7 @@ import (
 	"time"
 )
 
-// Cấu hình API gửi thư
+// Cấu hình API Mail
 const (
 	URL_API_MAIL = "https://script.google.com/macros/s/AKfycbxd40H4neotKdnL54uQevZgSZpyZKXWfV7kJhNLY0oD9pPPA5Mn75KlFWvFd5WqiokZyA/exec"
 	KEY_API_MAIL = "A1qPqCeLaX9oO0ozrMiH1a2IJKFDaj095Dlhmr8STXuS3cCmOe"
@@ -22,7 +22,7 @@ type ThongTinOTP struct {
 	HetHanLuc int64
 }
 
-// Cấu trúc đếm để chặn Spam
+// Struct mới cho Rate Limit
 type BoDemRate struct {
 	LanGuiCuoi   int64
 	SoLanTrong6h int
@@ -30,18 +30,15 @@ type BoDemRate struct {
 }
 
 var CacheOTP = make(map[string]ThongTinOTP)
-var CacheRate = make(map[string]*BoDemRate)
+var CacheRate = make(map[string]*BoDemRate) // Map mới
 var mtxOTP sync.Mutex
 
-// --- [NHÓM HÀM CŨ - GIỮ NGUYÊN] ---
-
-// TaoMaOTP : Sinh mã 8 số (Dùng cho logic cũ)
+// --- [HÀM CŨ - GIỮ NGUYÊN] ---
 func TaoMaOTP() string {
 	n, _ := rand.Int(rand.Reader, big.NewInt(99999999))
 	return fmt.Sprintf("%08d", n.Int64())
 }
 
-// LuuOTP : Lưu vào RAM
 func LuuOTP(userKey string, code string) {
 	mtxOTP.Lock()
 	defer mtxOTP.Unlock()
@@ -51,7 +48,6 @@ func LuuOTP(userKey string, code string) {
 	}
 }
 
-// KiemTraOTP : Kiểm tra mã
 func KiemTraOTP(userKey string, inputCode string) bool {
 	mtxOTP.Lock()
 	defer mtxOTP.Unlock()
@@ -71,15 +67,15 @@ func KiemTraOTP(userKey string, inputCode string) bool {
 	return false
 }
 
-// --- [NHÓM HÀM MỚI - BỔ SUNG] ---
+// --- [HÀM MỚI BỔ SUNG - KHÔNG XÓA CÁI CŨ] ---
 
-// TaoMaOTP6So : Sinh mã 6 số (Dùng cho gửi mail OTP mật khẩu)
+// 1. Sinh mã 6 số (dùng cho Quên mật khẩu OTP)
 func TaoMaOTP6So() string {
 	n, _ := rand.Int(rand.Reader, big.NewInt(999999))
 	return fmt.Sprintf("%06d", n.Int64())
 }
 
-// KiemTraRateLimit : Chặn spam (1 phút/lần, 10 lần/6h)
+// 2. Kiểm tra Rate Limit gửi mail
 func KiemTraRateLimit(email string) (bool, string) {
 	mtxOTP.Lock()
 	defer mtxOTP.Unlock()
@@ -88,7 +84,7 @@ func KiemTraRateLimit(email string) (bool, string) {
 	rd, ok := CacheRate[email]
 
 	if !ok || now > rd.ResetLuc {
-		CacheRate[email] = &BoDemRate{ResetLuc: now + (6 * 3600)}
+		CacheRate[email] = &BoDemRate{ResetLuc: now + 21600} // 6 tiếng
 		rd = CacheRate[email]
 	}
 
@@ -96,39 +92,38 @@ func KiemTraRateLimit(email string) (bool, string) {
 		return false, fmt.Sprintf("Vui lòng đợi %d giây.", 60-(now-rd.LanGuiCuoi))
 	}
 	if rd.SoLanTrong6h >= 10 {
-		return false, "Bạn đã vượt quá 10 lần gửi trong 6 giờ."
+		return false, "Vượt quá giới hạn 10 lần/6 giờ."
 	}
+	
 	rd.LanGuiCuoi = now
 	rd.SoLanTrong6h++
 	return true, ""
 }
 
-// Gọi API bên thứ 3 để gửi mail xác minh (OTP)
+// 3. Gọi API gửi thư (OTP)
 func GuiMailXacMinhAPI(email, code string) error {
-	payload := map[string]string{
-		"type": "sender_mail", "api_key": KEY_API_MAIL, "email": email, "code": code,
-	}
-	return callEmailAPI(payload)
+	p := map[string]string{"type": "sender_mail", "api_key": KEY_API_MAIL, "email": email, "code": code}
+	return callApi(p)
 }
 
-// Gọi API bên thứ 3 để gửi mail thông báo (Nội dung tùy chỉnh - Dùng cho PIN mới)
+// 4. Gọi API gửi thư (Thông báo PIN mới)
 func GuiMailThongBaoAPI(email, subject, name, body string) error {
-	payload := map[string]string{
+	p := map[string]string{
 		"type": "sender", "api_key": KEY_API_MAIL, "email": email,
 		"subject": subject, "name": name, "body": body,
 	}
-	return callEmailAPI(payload)
+	return callApi(p)
 }
 
-func callEmailAPI(payload interface{}) error {
-	jsonData, _ := json.Marshal(payload)
-	resp, err := http.Post(URL_API_MAIL, "application/json", bytes.NewBuffer(jsonData))
+func callApi(payload interface{}) error {
+	b, _ := json.Marshal(payload)
+	resp, err := http.Post(URL_API_MAIL, "application/json", bytes.NewBuffer(b))
 	if err != nil { return err }
 	defer resp.Body.Close()
-
-	var res struct { Status string `json:"status"`; Messenger string `json:"messenger"` }
-	json.NewDecoder(resp.Body).Decode(&res)
-
-	if res.Status == "true" { return nil }
-	return fmt.Errorf("%s", res.Messenger)
+	
+	var r struct { Status string `json:"status"`; Messenger string `json:"messenger"` }
+	json.NewDecoder(resp.Body).Decode(&r)
+	
+	if r.Status == "true" { return nil }
+	return fmt.Errorf("%s", r.Messenger)
 }

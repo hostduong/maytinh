@@ -17,7 +17,7 @@ import (
 )
 
 func main() {
-	log.Println(">>> ĐANG KHỞI ĐỘNG HỆ THỐNG (PUBLIC MODE)...")
+	log.Println(">>> ĐANG KHỞI ĐỘNG HỆ THỐNG MAYTINHSHOP...")
 
 	cau_hinh.KhoiTaoCauHinh()
 	kho_du_lieu.KhoiTaoKetNoiGoogle()
@@ -47,10 +47,8 @@ func main() {
 		userGroup.POST("/update-info", chuc_nang.API_DoiThongTin)
 		userGroup.POST("/change-pass", chuc_nang.API_DoiMatKhau)
 		userGroup.POST("/change-pin", chuc_nang.API_DoiMaPin)
+		// [BỔ SUNG] Chỉ giữ lại hàm này, hàm reset-pin-otp đã bỏ
 		userGroup.POST("/send-otp-pin", chuc_nang.API_GuiOTPPin)
-		
-		// [QUAN TRỌNG] Đã xóa dòng gọi API_ResetPinBangOTP vì không dùng nữa
-		// Để tránh lỗi undefined khi build
 	}
 
 	router.GET("/tai-khoan", func(c *gin.Context) {
@@ -96,18 +94,18 @@ func main() {
 		admin.GET("/reload", chuc_nang.API_NapLaiDuLieu)
 	}
 
-	// [FIX LỖI DEPLOY] Cloud Run bắt buộc 0.0.0.0
+	// [FIX LỖI DEPLOY] Bắt buộc dùng 0.0.0.0
 	port := os.Getenv("PORT")
-	if port == "" { port = cau_hinh.BienCauHinh.CongChayWeb }
-	if port == "" { port = "8080" }
+	if port == "" {
+		port = "8080"
+	}
 	
-	addr := "0.0.0.0:" + port
-	srv := &http.Server{ Addr: addr, Handler: router }
+	srv := &http.Server{ Addr: "0.0.0.0:" + port, Handler: router }
 
 	go func() {
-		log.Printf("✅ Server đang lắng nghe tại: %s", addr)
+		log.Printf("Server đang chạy tại cổng %s...", port)
 		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			log.Fatalf("❌ Lỗi server: %s\n", err)
+			log.Fatalf("Lỗi server: %s\n", err)
 		}
 	}()
 
@@ -115,7 +113,7 @@ func main() {
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 	<-quit
 	
-	log.Println("⚠️ Đang tắt Server...")
+	log.Println("⚠️ Đang tắt Server... Xả hàng đợi...")
 	nghiep_vu.ThucHienGhiSheet(true)
 	log.Println("✅ Server đã tắt an toàn.")
 }

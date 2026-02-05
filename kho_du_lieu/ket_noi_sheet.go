@@ -4,8 +4,8 @@ import (
 	"context"
 	"log"
 
-	"google.golang.org/api/option"
 	"google.golang.org/api/sheets/v4"
+    // Bỏ dòng option.WithoutAuthentication
 )
 
 var DichVuSheet *sheets.Service
@@ -13,15 +13,15 @@ var DichVuSheet *sheets.Service
 func KhoiTaoKetNoiGoogle() {
 	ctx := context.Background()
 
-	// Kết nối Public (Không xác thực)
-	srv, err := sheets.NewService(ctx, option.WithoutAuthentication())
+	// [NÂNG CẤP] Không truyền option gì cả.
+	// Go sẽ tự động tìm Service Account của Cloud Run (ADC) để lấy quyền Ghi.
+	srv, err := sheets.NewService(ctx)
 
 	if err != nil {
-		// [QUAN TRỌNG] Chỉ in lỗi, KHÔNG ĐƯỢC DÙNG log.Fatalf (Sẽ làm sập Web)
-		log.Printf("❌ CẢNH BÁO: Không thể kết nối Google Sheet! Lỗi: %v", err)
+		log.Printf("❌ LỖI KẾT NỐI GOOGLE SHEET: %v", err)
 		return
 	}
 
 	DichVuSheet = srv
-	log.Println("✅ [KẾT NỐI] Đã kết nối Google Sheets (Public Mode)")
+	log.Println("✅ [ADC] Đã kết nối Google Sheets bằng quyền Cloud Run (Đọc/Ghi)")
 }

@@ -13,12 +13,9 @@ type CauHinhHeThong struct {
 
 var BienCauHinh CauHinhHeThong
 
-// [CẤU HÌNH] Các tham số hệ thống
+// [CẤU HÌNH] Chu kỳ ghi dữ liệu xuống Sheet (5 Giây)
 const (
-	// Chu kỳ ghi dữ liệu xuống Sheet (Đang test: 2s)
 	ChuKyGhiSheet = 2 * time.Second
-    // Dữ liệu bắt đầu từ dòng 11 trong sheet google
-	DongBatDauDuLieu = 11 
 )
 
 func KhoiTaoCauHinh() {
@@ -37,5 +34,5 @@ func KhoiTaoCauHinh() {
 		CongChayWeb: congWeb,
 	}
 
-	log.Println("--- [CẤU HÌNH] Đã tải xong (Mode: Public + Batch 2s) ---")
+	log.Println("--- [CẤU HÌNH] Đã tải xong (Mode: Public + Batch 5s) ---")
 }

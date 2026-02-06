@@ -12,19 +12,28 @@ import (
 
 func TrangQuenMatKhau(c *gin.Context) { c.HTML(http.StatusOK, "quen_mat_khau", gin.H{}) }
 
+// [CẬP NHẬT CHUẨN]: Kiểm tra PIN bằng Bcrypt
 func XuLyQuenPassBangPIN(c *gin.Context) {
 	user := strings.ToLower(strings.TrimSpace(c.PostForm("user")))
-	pin := strings.TrimSpace(c.PostForm("pin"))
+	pinInput := strings.TrimSpace(c.PostForm("pin"))
 	passMoi := strings.TrimSpace(c.PostForm("pass_moi"))
+	
 	kh, ok := nghiep_vu.TimKhachHangTheoUserOrEmail(user)
-	if !ok || kh.MaPinHash != pin { c.JSON(200, gin.H{"status": "error", "msg": "Thông tin sai!"}); return }
+	
+	// Sử dụng KiemTraMatKhau để so sánh pin thô với mã PIN đã băm trong database
+	if !ok || !bao_mat.KiemTraMatKhau(pinInput, kh.MaPinHash) { 
+		c.JSON(200, gin.H{"status": "error", "msg": "Tài khoản hoặc mã PIN không chính xác!"})
+		return 
+	}
 	
 	hash, _ := bao_mat.HashMatKhau(passMoi)
 	kh.MatKhauHash = hash
 	nghiep_vu.ThemVaoHangCho(cau_hinh.BienCauHinh.IdFileSheet, "KHACH_HANG", kh.DongTrongSheet, mo_hinh.CotKH_MatKhauHash, hash)
+	
 	c.JSON(200, gin.H{"status": "ok", "msg": "Đổi mật khẩu thành công!"})
 }
 
+// ... (Các hàm XuLyGuiOTPEmail và XuLyQuenPassBangOTP giữ nguyên) ...
 func XuLyGuiOTPEmail(c *gin.Context) {
 	email := strings.ToLower(strings.TrimSpace(c.PostForm("email")))
 	kh, ok := nghiep_vu.TimKhachHangTheoUserOrEmail(email)

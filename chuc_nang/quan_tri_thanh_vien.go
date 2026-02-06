@@ -26,8 +26,6 @@ func API_Admin_SuaThanhVien(c *gin.Context) {
 	maKhachHangCanSua := c.PostForm("ma_khach_hang") // ID của người bị sửa
 	
 	// Tìm khách hàng trong RAM
-	// Lưu ý: Hàm TimKhachHang... hiện tại tìm theo User/Email/Cookie
-	// Ta nên dùng hàm tìm trực tiếp trong Map bằng ID cho chính xác
 	khachHang, tonTai := nghiep_vu.LayThongTinKhachHang(maKhachHangCanSua)
 	if !tonTai {
 		c.JSON(http.StatusNotFound, gin.H{"status": "error", "msg": "Không tìm thấy khách hàng này!"})
@@ -37,7 +35,9 @@ func API_Admin_SuaThanhVien(c *gin.Context) {
 	// 3. CẬP NHẬT THÔNG TIN (Chỉ cập nhật những gì gửi lên)
 	hoTenMoi := strings.TrimSpace(c.PostForm("ho_ten"))
 	sdtMoi   := strings.TrimSpace(c.PostForm("dien_thoai"))
-	emailMoi := strings.ToLower(strings.TrimSpace(c.PostForm("email")))
+	
+	// [ĐÃ XÓA BIẾN EMAIL THỪA TẠI ĐÂY ĐỂ FIX LỖI BUILD]
+	// Logic sửa Email phức tạp hơn vì dính đến Key Map, tạm thời chưa cho sửa Email ở đây
 	
 	idSheet := cau_hinh.BienCauHinh.IdFileSheet
 	row := khachHang.DongTrongSheet
@@ -51,9 +51,7 @@ func API_Admin_SuaThanhVien(c *gin.Context) {
 		khachHang.DienThoai = sdtMoi
 		nghiep_vu.ThemVaoHangCho(idSheet, "KHACH_HANG", row, mo_hinh.CotKH_DienThoai, sdtMoi)
 	}
-	// Logic sửa Email phức tạp hơn vì dính đến Key Map, tạm thời chưa cho sửa Email ở đây
-	// Nếu muốn sửa Email phải xóa Key cũ trong Map đi và thêm Key mới -> Để sau
-	
+
 	// Reset Mật khẩu (Nếu có)
 	passMoi := c.PostForm("new_password")
 	if passMoi != "" {

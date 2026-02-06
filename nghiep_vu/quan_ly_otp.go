@@ -5,6 +5,8 @@ import (
 	"crypto/rand"
 	"encoding/json"
 	"fmt"
+	"io"
+	"log"
 	"math/big"
 	"net/http"
 	"sync"
@@ -23,7 +25,6 @@ var CacheOTP = make(map[string]ThongTinOTP)
 var CacheRate = make(map[string]*BoDemRate)
 var mtxOTP sync.Mutex
 
-// --- [HÀM CŨ 8 SỐ - GIỮ NGUYÊN] ---
 func TaoMaOTP() string {
 	n, _ := rand.Int(rand.Reader, big.NewInt(99999999))
 	return fmt.Sprintf("%08d", n.Int64())
@@ -41,8 +42,6 @@ func KiemTraOTP(userKey string, inputCode string) bool {
 	if otp.MaCode == inputCode { delete(CacheOTP, userKey); return true }
 	return false
 }
-
-// --- [HÀM BỔ SUNG] ---
 
 func TaoMaOTP6So() string {
 	n, _ := rand.Int(rand.Reader, big.NewInt(999999))
@@ -67,13 +66,22 @@ func GuiMailThongBaoAPI(email, subject, name, body string) error {
 	return callApi(map[string]string{"type": "sender", "api_key": KEY_API_MAIL, "email": email, "subject": subject, "name": name, "body": body})
 }
 
+// [CẬP NHẬT HÀM NÀY ĐỂ DEBUG]
 func callApi(payload interface{}) error {
 	b, _ := json.Marshal(payload)
 	resp, err := http.Post(URL_API_MAIL, "application/json", bytes.NewBuffer(b))
 	if err != nil { return err }
 	defer resp.Body.Close()
+
+	// Đọc Raw Body để log
+	bodyBytes, _ := io.ReadAll(resp.Body)
+	log.Printf("📧 [MAIL API LOG]: %s", string(bodyBytes))
+
 	var r struct{ Status string `json:"status"`; Messenger string `json:"messenger"` }
-	json.NewDecoder(resp.Body).Decode(&r)
+	if err := json.Unmarshal(bodyBytes, &r); err != nil {
+		return fmt.Errorf("Lỗi định dạng JSON từ Google: %v", err)
+	}
+
 	if r.Status == "true" { return nil }
 	return fmt.Errorf("%s", r.Messenger)
 }

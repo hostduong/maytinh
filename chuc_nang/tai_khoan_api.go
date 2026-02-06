@@ -12,7 +12,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// [GIỮ NGUYÊN 3 HÀM CŨ: API_DoiThongTin, API_DoiMatKhau, API_DoiMaPin]
+// API_DoiThongTin : (Giữ nguyên)
 func API_DoiThongTin(c *gin.Context) {
 	hoTenMoi    := strings.TrimSpace(c.PostForm("ho_ten"))
 	sdtMoi      := strings.TrimSpace(c.PostForm("dien_thoai"))
@@ -34,6 +34,7 @@ func API_DoiThongTin(c *gin.Context) {
 	} else { c.JSON(401, gin.H{"status": "error", "msg": "Hết phiên"}) }
 }
 
+// API_DoiMatKhau : (Giữ nguyên)
 func API_DoiMatKhau(c *gin.Context) {
 	passCu := strings.TrimSpace(c.PostForm("pass_cu"))
 	passMoi := strings.TrimSpace(c.PostForm("pass_moi"))
@@ -48,20 +49,31 @@ func API_DoiMatKhau(c *gin.Context) {
 	} else { c.JSON(401, gin.H{"status": "error", "msg": "Hết phiên"}) }
 }
 
+// [CẬP NHẬT CHUẨN]: Đổi mã PIN có băm (Hash)
 func API_DoiMaPin(c *gin.Context) {
 	pinCu := strings.TrimSpace(c.PostForm("pin_cu"))
 	pinMoi := strings.TrimSpace(c.PostForm("pin_moi"))
 	cookie, _ := c.Cookie("session_id")
-	if !bao_mat.KiemTraMaPin(pinMoi) { c.JSON(200, gin.H{"status": "error", "msg": "PIN phải 8 số!"}); return }
+	
+	if !bao_mat.KiemTraMaPin(pinMoi) { c.JSON(200, gin.H{"status": "error", "msg": "PIN phải đủ 8 số!"}); return }
+	
 	if kh, ok := nghiep_vu.TimKhachHangTheoCookie(cookie); ok {
-		if kh.MaPinHash != pinCu { c.JSON(200, gin.H{"status": "error", "msg": "PIN cũ sai!"}); return }
-		kh.MaPinHash = pinMoi
-		nghiep_vu.ThemVaoHangCho(cau_hinh.BienCauHinh.IdFileSheet, "KHACH_HANG", kh.DongTrongSheet, mo_hinh.CotKH_MaPinHash, pinMoi)
-		c.JSON(200, gin.H{"status": "ok", "msg": "Đổi PIN thành công!"})
-	} else { c.JSON(401, gin.H{"status": "error", "msg": "Hết phiên"}) }
+		// Dùng KiemTraMatKhau để so sánh mã PIN cũ đã băm
+		if !bao_mat.KiemTraMatKhau(pinCu, kh.MaPinHash) {
+			c.JSON(200, gin.H{"status": "error", "msg": "Mã PIN hiện tại không đúng!"})
+			return
+		}
+		
+		// Băm mã PIN mới trước khi lưu
+		hashMoi, _ := bao_mat.HashMatKhau(pinMoi)
+		kh.MaPinHash = hashMoi
+		nghiep_vu.ThemVaoHangCho(cau_hinh.BienCauHinh.IdFileSheet, "KHACH_HANG", kh.DongTrongSheet, mo_hinh.CotKH_MaPinHash, hashMoi)
+		
+		c.JSON(200, gin.H{"status": "ok", "msg": "Đổi mã PIN thành công!"})
+	} else { c.JSON(401, gin.H{"status": "error", "msg": "Hết phiên làm việc"}) }
 }
 
-// [CẬP NHẬT BODY MAIL]
+// [CẬP NHẬT CHUẨN]: Gửi PIN mới qua Email có băm (Hash)
 func API_GuiOTPPin(c *gin.Context) {
 	cookie, _ := c.Cookie("session_id")
 	kh, ok := nghiep_vu.TimKhachHangTheoCookie(cookie)
@@ -70,9 +82,10 @@ func API_GuiOTPPin(c *gin.Context) {
 	theGui, msg := nghiep_vu.KiemTraRateLimit(kh.Email)
 	if !theGui { c.JSON(200, gin.H{"status": "error", "msg": msg}); return }
 
-	newPin := nghiep_vu.TaoMaOTP()
+	// 1. Tạo PIN ngẫu nhiên 8 số (mã thô để gửi mail)
+	newPinRaw := nghiep_vu.TaoMaOTP()
 
-	// [BODY MỚI]
+	// 2. Nội dung Email chuẩn
 	body := fmt.Sprintf(`Xin chào,
 
 Chúng tôi đã tạo mã PIN mới cho tài khoản %s theo yêu cầu của bạn trên hệ thống.
@@ -84,7 +97,7 @@ Vì lý do bảo mật, vui lòng đổi mã PIN này ngay sau khi đăng nhập
 Nếu bạn không yêu cầu thay đổi mã PIN, bạn có thể bỏ qua email này.
 
 Trân trọng,
-Đội ngũ hỗ trợ`, kh.Email, newPin)
+Đội ngũ hỗ trợ`, kh.Email, newPinRaw)
 
 	err := nghiep_vu.GuiMailThongBaoAPI(kh.Email, "Thông báo thay đổi mã PIN", "Hỗ trợ tài khoản", body)
 	if err != nil {
@@ -92,8 +105,10 @@ Trân trọng,
 		return
 	}
 
-	kh.MaPinHash = newPin
-	nghiep_vu.ThemVaoHangCho(cau_hinh.BienCauHinh.IdFileSheet, "KHACH_HANG", kh.DongTrongSheet, mo_hinh.CotKH_MaPinHash, newPin)
+	// 3. Băm mã PIN mới trước khi lưu vào RAM và Sheet
+	hashNewPin, _ := bao_mat.HashMatKhau(newPinRaw)
+	kh.MaPinHash = hashNewPin
+	nghiep_vu.ThemVaoHangCho(cau_hinh.BienCauHinh.IdFileSheet, "KHACH_HANG", kh.DongTrongSheet, mo_hinh.CotKH_MaPinHash, hashNewPin)
 
 	c.JSON(200, gin.H{"status": "ok", "msg": "Đã gửi mã PIN mới vào Email!"})
 }

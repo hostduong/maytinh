@@ -16,10 +16,8 @@
     </style>
 
     <div class="max-w-3xl mx-auto py-10 px-4">
-        
         <div class="bg-white rounded-2xl shadow-xl overflow-hidden border border-gray-100 mb-6">
             <div class="bg-gradient-to-r from-blue-600 to-indigo-700 h-32 relative"></div>
-            
             <div class="text-center -mt-16 relative px-6">
                  <div class="inline-block p-1 bg-white rounded-full shadow-md">
                     <div class="w-28 h-28 bg-gray-100 rounded-full flex items-center justify-center overflow-hidden border-2 border-white shadow-inner">
@@ -27,7 +25,6 @@
                     </div>
                 </div>
                 <h2 class="mt-3 text-3xl font-bold text-gray-800" id="lblHoTen">{{ .NhanVien.TenKhachHang }}</h2>
-                
                 <div class="text-blue-600 font-bold bg-blue-50 inline-block px-4 py-1 rounded-full text-xs mt-2 tracking-widest border border-blue-100">
                     {{ .NhanVien.ChucVu }}
                 </div>
@@ -191,6 +188,20 @@
             utilsScript: "https://cdn.jsdelivr.net/npm/intl-tel-input@18.2.1/build/js/utils.js",
         });
 
+        // Helper function for loading state
+        function setBtnLoading(id, text) {
+            const btn = document.getElementById(id);
+            btn.disabled = true;
+            btn.dataset.oldText = btn.innerHTML;
+            btn.innerHTML = `<svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-white inline-block" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> ${text}`;
+        }
+        
+        function setBtnNormal(id) {
+            const btn = document.getElementById(id);
+            btn.disabled = false;
+            btn.innerHTML = btn.dataset.oldText;
+        }
+
         function togglePass(id) {
             const input = document.getElementById(id);
             const eyeIcon = document.getElementById('eye_' + id);
@@ -291,7 +302,8 @@
             catch (e) { return { status: 'error', msg: 'Lỗi kết nối server!' }; }
         }
 
-        function handleRes(res, modalId) {
+        function handleRes(res, modalId, btnId) {
+            if (btnId) setBtnNormal(btnId);
             if(res.status === 'ok') {
                 Swal.fire({ icon: 'success', title: 'Thành công', text: res.msg }).then(() => location.reload());
                 toggleModal(modalId);
@@ -301,11 +313,13 @@
         }
 
         async function doiPass() {
+            setBtnLoading('btnSavePass', 'Đang lưu...');
             const res = await postData('/api/user/change-pass', { pass_cu: document.getElementById('oldPass').value, pass_moi: document.getElementById('newPass').value });
-            handleRes(res, 'modalPass');
+            handleRes(res, 'modalPass', 'btnSavePass');
         }
 
         async function capNhatThongTin() {
+            setBtnLoading('btnSaveInfo', 'Đang cập nhật...');
             const data = {
                 ho_ten: document.getElementById('newName').value,
                 dien_thoai: iti.getNumber(),
@@ -313,18 +327,25 @@
                 gioi_tinh: document.getElementById('newGender').value
             };
             const res = await postData('/api/user/update-info', data);
-            handleRes(res, 'modalInfo');
+            handleRes(res, 'modalInfo', 'btnSaveInfo');
         }
 
         async function doiPin() {
+            setBtnLoading('btnSavePin', 'Đang lưu...');
             const res = await postData('/api/user/change-pin', { pin_cu: document.getElementById('oldPin').value, pin_moi: document.getElementById('newPin').value });
-            handleRes(res, 'modalPin');
+            handleRes(res, 'modalPin', 'btnSavePin');
         }
 
         async function guiYeuCauResetPin() {
-            const res = await fetch('/api/user/send-otp-pin', { method: 'POST' });
-            const json = await res.json();
-            handleRes(json, 'modalPin');
+            setBtnLoading('btnConfirmForgot', 'Đang xử lý...');
+            try {
+                const res = await fetch('/api/user/send-otp-pin', { method: 'POST' });
+                const json = await res.json();
+                handleRes(json, 'modalPin', 'btnConfirmForgot');
+            } catch (e) {
+                setBtnNormal('btnConfirmForgot');
+                Swal.fire({ icon: 'error', title: 'Lỗi', text: 'Không thể kết nối đến server' });
+            }
         }
     </script>
 {{ end }}

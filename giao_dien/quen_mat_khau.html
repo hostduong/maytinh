@@ -1,48 +1,53 @@
 {{ define "quen_mat_khau" }}
-<!DOCTYPE html>
-<html lang="vi">
-<head>
-    <meta charset="UTF-8">
-    <title>Khôi phục mật khẩu</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+    {{ template "header" . }}
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <style> .tab-active { border-bottom: 2px solid #2563eb; color: #2563eb; font-weight: 600; } </style>
-</head>
-<body class="bg-gray-100 h-screen flex items-center justify-center">
 
-    <div class="bg-white p-8 rounded-2xl shadow-xl w-full max-w-md border border-gray-200">
-        <h1 class="text-2xl font-bold text-center mb-6 text-gray-800">Khôi phục mật khẩu</h1>
+    <div class="bg-gray-50 min-h-[calc(100vh-200px)] flex items-center justify-center py-10 px-4">
 
-        <div class="flex border-b mb-6">
-            <button onclick="switchTab('pin')" id="btnTabPin" class="flex-1 pb-3 text-gray-500 tab-active transition">Dùng Mã PIN</button>
-            <button onclick="switchTab('email')" id="btnTabEmail" class="flex-1 pb-3 text-gray-500 transition">Dùng Email</button>
-        </div>
+        <div class="bg-white p-8 rounded-2xl shadow-xl w-full max-w-md border border-gray-200">
+            <h1 class="text-2xl font-bold text-center mb-6 text-gray-800">Khôi phục mật khẩu</h1>
 
-        <div id="formPin" class="space-y-4">
-            <input type="text" id="pinUser" placeholder="Tên đăng nhập" class="w-full p-3 border rounded-lg bg-gray-50 focus:ring-2 focus:ring-blue-500 outline-none">
-            <input type="password" id="pinCode" maxlength="8" placeholder="Mã PIN bảo mật (8 số)" class="w-full p-3 border rounded-lg bg-gray-50 focus:ring-2 focus:ring-blue-500 outline-none">
-            <input type="password" id="pinNewPass" placeholder="Mật khẩu mới (min 8 ký tự)" class="w-full p-3 border rounded-lg bg-gray-50 focus:ring-2 focus:ring-blue-500 outline-none">
-            <button onclick="resetByPin()" class="w-full bg-blue-600 text-white py-3 rounded-lg font-bold hover:bg-blue-700 shadow-lg shadow-blue-500/30 transition">ĐỔI MẬT KHẨU</button>
-        </div>
-
-        <div id="formEmail" class="space-y-4 hidden">
-            <div id="step1">
-                <input type="text" id="emailInput" placeholder="Nhập Email của bạn" class="w-full p-3 border rounded-lg bg-gray-50 mb-3 focus:ring-2 focus:ring-purple-500 outline-none">
-                <button onclick="sendOtp()" class="w-full bg-purple-600 text-white py-3 rounded-lg font-bold hover:bg-purple-700 shadow-lg shadow-purple-500/30 transition">GỬI MÃ OTP</button>
+            <div class="flex border-b mb-6">
+                <button onclick="switchTab('pin')" id="btnTabPin" class="flex-1 pb-3 text-gray-500 tab-active transition">Dùng Mã PIN</button>
+                <button onclick="switchTab('email')" id="btnTabEmail" class="flex-1 pb-3 text-gray-500 transition">Dùng Email</button>
             </div>
-            
-            <div id="step2" class="hidden space-y-3">
-                <div class="bg-green-50 text-green-700 p-3 text-sm rounded border border-green-200 flex items-center gap-2">
-                    <span>✅</span> Đã gửi mã OTP 8 số về email của bạn.
+
+            <div id="formPin" class="space-y-4">
+                <input type="text" id="pinUser" placeholder="Tên đăng nhập" class="w-full p-3 border rounded-lg bg-gray-50 focus:ring-2 focus:ring-blue-500 outline-none">
+                
+                <input type="text" id="pinCode" maxlength="8" placeholder="Mã PIN bảo mật (8 số)" class="w-full p-3 border rounded-lg bg-gray-50 focus:ring-2 focus:ring-blue-500 outline-none">
+                <input type="text" id="pinNewPass" placeholder="Mật khẩu mới (min 8 ký tự)" class="w-full p-3 border rounded-lg bg-gray-50 focus:ring-2 focus:ring-blue-500 outline-none">
+                
+                <button onclick="resetByPin()" class="w-full bg-blue-600 text-white py-3 rounded-lg font-bold hover:bg-blue-700 shadow-lg shadow-blue-500/30 transition">ĐỔI MẬT KHẨU</button>
+            </div>
+
+            <div id="formEmail" class="space-y-4 hidden">
+                <div id="step1">
+                    <input type="text" id="emailInput" placeholder="Nhập Email của bạn" class="w-full p-3 border rounded-lg bg-gray-50 mb-3 focus:ring-2 focus:ring-purple-500 outline-none">
+                    
+                    <button id="btnSendOtp" onclick="sendOtp()" class="w-full bg-purple-600 text-white py-3 rounded-lg font-bold hover:bg-purple-700 shadow-lg shadow-purple-500/30 transition">GỬI MÃ OTP</button>
+                    
+                    <div id="countdownArea" class="hidden text-center mt-3 text-sm text-gray-500">
+                        Gửi lại mã sau <span id="timer" class="font-bold text-purple-600">60</span>s
+                    </div>
                 </div>
-                <input type="text" id="otpInput" placeholder="Nhập mã OTP (8 số)" class="w-full p-3 border rounded-lg bg-gray-50 focus:ring-2 focus:ring-green-500 outline-none">
-                <input type="password" id="otpNewPass" placeholder="Mật khẩu mới (min 8 ký tự)" class="w-full p-3 border rounded-lg bg-gray-50 focus:ring-2 focus:ring-green-500 outline-none">
-                <button onclick="resetByOtp()" class="w-full bg-green-600 text-white py-3 rounded-lg font-bold hover:bg-green-700 shadow-lg shadow-green-500/30 transition">XÁC NHẬN ĐỔI</button>
+                
+                <div id="step2" class="hidden space-y-3">
+                    <div class="bg-green-50 text-green-700 p-3 text-sm rounded border border-green-200 flex items-center gap-2">
+                        <span>✅</span> Đã gửi mã OTP 6 số về email.
+                    </div>
+                    <input type="text" id="otpInput" placeholder="Nhập mã OTP (6 số)" class="w-full p-3 border rounded-lg bg-gray-50 focus:ring-2 focus:ring-green-500 outline-none">
+                    
+                    <input type="text" id="otpNewPass" placeholder="Mật khẩu mới (min 8 ký tự)" class="w-full p-3 border rounded-lg bg-gray-50 focus:ring-2 focus:ring-green-500 outline-none">
+                    
+                    <button onclick="resetByOtp()" class="w-full bg-green-600 text-white py-3 rounded-lg font-bold hover:bg-green-700 shadow-lg shadow-green-500/30 transition">XÁC NHẬN ĐỔI</button>
+                </div>
             </div>
-        </div>
 
-        <div class="mt-6 text-center text-sm">
-            <a href="/login" class="text-blue-600 hover:underline font-medium">← Quay lại đăng nhập</a>
+            <div class="mt-6 text-center text-sm">
+                <a href="/login" class="text-blue-600 hover:underline font-medium">← Quay lại đăng nhập</a>
+            </div>
         </div>
     </div>
 
@@ -60,6 +65,32 @@
                 document.getElementById('formEmail').classList.remove('hidden');
                 document.getElementById('btnTabEmail').classList.add('tab-active');
             }
+        }
+
+        // --- LOGIC ĐẾM NGƯỢC 60s ---
+        let countdownInterval;
+        function startCountdown() {
+            const btn = document.getElementById('btnSendOtp');
+            const area = document.getElementById('countdownArea');
+            const timer = document.getElementById('timer');
+            let timeLeft = 60;
+
+            // Ẩn nút, hiện đếm ngược
+            btn.classList.add('hidden');
+            area.classList.remove('hidden');
+            timer.innerText = timeLeft;
+
+            countdownInterval = setInterval(() => {
+                timeLeft--;
+                timer.innerText = timeLeft;
+                if(timeLeft <= 0) {
+                    clearInterval(countdownInterval);
+                    // Hiện lại nút với text mới
+                    btn.innerText = "GỬI LẠI MÃ OTP";
+                    btn.classList.remove('hidden');
+                    area.classList.add('hidden');
+                }
+            }, 1000);
         }
 
         async function postData(url, data) {
@@ -102,19 +133,26 @@
             }
         }
 
-        // --- GỬI OTP ---
+        // --- GỬI OTP (CÓ ĐẾM NGƯỢC) ---
         async function sendOtp() {
             const email = document.getElementById('emailInput').value;
             if(!email.includes('@')) return Swal.fire('Lỗi', 'Email không hợp lệ', 'warning');
 
+            // Bắt đầu đếm ngược ngay khi bấm
+            startCountdown();
+
             const res = await postData('/api/auth/send-otp', { email: email });
             
             if(res.status === 'ok') {
-                Swal.fire({ icon: 'success', title: 'Đã gửi!', text: res.msg, timer: 2000, showConfirmButton: false });
-                document.getElementById('step1').classList.add('hidden');
+                // Swal.fire({ icon: 'success', title: 'Đã gửi!', text: res.msg, timer: 2000, showConfirmButton: false });
+                document.getElementById('step1').classList.add('hidden'); // Ẩn bước nhập mail đi cho gọn (hoặc giữ lại tùy ý)
                 document.getElementById('step2').classList.remove('hidden');
             } else {
                 Swal.fire({ icon: 'error', title: 'Lỗi!', text: res.msg });
+                // Nếu lỗi thì dừng đếm ngược, hiện lại nút
+                clearInterval(countdownInterval);
+                document.getElementById('btnSendOtp').classList.remove('hidden');
+                document.getElementById('countdownArea').classList.add('hidden');
             }
         }
 
@@ -138,6 +176,5 @@
             }
         }
     </script>
-</body>
-</html>
+    {{ template "footer" . }}
 {{ end }}

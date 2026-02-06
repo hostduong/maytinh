@@ -2,7 +2,7 @@ package nghiep_vu
 
 import (
 	"errors"
-	"fmt" // <--- ĐÃ THÊM IMPORT NÀY
+	"fmt"
 	"log"
 	"strings"
 	"time"
@@ -13,7 +13,7 @@ import (
 )
 
 // =============================================================
-// CÁC HÀM TRA CỨU & KIỂM TRA
+// CÁC HÀM TRA CỨU & KIỂM TRA (GIỮ NGUYÊN)
 // =============================================================
 
 func TimKhachHangTheoCookie(cookie string) (*mo_hinh.KhachHang, bool) {
@@ -60,14 +60,13 @@ func LayDongKhachHang(maKH string) int {
 }
 
 func CapNhatPhienDangNhapKH(kh *mo_hinh.KhachHang) {
-	// Gọi 5 tham số để tương thích hệ thống
 	idFile := cau_hinh.BienCauHinh.IdFileSheet
 	ThemVaoHangCho(idFile, "KHACH_HANG", kh.DongTrongSheet, mo_hinh.CotKH_Cookie, kh.Cookie)
 	ThemVaoHangCho(idFile, "KHACH_HANG", kh.DongTrongSheet, mo_hinh.CotKH_CookieExpired, kh.CookieExpired)
 }
 
 // =============================================================
-// LOGIC ĐĂNG KÝ CHÍNH
+// LOGIC ĐĂNG KÝ CHÍNH (SỬA LẠI ĐỂ FIX DOUBLE HASHING)
 // =============================================================
 
 func ThemKhachHangMoi(input *mo_hinh.KhachHang) error {
@@ -78,7 +77,6 @@ func ThemKhachHangMoi(input *mo_hinh.KhachHang) error {
 		return errors.New("Tên đăng nhập hoặc Email đã tồn tại")
 	}
 
-	// Logic Founder
 	var chucVu, vaiTro string
 	if DemSoLuongKhachHang() == 0 {
 		chucVu = "Quản trị viên cấp cao"; vaiTro = "admin_root"
@@ -87,9 +85,8 @@ func ThemKhachHangMoi(input *mo_hinh.KhachHang) error {
 		chucVu = "Khách hàng"; vaiTro = "customer"
 	}
 
-	// Tính toán dòng mới: Lấy dòng lớn nhất hiện có + 1
+	// [QUAN TRỌNG] Giữ nguyên DongBatDauDuLieu ở mo_hinh (theo file chi_muc.go)
 	dongMoi := mo_hinh.DongBatDauDuLieu
-	// Nếu có dữ liệu thì tìm dòng max, nếu không thì ghi vào dòng bắt đầu
 	if len(CacheKhachHang.DuLieu) > 0 {
 		maxRow := 0
 		for _, v := range CacheKhachHang.DuLieu {
@@ -102,26 +99,30 @@ func ThemKhachHangMoi(input *mo_hinh.KhachHang) error {
 
 	maMoi := TaoMaKhachHangMoi()
 	now := time.Now().Format("2006-01-02 15:04:05")
-	hashPass, _ := bao_mat.HashMatKhau(input.MatKhauHash)
+	
+	// [FIX DOUBLE HASHING]: Không băm lại mật khẩu
+	// hashPass, _ := bao_mat.HashMatKhau(input.MatKhauHash) <--- ĐÃ BỎ DÒNG NÀY
+	
+	// Mã PIN chưa băm -> Băm tại đây
 	hashPin, _ := bao_mat.HashMatKhau(input.MaPinHash)
 
 	// Update struct
 	input.MaKhachHang = maMoi
-	input.MatKhauHash = hashPass
+	// input.MatKhauHash giữ nguyên (đã hash ở Controller)
 	input.MaPinHash = hashPin
 	input.ChucVu = chucVu
 	input.VaiTroQuyenHan = vaiTro
 	input.TrangThai = 1
 	input.NgayTao = now
 	input.NgayCapNhat = now
-	input.DongTrongSheet = dongMoi // Quan trọng
+	input.DongTrongSheet = dongMoi
 
 	// Lưu Cache
 	CacheKhachHang.DuLieu[maMoi] = input
 	CacheKhachHang.DuLieu[input.TenDangNhap] = input
 	if input.Email != "" { CacheKhachHang.DuLieu[input.Email] = input }
 
-	// GHI XUỐNG SHEET (Ghi từng ô - Batch worker sẽ tự gom lại)
+	// GHI XUỐNG SHEET
 	idFile := cau_hinh.BienCauHinh.IdFileSheet
 	sheet := "KHACH_HANG"
 	
@@ -139,8 +140,6 @@ func ThemKhachHangMoi(input *mo_hinh.KhachHang) error {
 	ThemVaoHangCho(idFile, sheet, dongMoi, mo_hinh.CotKH_TrangThai, input.TrangThai)
 	ThemVaoHangCho(idFile, sheet, dongMoi, mo_hinh.CotKH_NgayTao, input.NgayTao)
 	ThemVaoHangCho(idFile, sheet, dongMoi, mo_hinh.CotKH_NgayCapNhat, input.NgayCapNhat)
-	
-	// Map thêm các cột rỗng để giữ chỗ nếu cần (Zalo, Fb...) - Tuỳ chọn
 	ThemVaoHangCho(idFile, sheet, dongMoi, mo_hinh.CotKH_LoaiKhachHang, "")
 
 	return nil
@@ -155,7 +154,6 @@ func TaoMaKhachHangMoi() string {
 		parts := strings.Split(kh.MaKhachHang, "_")
 		if len(parts) == 2 {
 			var id int
-			// Fix lỗi cú pháp Sscanf
 			fmt.Sscanf(parts[1], "%d", &id)
 			if id > maxID { maxID = id }
 		}

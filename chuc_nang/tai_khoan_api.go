@@ -13,8 +13,6 @@ import (
 )
 
 // [GIỮ NGUYÊN 3 HÀM CŨ: API_DoiThongTin, API_DoiMatKhau, API_DoiMaPin]
-// (Bạn hãy giữ nguyên code cũ của 3 hàm này, không thay đổi gì)
-
 func API_DoiThongTin(c *gin.Context) {
 	hoTenMoi    := strings.TrimSpace(c.PostForm("ho_ten"))
 	sdtMoi      := strings.TrimSpace(c.PostForm("dien_thoai"))
@@ -63,28 +61,37 @@ func API_DoiMaPin(c *gin.Context) {
 	} else { c.JSON(401, gin.H{"status": "error", "msg": "Hết phiên"}) }
 }
 
-// --- [HÀM BỔ SUNG - GỬI PIN MỚI] ---
+// [CẬP NHẬT BODY MAIL]
 func API_GuiOTPPin(c *gin.Context) {
 	cookie, _ := c.Cookie("session_id")
 	kh, ok := nghiep_vu.TimKhachHangTheoCookie(cookie)
 	if !ok { c.JSON(401, gin.H{"status": "error", "msg": "Hết phiên làm việc"}); return }
 
-	// 1. Rate Limit
 	theGui, msg := nghiep_vu.KiemTraRateLimit(kh.Email)
 	if !theGui { c.JSON(200, gin.H{"status": "error", "msg": msg}); return }
 
-	// 2. Tạo PIN mới 8 số (Dùng hàm cũ TaoMaOTP 8 số)
 	newPin := nghiep_vu.TaoMaOTP()
 
-	// 3. Gửi Mail
-	body := fmt.Sprintf("Chào %s,\n\nMã PIN mới của bạn là: %s\n\nTrân trọng!", kh.TenDangNhap, newPin)
-	err := nghiep_vu.GuiMailThongBaoAPI(kh.Email, "Cấp lại Mã PIN", "Hỗ trợ", body)
+	// [BODY MỚI]
+	body := fmt.Sprintf(`Xin chào,
+
+Chúng tôi đã tạo mã PIN mới cho tài khoản %s theo yêu cầu của bạn trên hệ thống.
+
+Mã PIN mới của bạn là: %s
+
+Vì lý do bảo mật, vui lòng đổi mã PIN này ngay sau khi đăng nhập.
+
+Nếu bạn không yêu cầu thay đổi mã PIN, bạn có thể bỏ qua email này.
+
+Trân trọng,
+Đội ngũ hỗ trợ`, kh.Email, newPin)
+
+	err := nghiep_vu.GuiMailThongBaoAPI(kh.Email, "Thông báo thay đổi mã PIN", "Hỗ trợ tài khoản", body)
 	if err != nil {
 		c.JSON(200, gin.H{"status": "error", "msg": "Lỗi gửi mail: " + err.Error()})
 		return
 	}
 
-	// 4. Cập nhật
 	kh.MaPinHash = newPin
 	nghiep_vu.ThemVaoHangCho(cau_hinh.BienCauHinh.IdFileSheet, "KHACH_HANG", kh.DongTrongSheet, mo_hinh.CotKH_MaPinHash, newPin)
 

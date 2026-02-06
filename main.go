@@ -8,8 +8,6 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
-    // Đã xóa "time" vì không dùng
-    // Đã xóa "app/bao_mat" vì không dùng trong main
 
 	"app/cau_hinh"
 	"app/chuc_nang"
@@ -22,54 +20,61 @@ import (
 //go:embed giao_dien/*.html
 var f embed.FS
 
-// Middleware để bảo vệ người dùng khi hệ thống đang reload
+// Middleware để bảo vệ người dùng khi hệ thống đang reload (Read Lock)
 func MW_KiemTraHeThong(c *gin.Context) {
-    // Xin quyền "Đọc" (RLock)
-    nghiep_vu.KhoaHeThong.RLock()
-    defer nghiep_vu.KhoaHeThong.RUnlock()
-    c.Next()
+	nghiep_vu.KhoaHeThong.RLock()
+	defer nghiep_vu.KhoaHeThong.RUnlock()
+	c.Next()
 }
 
 func main() {
 	log.Println(">>> [SYSTEM] KHỞI ĐỘNG...")
 
 	cau_hinh.KhoiTaoCauHinh()
-    // Sử dụng ADC mặc định của Cloud Run (Không JSON)
+	
+	// Kết nối Google Sheet (ADC)
 	func() { defer func() { recover() }(); kho_du_lieu.KhoiTaoKetNoiGoogle() }()
 
-    // Tạo hộp rỗng trước
+	// Khởi tạo các Store rỗng
 	nghiep_vu.KhoiTaoCacStore()
-    
-    // Nạp dữ liệu lần đầu
+	
+	// Nạp dữ liệu lần đầu (Chạy ngầm để server start nhanh)
 	go func() {
 		log.Println("--- [BOOT] Đang nạp dữ liệu khởi động... ---")
+		// Hàm này giờ đã bao gồm cả nạp PHAN_QUYEN (do bạn đã sửa bo_nho_dem.go)
 		nghiep_vu.KhoiTaoBoNho() 
 	}()
 	
+	// Khởi động Worker ghi Sheet và Rate Limit
 	nghiep_vu.KhoiTaoWorkerGhiSheet()
 	chuc_nang.KhoiTaoBoDemRateLimit()
 
 	router := gin.Default()
-    
-    // Áp dụng Middleware "Êm ái" cho toàn bộ web
-    router.Use(MW_KiemTraHeThong)
+	
+	// Áp dụng Middleware "Êm ái" cho toàn bộ web
+	router.Use(MW_KiemTraHeThong)
 
 	templ := template.Must(template.New("").ParseFS(f, "giao_dien/*.html"))
 	router.SetHTMLTemplate(templ)
 
-	// --- CÁC ROUTE ---
+	// --- 1. CÁC ROUTE PUBLIC & USER ---
 	router.GET("/", chuc_nang.TrangChu)
 	router.GET("/san-pham/:id", chuc_nang.ChiTietSanPham)
+	
+	// Auth
 	router.GET("/login", chuc_nang.TrangDangNhap)
 	router.POST("/login", chuc_nang.XuLyDangNhap)
 	router.GET("/register", chuc_nang.TrangDangKy)
 	router.POST("/register", chuc_nang.XuLyDangKy)
 	router.GET("/logout", chuc_nang.DangXuat)
+	
+	// Forgot Password
 	router.GET("/forgot-password", chuc_nang.TrangQuenMatKhau)
 	router.POST("/api/auth/reset-by-pin", chuc_nang.XuLyQuenPassBangPIN)
 	router.POST("/api/auth/send-otp", chuc_nang.XuLyGuiOTPEmail)
 	router.POST("/api/auth/reset-by-otp", chuc_nang.XuLyQuenPassBangOTP)
 
+	// User API
 	userGroup := router.Group("/api/user")
 	{
 		userGroup.POST("/update-info", chuc_nang.API_DoiThongTin)
@@ -78,7 +83,8 @@ func main() {
 		userGroup.POST("/send-otp-pin", chuc_nang.API_GuiOTPPin)
 	}
 
-    router.GET("/tai-khoan", func(c *gin.Context) {
+	// Trang cá nhân
+	router.GET("/tai-khoan", func(c *gin.Context) {
 		cookie, _ := c.Cookie("session_id")
 		if cookie == "" { c.Redirect(http.StatusFound, "/login"); return }
 		if kh, ok := nghiep_vu.TimKhachHangTheoCookie(cookie); ok {
@@ -86,43 +92,34 @@ func main() {
 		} else { c.Redirect(http.StatusFound, "/login") }
 	})
 
-    // --- ADMIN & RELOAD ---
+	// --- 2. NHÓM ADMIN (CÓ PHÂN QUYỀN RBAC) ---
 	admin := router.Group("/admin")
-	admin.Use(chuc_nang.KiemTraQuyenHan)
+	admin.Use(chuc_nang.KiemTraQuyenHan) // Middleware chặn người không phận sự
 	{
+		// Dashboard
 		admin.GET("/tong-quan", func(c *gin.Context) {
-            userID, _ := c.Get("USER_ID"); kh, _ := nghiep_vu.TimKhachHangTheoCookie(mustGetCookie(c))
-			c.HTML(http.StatusOK, "quan_tri", gin.H{"TieuDe": "Quản trị", "NhanVien": kh, "DaDangNhap": true, "TenNguoiDung": kh.TenKhachHang, "QuyenHan": kh.VaiTroQuyenHan, "UserID": userID})
+			userID, _ := c.Get("USER_ID")
+			// Lấy lại info user để hiển thị avatar/tên
+			kh, _ := nghiep_vu.TimKhachHangTheoCookie(mustGetCookie(c))
+			
+			c.HTML(http.StatusOK, "quan_tri", gin.H{
+				"TieuDe": "Quản trị", 
+				"NhanVien": kh, 
+				"DaDangNhap": true, 
+				"TenNguoiDung": kh.TenKhachHang, 
+				"QuyenHan": kh.VaiTroQuyenHan, 
+				"UserID": userID,
+			})
 		})
 
-        // [LOGIC RELOAD CHUẨN]
-		admin.GET("/reload", func(c *gin.Context) {
-            log.Println("⚡ [RELOAD] Bắt đầu quy trình nạp lại dữ liệu...")
-            
-            // B1: Ép ghi toàn bộ hàng chờ xuống Sheet
-            nghiep_vu.ThucHienGhiSheet(true) 
-            
-            // B2: Khóa toàn hệ thống
-            nghiep_vu.KhoaHeThong.Lock()
-            log.Println("🔒 [LOCK] Đã khóa hệ thống.")
-            
-            // Chạy ngầm việc nạp để trả về response ngay cho admin đỡ treo
-            go func() {
-                defer nghiep_vu.KhoaHeThong.Unlock() // B5: Mở khóa khi xong
-                
-                // B3: Reset RAM
-                nghiep_vu.KhoiTaoCacStore()
-                
-                // B4: Tải lại từ Sheet
-                nghiep_vu.KhoiTaoBoNho()
-                
-                log.Println("🔓 [UNLOCK] Đã mở khóa hệ thống.")
-            }()
+		// [UPDATED] API Nạp lại dữ liệu (Đã được bảo vệ bởi check quyền 'system.reload')
+		admin.GET("/reload", chuc_nang.API_NapLaiDuLieu)
 
-            c.JSON(200, gin.H{"status": "ok", "msg": "Hệ thống đang nạp lại. Vui lòng đợi 10-20 giây."})
-		})
+		// [NEW] API Sửa thành viên (Đã được bảo vệ bởi check quyền 'member.edit')
+		admin.POST("/api/member/update", chuc_nang.API_Admin_SuaThanhVien)
 	}
 
+	// --- KHỞI CHẠY SERVER ---
 	port := os.Getenv("PORT")
 	if port == "" { port = "8080" }
 	
@@ -135,12 +132,13 @@ func main() {
 		}
 	}()
 
+	// Graceful Shutdown
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 	<-quit
 	
 	log.Println("⚠️ Đang tắt Server...")
-	nghiep_vu.ThucHienGhiSheet(true)
+	nghiep_vu.ThucHienGhiSheet(true) // Ghi nốt dữ liệu còn sót lại
 	log.Println("✅ Server tắt an toàn.")
 }
 

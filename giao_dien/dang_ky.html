@@ -8,22 +8,16 @@
     <style>
         .iti { width: 100%; }
         input::-ms-reveal, input::-ms-clear { display: none; }
-        
-        /* Màu sắc trạng thái */
-        .input-error { border-color: #ef4444 !important; background-color: #fef2f2; } /* Đỏ */
-        .input-success { border-color: #22c55e !important; background-color: #f0fdf4; } /* Xanh */
-        .input-normal { border-color: #d1d5db !important; background-color: #ffffff; } /* Xám */
-
-        /* Nút Disabled */
+        .input-error { border-color: #ef4444 !important; background-color: #fef2f2; }
+        .input-success { border-color: #22c55e !important; background-color: #f0fdf4; }
+        .input-normal { border-color: #d1d5db !important; background-color: #ffffff; }
         button:disabled { opacity: 0.6; cursor: not-allowed; background-color: #9ca3af !important; box-shadow: none; }
-        
         .error-text { color: #ef4444; font-size: 0.75rem; margin-top: 0.25rem; display: block; }
         .hidden { display: none; }
     </style>
 
     <div class="flex items-center justify-center min-h-[calc(100vh-200px)] py-12 px-4 bg-gray-50">
         <div class="w-full max-w-2xl bg-white p-8 rounded-2xl shadow-lg border border-gray-100">
-            
             <div class="text-center mb-8">
                 <h2 class="text-3xl font-bold text-green-600">Đăng Ký Thành Viên</h2>
                 <p class="mt-2 text-sm text-gray-600">Hệ thống MayTinhShop</p>
@@ -38,7 +32,6 @@
             {{ end }}
 
             <form id="formDangKy" action="/register" method="POST" novalidate class="space-y-5">
-                
                 <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
                     <div class="sm:col-span-2">
                         <label class="block text-sm font-medium text-gray-700 mb-1">Họ và tên <span class="text-red-500">*</span></label>
@@ -54,7 +47,6 @@
                         </select>
                     </div>
                 </div>
-
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1">Ngày sinh</label>
@@ -67,7 +59,6 @@
                         <input type="hidden" name="dien_thoai_full" id="dien_thoai_full">
                     </div>
                 </div>
-
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1">Email <span class="text-red-500">*</span></label>
@@ -80,13 +71,11 @@
                         <p id="err_ma_pin" class="error-text hidden"></p>
                     </div>
                 </div>
-
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-1">Tên đăng nhập <span class="text-red-500">*</span></label>
                     <input id="ten_dang_nhap" name="ten_dang_nhap" type="text" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 input-normal" placeholder="user123">
                     <p id="err_ten_dang_nhap" class="error-text hidden"></p>
                 </div>
-
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1">Mật khẩu <span class="text-red-500">*</span></label>
@@ -105,7 +94,6 @@
                         <p id="err_re_mat_khau" class="error-text hidden"></p>
                     </div>
                 </div>
-
                 <div class="flex items-start">
                     <div class="flex items-center h-5">
                         <input id="terms" name="terms" type="checkbox" class="w-4 h-4 text-green-600 border-gray-300 rounded focus:ring-green-500 cursor-pointer">
@@ -114,14 +102,12 @@
                         <label for="terms" class="font-medium text-gray-700 cursor-pointer">Tôi đồng ý với <a href="#" class="text-green-600 hover:underline">Điều khoản</a></label>
                     </div>
                 </div>
-
                 <div class="pt-2">
                     <button type="submit" id="btnSubmit" disabled
                         class="w-full flex justify-center py-3 px-4 border border-transparent text-sm font-bold rounded-lg text-white bg-green-600 hover:bg-green-700 shadow-lg transition transform active:scale-95">
                         ĐĂNG KÝ NGAY
                     </button>
                 </div>
-
                 <div class="text-center text-sm mt-4">
                     Đã có tài khoản? <a href="/login" class="font-medium text-blue-600 hover:text-blue-500">Đăng nhập</a>
                 </div>
@@ -131,222 +117,71 @@
 
     <script>
         const inputPhone = document.querySelector("#dien_thoai");
-        const iti = window.intlTelInput(inputPhone, {
-            initialCountry: "vn",
-            separateDialCode: true,
-            utilsScript: "https://cdn.jsdelivr.net/npm/intl-tel-input@18.2.1/build/js/utils.js",
-        });
+        const iti = window.intlTelInput(inputPhone, { initialCountry: "vn", separateDialCode: true, utilsScript: "https://cdn.jsdelivr.net/npm/intl-tel-input@18.2.1/build/js/utils.js" });
 
-        // ============================================
-        // 1. BỘ QUY TẮC NGHIÊM NGẶT (WHITELIST APPROACH)
-        // ============================================
         const RULES = {
-            ho_ten: {
-                // NOT_ALLOWED: Tìm ký tự KHÔNG phải là (chữ cái, tiếng Việt, khoảng trắng)
-                not_allowed_regex: /[^a-zA-ZÀ-ỹ\s]/, 
-                // VALIDATE: Phải là chữ, độ dài 6-50
-                validate_regex: /^[a-zA-ZÀ-ỹ\s]{6,50}$/,
-                msg_forbidden: "Chỉ nhập chữ cái và khoảng trắng.",
-                msg_invalid: "Họ tên phải từ 6 - 50 ký tự."
-            },
-            email: {
-                // NOT_ALLOWED: Tìm ký tự KHÔNG phải là (a-z, 0-9, @, ., _, -, +)
-                // Cái này sẽ chặn đứng dấu ` ' " < > space ...
-                not_allowed_regex: /[^a-z0-9@._+\-]/, 
-                // VALIDATE: Regex chuẩn email (có @, có domain, có đuôi)
-                validate_regex: /^[a-z0-9._%+\-]+@[a-z0-9.\-]+\.[a-z]{2,10}$/,
-                msg_forbidden: "Ký tự không hợp lệ.",
-                msg_invalid: "Email không đúng định dạng (ví dụ: abc@gmail.com)"
-            },
-            ma_pin: {
-                not_allowed_regex: /[^0-9]/, // Tìm cái gì ko phải số
-                validate_regex: /^\d{8}$/,   // Đúng 8 số
-                msg_forbidden: "Chỉ nhập số.",
-                msg_invalid: "Mã PIN phải đúng 8 số."
-            },
-            ten_dang_nhap: {
-                // NOT_ALLOWED: Tìm ký tự KHÔNG phải là (a-z, 0-9, ., _)
-                not_allowed_regex: /[^a-z0-9._]/, 
-                // VALIDATE: 6-30 ký tự
-                validate_regex: /^[a-z0-9._]{6,30}$/,
-                msg_forbidden: "Chỉ cho phép chữ thường, số, dấu . và _",
-                msg_invalid: "Tên đăng nhập 6 - 30 ký tự."
-            },
-            mat_khau: {
-                // NOT_ALLOWED: Tìm các ký tự cấm cụ thể (nháy, ngoặc, cách, backtick)
-                // Với Pass thì nên dùng Blacklist vì Whitelist sẽ chặn các ký tự đặc biệt hợp lệ (!@#)
-                not_allowed_regex: /[\s'"<>\`]/, 
-                // VALIDATE: 8-30 ký tự, không chứa ký tự cấm
-                validate_regex: /^[^'"<>\`\s]{8,30}$/,
-                msg_forbidden: "Không chứa khoảng trắng hoặc ' \" < > `",
-                msg_invalid: "Mật khẩu 8 - 30 ký tự."
-            }
+            ho_ten: { not_allowed_regex: /[^a-zA-ZÀ-ỹ\s]/, validate_regex: /^[a-zA-ZÀ-ỹ\s]{6,50}$/, msg_forbidden: "Chỉ nhập chữ cái và khoảng trắng.", msg_invalid: "Họ tên phải từ 6 - 50 ký tự." },
+            email: { not_allowed_regex: /[^a-z0-9@._+\-]/, validate_regex: /^[a-z0-9._%+\-]+@[a-z0-9.\-]+\.[a-z]{2,10}$/, msg_forbidden: "Ký tự không hợp lệ.", msg_invalid: "Email không đúng định dạng." },
+            ma_pin: { not_allowed_regex: /[^0-9]/, validate_regex: /^\d{8}$/, msg_forbidden: "Chỉ nhập số.", msg_invalid: "Mã PIN phải đúng 8 số." },
+            ten_dang_nhap: { not_allowed_regex: /[^a-z0-9._]/, validate_regex: /^[a-z0-9._]{6,30}$/, msg_forbidden: "Chỉ chữ thường, số, dấu . và _", msg_invalid: "Tên đăng nhập 6 - 30 ký tự." },
+            mat_khau: { not_allowed_regex: /[\s'"<>\`]/, validate_regex: /^[^'"<>\`\s]{8,30}$/, msg_forbidden: "Không chứa khoảng trắng hoặc ký tự cấm.", msg_invalid: "Mật khẩu 8 - 30 ký tự." }
         };
 
-        // ============================================
-        // 2. HÀM UI
-        // ============================================
-        function showError(id, msg) {
-            const el = document.getElementById(id);
-            const err = document.getElementById('err_' + id);
-            el.classList.add('input-error');
-            el.classList.remove('input-success', 'input-normal');
-            err.innerText = msg;
-            err.classList.remove('hidden');
-        }
+        function showError(id, msg) { const el = document.getElementById(id); const err = document.getElementById('err_' + id); el.classList.add('input-error'); el.classList.remove('input-success', 'input-normal'); err.innerText = msg; err.classList.remove('hidden'); }
+        function showNormal(id) { const el = document.getElementById(id); const err = document.getElementById('err_' + id); el.classList.add('input-normal'); el.classList.remove('input-error', 'input-success'); err.classList.add('hidden'); }
+        function showSuccess(id) { const el = document.getElementById(id); const err = document.getElementById('err_' + id); el.classList.add('input-success'); el.classList.remove('input-error', 'input-normal'); err.classList.add('hidden'); }
 
-        function showNormal(id) {
-            const el = document.getElementById(id);
-            const err = document.getElementById('err_' + id);
-            el.classList.add('input-normal');
-            el.classList.remove('input-error', 'input-success');
-            err.classList.add('hidden');
-        }
-
-        function showSuccess(id) {
-            const el = document.getElementById(id);
-            const err = document.getElementById('err_' + id);
-            el.classList.add('input-success');
-            el.classList.remove('input-error', 'input-normal');
-            err.classList.add('hidden');
-        }
-
-        // ============================================
-        // 3. CHECK TỔNG THỂ
-        // ============================================
         function checkSubmitButton() {
-            // Nút chỉ bật khi:
-            // 1. Không có ô nào màu đỏ (Lỗi)
-            // 2. Các ô bắt buộc đều đã màu xanh (Đúng)
             const requiredIds = ['ho_ten', 'email', 'ma_pin', 'ten_dang_nhap', 'mat_khau', 're_mat_khau'];
-            
             let allGreen = true;
-            for (const id of requiredIds) {
-                const el = document.getElementById(id);
-                // Re-pass xử lý riêng logic class một chút nhưng cơ bản vẫn phải xanh hoặc khớp
-                if (!el.classList.contains('input-success')) {
-                    allGreen = false;
-                    break;
-                }
-            }
-
+            for (const id of requiredIds) { if (!document.getElementById(id).classList.contains('input-success')) { allGreen = false; break; } }
             const terms = document.getElementById('terms').checked;
-            
-            let phoneOk = true;
-            if (inputPhone.value.trim() !== "" && !iti.isValidNumber()) phoneOk = false;
-
+            let phoneOk = true; if (inputPhone.value.trim() !== "" && !iti.isValidNumber()) phoneOk = false;
             const btn = document.getElementById('btnSubmit');
-            if (allGreen && terms && phoneOk) {
-                btn.removeAttribute('disabled');
-            } else {
-                btn.setAttribute('disabled', 'true');
-            }
+            if (allGreen && terms && phoneOk) btn.removeAttribute('disabled'); else btn.setAttribute('disabled', 'true');
         }
 
-        // ============================================
-        // 4. MAIN EVENT LOOP
-        // ============================================
         Object.keys(RULES).forEach(id => {
-            const el = document.getElementById(id);
-            const rule = RULES[id];
-
-            // A. SỰ KIỆN GÕ (INPUT)
+            const el = document.getElementById(id); const rule = RULES[id];
             el.addEventListener('input', function() {
-                // Auto lowercase cho email/user
                 if (id === 'email' || id === 'ten_dang_nhap') this.value = this.value.toLowerCase();
-
-                // 1. Kiểm tra ký tự cấm (Forbidden check)
-                if (rule.not_allowed_regex.test(this.value)) {
-                    showError(id, rule.msg_forbidden);
-                } else {
-                    // Không có ký tự cấm -> Reset về Normal (để gõ tiếp)
-                    // Chưa báo xanh vội vì chưa xong
-                    showNormal(id);
-                }
-                
-                // Nếu đang đỏ (lỗi) thì nút tắt. Nếu đang normal thì nút cũng tắt (vì chưa xanh).
+                if (rule.not_allowed_regex.test(this.value)) showError(id, rule.msg_forbidden); else showNormal(id);
                 checkSubmitButton();
             });
-
-            // B. SỰ KIỆN RỜI ĐI (BLUR)
             el.addEventListener('blur', function() {
-                if (this.value === "") return; // Rỗng thì thôi, checkSubmit sẽ lo việc tắt nút
-
-                // Kiểm tra ký tự cấm lần nữa cho chắc
-                if (rule.not_allowed_regex.test(this.value)) {
-                    showError(id, rule.msg_forbidden);
-                    checkSubmitButton();
-                    return;
-                }
-
-                // Kiểm tra format đầy đủ (Độ dài, @, domain...)
-                if (!rule.validate_regex.test(this.value)) {
-                    showError(id, rule.msg_invalid);
-                } else {
-                    showSuccess(id);
-                }
+                if (this.value === "") return;
+                if (rule.not_allowed_regex.test(this.value)) { showError(id, rule.msg_forbidden); checkSubmitButton(); return; }
+                if (!rule.validate_regex.test(this.value)) showError(id, rule.msg_invalid); else showSuccess(id);
                 checkSubmitButton();
             });
         });
 
-        // RE-PASS Logic
-        const rePass = document.getElementById('re_mat_khau');
-        const pass = document.getElementById('mat_khau');
-        
-        rePass.addEventListener('input', function() {
-            if (/[\s'"<>\`]/.test(this.value)) showError('re_mat_khau', "Không chứa ký tự cấm.");
-            else showNormal('re_mat_khau');
-            checkSubmitButton();
-        });
+        const rePass = document.getElementById('re_mat_khau'); const pass = document.getElementById('mat_khau');
+        rePass.addEventListener('input', function() { if (/[\s'"<>\`]/.test(this.value)) showError('re_mat_khau', "Ký tự cấm."); else showNormal('re_mat_khau'); checkSubmitButton(); });
+        rePass.addEventListener('blur', function() { if (this.value === "") return; if (this.value !== pass.value) showError('re_mat_khau', "Mật khẩu không khớp."); else showSuccess('re_mat_khau'); checkSubmitButton(); });
 
-        rePass.addEventListener('blur', function() {
-            if (this.value === "") return;
-            if (this.value !== pass.value) showError('re_mat_khau', "Mật khẩu không khớp.");
-            else showSuccess('re_mat_khau');
-            checkSubmitButton();
-        });
-
-        // PHONE Logic
         inputPhone.addEventListener('blur', () => {
-            const errPhone = document.getElementById('err_dien_thoai');
-            const val = inputPhone.value.trim();
+            const errPhone = document.getElementById('err_dien_thoai'); const val = inputPhone.value.trim();
             if (val !== "") {
-                if (!iti.isValidNumber()) {
-                    inputPhone.classList.add('input-error');
-                    inputPhone.classList.remove('input-success', 'input-normal');
-                    errPhone.innerText = "SĐT không hợp lệ.";
-                    errPhone.classList.remove('hidden');
-                } else {
-                    inputPhone.classList.add('input-success');
-                    inputPhone.classList.remove('input-error', 'input-normal');
-                    errPhone.classList.add('hidden');
-                }
-            } else {
-                inputPhone.classList.add('input-normal');
-                inputPhone.classList.remove('input-error', 'input-success');
-                errPhone.classList.add('hidden');
-            }
+                if (!iti.isValidNumber()) { inputPhone.classList.add('input-error'); inputPhone.classList.remove('input-success', 'input-normal'); errPhone.innerText = "SĐT không hợp lệ."; errPhone.classList.remove('hidden'); }
+                else { inputPhone.classList.add('input-success'); inputPhone.classList.remove('input-error', 'input-normal'); errPhone.classList.add('hidden'); }
+            } else { inputPhone.classList.add('input-normal'); inputPhone.classList.remove('input-error', 'input-success'); errPhone.classList.add('hidden'); }
             checkSubmitButton();
         });
 
-        // Terms check
         document.getElementById('terms').addEventListener('change', checkSubmitButton);
 
-        // Submit Handler
+        // [LOADING EFFECT]
         document.getElementById('formDangKy').addEventListener('submit', function(e) {
-            if (document.getElementById('btnSubmit').disabled) {
-                e.preventDefault();
-                return;
-            }
-            if(inputPhone.value.trim() !== "") {
-                document.getElementById("dien_thoai_full").value = iti.getNumber();
-            }
+            const btn = document.getElementById('btnSubmit');
+            if (btn.disabled) { e.preventDefault(); return; }
+            if(inputPhone.value.trim() !== "") document.getElementById("dien_thoai_full").value = iti.getNumber();
+            
+            btn.setAttribute('disabled', 'true');
+            btn.innerHTML = `<svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-white inline-block" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> Đang xử lý...`;
         });
 
-        function togglePass(id) {
-            const el = document.getElementById(id);
-            el.type = el.type === 'password' ? 'text' : 'password';
-        }
+        function togglePass(id) { const el = document.getElementById(id); el.type = el.type === 'password' ? 'text' : 'password'; }
     </script>
 
     {{ template "footer" . }}

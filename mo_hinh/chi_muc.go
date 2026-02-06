@@ -1,5 +1,8 @@
 package mo_hinh
 
+// Dữ liệu bắt đầu từ dòng 11
+const DongBatDauDuLieu = 10
+
 // 1. SAN_PHAM (A-S)
 const (
 	CotSP_MaSanPham    = 0

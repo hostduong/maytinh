@@ -222,7 +222,7 @@ func napKhachHang() {
 	defer BoQuanLyKhoa.LayKhoa(CacheKhachHang.TenKey).Unlock()
 
 	for i, r := range raw {
-		if i < mo_hinh.DongBatDauDuLieu { continue }
+		if i < (mo_hinh.DongBatDauDuLieu - 1) { continue }
 		if len(r) <= mo_hinh.CotKH_MaKhachHang || layString(r, mo_hinh.CotKH_MaKhachHang) == "" { continue }
 
 		item := &mo_hinh.KhachHang{

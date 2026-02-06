@@ -168,13 +168,14 @@ func KhoiTaoBoNho() {
 	var wg sync.WaitGroup
 
 	log.Println(">> Đợt 1: Nạp Master Data...")
-	wg.Add(6)
+	wg.Add(7)
 	go func() { defer wg.Done(); napDanhMuc() }()
 	go func() { defer wg.Done(); napThuongHieu() }()
 	go func() { defer wg.Done(); napSanPham() }()
 	go func() { defer wg.Done(); napKhachHang() }()
 	go func() { defer wg.Done(); napNhaCungCap() }()
 	go func() { defer wg.Done(); napCauHinhWeb() }()
+	go func() { defer wg.Done(); NapDuLieuPhanQuyen() }()
 	wg.Wait()
 	
 	// Nghỉ 1 chút để tránh Google Rate Limit

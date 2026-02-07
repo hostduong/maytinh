@@ -25,32 +25,53 @@ func TrangDangKy(c *gin.Context) {
 }
 
 func XuLyDangKy(c *gin.Context) {
+	// Lấy dữ liệu và chuẩn hóa
 	hoTen     := strings.TrimSpace(c.PostForm("ho_ten"))
 	
-	// [SỬA] Ép về chữ thường ngay lập tức
+	// User & Email phải ép về chữ thường
 	user      := strings.ToLower(strings.TrimSpace(c.PostForm("ten_dang_nhap")))
 	email     := strings.ToLower(strings.TrimSpace(c.PostForm("email")))
 	
 	pass      := strings.TrimSpace(c.PostForm("mat_khau"))
 	maPin     := strings.TrimSpace(c.PostForm("ma_pin"))
 	
+	// Xử lý số điện thoại từ Intl-Input
 	dienThoai := strings.TrimSpace(c.PostForm("dien_thoai_full")) 
 	if dienThoai == "" { dienThoai = strings.TrimSpace(c.PostForm("dien_thoai")) }
+	
 	ngaySinh  := strings.TrimSpace(c.PostForm("ngay_sinh"))
 	gioiTinh  := strings.TrimSpace(c.PostForm("gioi_tinh"))
 
-	if !bao_mat.KiemTraHoTen(hoTen) || !bao_mat.KiemTraTenDangNhap(user) || 
-	   !bao_mat.KiemTraEmail(email) || !bao_mat.KiemTraMaPin(maPin) || 
-	   !bao_mat.KiemTraDinhDangMatKhau(pass) {
-		c.HTML(http.StatusOK, "dang_ky", gin.H{"Loi": "Dữ liệu nhập vào không hợp lệ!"})
+	// 1. VALIDATE SERVER-SIDE (Chốt chặn cuối cùng)
+	// Các hàm KiemTra... trong bao_mat đã được cập nhật logic mới nhất
+	if !bao_mat.KiemTraHoTen(hoTen) {
+		c.HTML(http.StatusOK, "dang_ky", gin.H{"Loi": "Họ tên không hợp lệ!"})
+		return
+	}
+	if !bao_mat.KiemTraTenDangNhap(user) {
+		c.HTML(http.StatusOK, "dang_ky", gin.H{"Loi": "Tên đăng nhập không đúng quy tắc!"})
+		return
+	}
+	if !bao_mat.KiemTraEmail(email) {
+		c.HTML(http.StatusOK, "dang_ky", gin.H{"Loi": "Email không hợp lệ!"})
+		return
+	}
+	if !bao_mat.KiemTraMaPin(maPin) {
+		c.HTML(http.StatusOK, "dang_ky", gin.H{"Loi": "Mã PIN phải đúng 8 số!"})
+		return
+	}
+	if !bao_mat.KiemTraDinhDangMatKhau(pass) {
+		c.HTML(http.StatusOK, "dang_ky", gin.H{"Loi": "Mật khẩu chứa ký tự không cho phép!"})
 		return
 	}
 
+	// 2. Kiểm tra trùng lặp
 	if nghiep_vu.KiemTraTonTaiUserEmail(user, email) {
 		c.HTML(http.StatusOK, "dang_ky", gin.H{"Loi": "Tên đăng nhập hoặc Email đã tồn tại!"})
 		return
 	}
 
+	// 3. Logic tạo tài khoản (Admin đầu tiên hoặc Khách)
 	var maKH, vaiTro, loaiKH string
 	if nghiep_vu.DemSoLuongKhachHang() == 0 {
 		maKH = "KH_0001"
@@ -62,17 +83,23 @@ func XuLyDangKy(c *gin.Context) {
 		loaiKH = "khach_le"
 	}
 
+	// 4. Mã hóa và Lưu trữ
 	passHash, _ := bao_mat.HashMatKhau(pass)
+	
+	// Lưu ý: Mã PIN cũng nên hash nếu muốn bảo mật cao, 
+	// nhưng ở đây ta giữ nguyên logic truyền maPin (đã hash trong logic_khach_hang nếu có)
+	// Dựa vào logic cũ của bạn: ThemKhachHangMoi sẽ tự hash PIN.
+	
 	cookie := bao_mat.TaoSessionIDAnToan()
 	expiredTime := time.Now().Add(cau_hinh.ThoiGianHetHanCookie).Unix()
 
 	newKH := &mo_hinh.KhachHang{
 		MaKhachHang:    maKH,
-		TenDangNhap:    user,     // Đã lowercase
-		Email:          email,    // Đã lowercase
+		TenDangNhap:    user,
+		Email:          email,
 		DienThoai:      dienThoai,
-		MatKhauHash:    passHash,
-		MaPinHash:      maPin, 
+		MatKhauHash:    passHash, // Hash pass
+		MaPinHash:      maPin,    // Truyền PIN thô, hàm dưới sẽ hash
 		TenKhachHang:   hoTen,
 		NgaySinh:       ngaySinh,
 		GioiTinh:       gioiTinh,
@@ -84,7 +111,10 @@ func XuLyDangKy(c *gin.Context) {
 		NgayTao:        time.Now().Format("2006-01-02 15:04:05"),
 	}
 
+	// Hàm này sẽ Hash mã PIN và ghi vào Sheet
 	nghiep_vu.ThemKhachHangMoi(newKH)
+	
+	// Set Cookie để auto login
 	c.SetCookie("session_id", cookie, int(cau_hinh.ThoiGianHetHanCookie.Seconds()), "/", "", false, true)
 
 	if vaiTro == "admin" {

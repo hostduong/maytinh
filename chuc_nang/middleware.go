@@ -5,6 +5,7 @@ import (
 	"sync"
 	"time"
 
+	"app/bao_mat"
 	"app/cau_hinh"
 	"app/mo_hinh"
 	"app/nghiep_vu"
@@ -31,13 +32,14 @@ func KhoiTaoBoDemRateLimit() {
 // MIDDLEWARE CHÍNH
 func KiemTraQuyenHan(c *gin.Context) {
 	// 1. KIỂM TRA RATE LIMIT (CHỐNG SPAM)
-	cookie, err := c.Cookie("session_id")
-	keyLimit := ""
+	cookieID, err1 := c.Cookie("session_id")
+	cookieSign, err2 := c.Cookie("session_sign")
 	
-	if err != nil || cookie == "" {
+	keyLimit := ""
+	if err1 != nil || cookieID == "" {
 		keyLimit = "LIMIT__IP__" + c.ClientIP()
 	} else {
-		keyLimit = "LIMIT__COOKIE__" + cookie
+		keyLimit = "LIMIT__COOKIE__" + cookieID
 	}
 
 	mtx.Lock()
@@ -45,35 +47,53 @@ func KiemTraQuyenHan(c *gin.Context) {
 	soLanGoi := boDem[keyLimit]
 	mtx.Unlock()
 
-	// Logic chặn: Nếu người dùng gọi quá 10 req/s
 	if soLanGoi > cau_hinh.GioiHanNguoiDung {
 		c.AbortWithStatusJSON(http.StatusTooManyRequests, gin.H{"loi": "Thao tác quá nhanh! Vui lòng chậm lại."})
 		return
 	}
 
-	// 2. KIỂM TRA ĐĂNG NHẬP (AUTH)
-	if cookie == "" {
+	// 2. KIỂM TRA ĐĂNG NHẬP & BẢO MẬT (AUTH)
+	
+	// Nếu không có cookie session -> Khách vãng lai
+	if cookieID == "" {
 		c.Next()
 		return
 	}
 
-	// Tìm trong RAM KHÁCH HÀNG (Thay vì Nhân Viên)
-	khachHang, timThay := nghiep_vu.TimKhachHangTheoCookie(cookie)
+	// [MỚI] KIỂM TRA TÍNH TOÀN VẸN (SECURITY CHECK)
+	// Nếu có Session ID nhưng thiếu Chữ ký hoặc Chữ ký sai -> ĐUỔI NGAY
+	userAgent := c.Request.UserAgent()
+	signatureServer := bao_mat.TaoChuKyBaoMat(cookieID, userAgent)
+
+	if err2 != nil || cookieSign != signatureServer {
+		// Dấu hiệu hack (Copy cookie sang máy khác hoặc giả mạo)
+		c.SetCookie("session_id", "", -1, "/", "", false, true)
+		c.SetCookie("session_sign", "", -1, "/", "", false, true)
+		c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"loi": "Phát hiện bất thường (Cookie Mismatch)! Vui lòng đăng nhập lại."})
+		return
+	}
+
+	// 3. TÌM USER TRONG RAM (Khi đã qua cửa bảo mật)
+	khachHang, timThay := nghiep_vu.TimKhachHangTheoCookie(cookieID)
 
 	if !timThay {
-		// Cookie rác -> Xóa cookie trình duyệt
+		// Cookie hợp lệ về mặt chữ ký nhưng Server (RAM) không tìm thấy dữ liệu
+		// (Do Server vừa restart chưa load kịp, hoặc Cookie quá cũ đã bị xóa khỏi DB)
+		// => Xóa cookie để user đăng nhập lại sạch sẽ
 		c.SetCookie("session_id", "", -1, "/", "", false, true)
+		c.SetCookie("session_sign", "", -1, "/", "", false, true)
 		c.Next()
 		return
 	}
 
-	// 3. LOGIC GIA HẠN THÔNG MINH (Auto-Renew)
+	// 4. LOGIC GIA HẠN THÔNG MINH (Auto-Renew)
 	thoiGianHetHan := khachHang.CookieExpired // Dạng int64
 	now := time.Now().Unix()
 
 	// Nếu đã hết hạn -> Đá ra
 	if now > thoiGianHetHan {
 		c.SetCookie("session_id", "", -1, "/", "", false, true)
+		c.SetCookie("session_sign", "", -1, "/", "", false, true)
 		c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"loi": "Phiên đăng nhập hết hạn"})
 		return
 	}
@@ -83,26 +103,30 @@ func KiemTraQuyenHan(c *gin.Context) {
 	if thoiGianConLai < cau_hinh.ThoiGianAnHan {
 		
 		// A. Tính thời gian mới (+30 phút)
+		// Lưu ý: Logic gia hạn này mặc định cộng thêm thời gian ngắn. 
+		// Nếu muốn bảo lưu "Ghi nhớ đăng nhập" 30 ngày thì logic sẽ phức tạp hơn,
+		// nhưng với MVP thì gia hạn 30p là an toàn.
 		newExp := time.Now().Add(cau_hinh.ThoiGianHetHanCookie).Unix()
 		
 		// B. Cập nhật vào RAM ngay
-		// Lưu ý: khachHang ở đây là con trỏ (*KhachHang), nên gán trực tiếp sẽ thay đổi RAM
 		khachHang.CookieExpired = newExp
 
-		// C. Đẩy vào Hàng Chờ Ghi (WriteQueue) -> Ghi vào Sheet KHACH_HANG
+		// C. Đẩy vào Hàng Chờ Ghi -> Ghi vào Sheet KHACH_HANG
 		rowID := nghiep_vu.LayDongKhachHang(khachHang.MaKhachHang)
 		if rowID > 0 {
 			nghiep_vu.ThemVaoHangCho(
-				cau_hinh.BienCauHinh.IdFileSheet, // ID file sheet
-				"KHACH_HANG",                     // Tên sheet
-				rowID,                            // Dòng
-				mo_hinh.CotKH_CookieExpired,      // Cột E (Index 4)
-				newExp,                           // Giá trị mới
+				cau_hinh.BienCauHinh.IdFileSheet,
+				"KHACH_HANG",
+				rowID,
+				mo_hinh.CotKH_CookieExpired,
+				newExp,
 			)
 		}
 
-		// D. Set lại Cookie mới cho trình duyệt
-		c.SetCookie("session_id", cookie, int(cau_hinh.ThoiGianHetHanCookie.Seconds()), "/", "", false, true)
+		// D. Set lại Cookie mới cho trình duyệt (Cả 2 cookie để đồng bộ thời gian)
+		maxAge := int(cau_hinh.ThoiGianHetHanCookie.Seconds())
+		c.SetCookie("session_id", cookieID, maxAge, "/", "", false, true)
+		c.SetCookie("session_sign", cookieSign, maxAge, "/", "", false, true)
 	}
 
 	// Lưu thông tin user vào Context để Controller dùng

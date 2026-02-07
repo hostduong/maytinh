@@ -15,7 +15,7 @@
         <div class="w-full max-w-md bg-white p-8 rounded-2xl shadow-lg border border-gray-100">
             <div class="text-center mb-6">
                 <h2 class="text-3xl font-bold text-blue-600">Đăng Nhập</h2>
-                <p class="mt-2 text-sm text-gray-600">Truy cập hệ thống MayTinhShop</p>
+                <p class="mt-2 text-sm text-gray-600">Chào mừng bạn quay trở lại ^^</p>
             </div>
 
             {{ if .Loi }}
@@ -30,7 +30,7 @@
                 <div class="space-y-4">
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1">Mã KH / Tên đăng nhập / Email</label>
-                        <input id="user" name="input_dinh_danh" type="text" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition input-normal" placeholder="Ví dụ: KH_0001, admin, abc@gmail.com">
+                        <input id="user" name="input_dinh_danh" type="text" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition input-normal" placeholder="Mã KH / Tên đăng nhập / Email">
                         <p id="err_user" class="error-text">Chứa ký tự không cho phép (Chỉ a-z, 0-9, @, ., _, -).</p>
                     </div>
 
@@ -48,14 +48,22 @@
                 </div>
 
                 <div class="flex items-center justify-between mt-2">
-                    <a href="/register" class="text-sm font-medium text-blue-600 hover:text-blue-500">Chưa có tài khoản?</a>
-                    <a href="/forgot-password" class="text-sm font-medium text-gray-600 hover:text-blue-600">Quên mật khẩu?</a>
+                    <div class="flex items-center">
+                        <input id="remember" name="ghi_nho" type="checkbox" class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded cursor-pointer">
+                        <label for="remember" class="ml-2 block text-sm text-gray-700 cursor-pointer select-none">Ghi nhớ đăng nhập</label>
+                    </div>
+                    <a href="/forgot-password" class="text-sm font-medium text-blue-600 hover:text-blue-500">Quên mật khẩu?</a>
                 </div>
 
                 <button type="submit" id="btnSubmit" disabled
                     class="w-full flex justify-center py-3 px-4 border border-transparent text-sm font-bold rounded-lg text-white bg-blue-600 hover:bg-blue-700 shadow-lg transition transform active:scale-95">
                     ĐĂNG NHẬP
                 </button>
+
+                <div class="text-center mt-6">
+                    <span class="text-sm text-gray-600">Bạn chưa có tài khoản? </span>
+                    <a href="/register" class="text-sm font-bold text-blue-600 hover:underline">Đăng ký ngay</a>
+                </div>
             </form>
         </div>
     </div>
@@ -86,13 +94,10 @@
             else btn.setAttribute('disabled', 'true');
         }
 
-        // --- VALIDATE LOGIC ---
-        // Login: Input lỏng hơn Register để user không bị chặn nhầm, nhưng chặn ký tự nguy hiểm
+        // Validate Tài khoản
         u.addEventListener('input', function() {
-            // Chỉ chặn ký tự lạ: cho phép a-z 0-9 @ . _ -
             if (/[^a-zA-Z0-9@._\-]/.test(this.value)) setError(this, 'err_user', true);
             else {
-                // Xóa lỗi ngay nếu ký tự hợp lệ
                 this.classList.remove('input-error', 'input-success');
                 this.classList.add('input-normal');
                 document.getElementById('err_user').classList.remove('show');
@@ -102,13 +107,13 @@
         
         u.addEventListener('blur', function() {
             if (this.value.trim() === "") return;
-            // Blur thì check độ dài tối thiểu
             if (this.value.trim().length < 4) setError(this, 'err_user', true);
             else setError(this, 'err_user', false);
         });
 
+        // Validate Mật khẩu
         p.addEventListener('input', function() {
-            setError(this, 'err_pass', false); // Reset lỗi khi gõ
+            setError(this, 'err_pass', false); 
             checkSubmit();
         });
         

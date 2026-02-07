@@ -3,12 +3,11 @@ package bo_nho_dem
 import (
 	"log"
 	"sync"
-	"time"
 	"app/cau_hinh"
 	"app/mo_hinh"
 )
 
-// BIẾN TOÀN CỤC (GLOBAL POINTERS)
+// BIẾN TOÀN CỤC (Giữ nguyên)
 var (
 	CacheSanPham         *KhoSanPhamStore
 	CacheDanhMuc         *KhoDanhMucStore
@@ -28,6 +27,7 @@ var (
 	CacheCauHinhWeb      *KhoCauHinhWebStore
 )
 
+// Helper tạo struct rỗng (Giữ nguyên)
 func taoMoiCacStore() (
 	*KhoSanPhamStore, *KhoDanhMucStore, *KhoThuongHieuStore, *KhoNhaCungCapStore,
 	*KhoKhachHangStore, *KhoPhieuNhapStore, *KhoChiTietPhieuNhapStore, *KhoPhieuXuatStore,
@@ -57,30 +57,74 @@ func KhoiTaoCacStore() {
 	CacheKhachHang, CachePhieuNhap, CacheChiTietNhap, CachePhieuXuat,
 	CacheChiTietXuat, CacheSerial, CacheKhuyenMai, CacheCauHinhWeb,
 	CacheHoaDon, CacheHoaDonChiTiet, CachePhieuThuChi, CachePhieuBaoHanh = taoMoiCacStore()
-	log.Println("✅ [MEMORY] Đã khởi tạo bộ nhớ rỗng.")
 }
 
-func KhoiTaoBoNho() {
-	log.Println("--- [BOOT] Bắt đầu nạp dữ liệu ---")
-	thucHienNapDaLuong(
-		CacheSanPham, CacheDanhMuc, CacheThuongHieu, CacheNhaCungCap,
-		CacheKhachHang, CachePhieuNhap, CacheChiTietNhap, CachePhieuXuat,
-		CacheChiTietXuat, CacheSerial, CacheKhuyenMai, CacheCauHinhWeb,
-		CacheHoaDon, CacheHoaDonChiTiet, CachePhieuThuChi, CachePhieuBaoHanh,
-	)
-	log.Println("--- [BOOT] Hoàn tất ---")
+// =============================================================================
+// [MỚI] CHIẾN LƯỢC TẢI DỮ LIỆU THÔNG MINH
+// =============================================================================
+
+// 1. Chỉ tải những gì cần thiết để Đăng nhập & Check Quyền (Chạy tuần tự)
+func NapDuLieuCotLoi() {
+	var wg sync.WaitGroup
+	wg.Add(3) // 3 bảng quan trọng nhất
+
+	go func() { defer wg.Done(); napKhachHang(CacheKhachHang) }()
+	go func() { defer wg.Done(); napCauHinhWeb(CacheCauHinhWeb) }()
+	go func() { defer wg.Done(); napPhanQuyen() }() // Hàm trong phan_quyen.go
+
+	wg.Wait()
+	log.Println("✅ [BOOT 1/2] Đã nạp xong Dữ Liệu Cốt Lõi (User, Config).")
 }
+
+// 2. Tải phần còn lại (Chạy ngầm)
+func NapDuLieuNen() {
+	log.Println("⏳ [BOOT 2/2] Bắt đầu nạp dữ liệu nền (Sản phẩm, Đơn hàng)...")
+	
+	// Gom các biến toàn cục vào tham số để gọi hàm helper
+	thucHienNapPhanConLai(
+		CacheSanPham, CacheDanhMuc, CacheThuongHieu, CacheNhaCungCap,
+		CachePhieuNhap, CacheChiTietNhap, CachePhieuXuat, CacheChiTietXuat,
+		CacheSerial, CacheKhuyenMai, CacheHoaDon, CacheHoaDonChiTiet, 
+		CachePhieuThuChi, CachePhieuBaoHanh,
+	)
+	
+	log.Println("✅ [BOOT 2/2] Hoàn tất nạp 100% dữ liệu.")
+}
+
+// =============================================================================
+// LOGIC RELOAD (VẪN PHẢI TẢI FULL RỒI MỚI SWAP ĐỂ AN TOÀN)
+// =============================================================================
 
 func LamMoiHeThong() {
 	log.Println("⚡ [RELOAD] Bắt đầu quy trình Tách Ly Đọc Ghi...")
 	HeThongDangBan = true
 	if CallbackGhiSheet != nil { CallbackGhiSheet(true) }
 
+	// Tạo bộ nhớ tạm mới tinh
 	tmpSP, tmpDM, tmpTH, tmpNCC, tmpKH, tmpPN, tmpCTPN, tmpPX, 
 	tmpCTPX, tmpSer, tmpKM, tmpWeb, tmpHD, tmpHDCT, tmpThuChi, tmpBH := taoMoiCacStore()
 
-	thucHienNapDaLuong(tmpSP, tmpDM, tmpTH, tmpNCC, tmpKH, tmpPN, tmpCTPN, tmpPX, tmpCTPX, tmpSer, tmpKM, tmpWeb, tmpHD, tmpHDCT, tmpThuChi, tmpBH)
+	// Tải Song Song cả 2 nhóm (Cốt lõi + Nền) vào biến tạm
+	var wg sync.WaitGroup
+	wg.Add(2)
 
+	// Nhóm 1: Cốt lõi
+	go func() {
+		defer wg.Done()
+		napKhachHang(tmpKH)
+		napCauHinhWeb(tmpWeb)
+		napPhanQuyen() // Lưu ý: Biến PhanQuyen là map riêng, reload thẳng
+	}()
+
+	// Nhóm 2: Nền
+	go func() {
+		defer wg.Done()
+		thucHienNapPhanConLai(tmpSP, tmpDM, tmpTH, tmpNCC, tmpPN, tmpCTPN, tmpPX, tmpCTPX, tmpSer, tmpKM, tmpHD, tmpHDCT, tmpThuChi, tmpBH)
+	}()
+
+	wg.Wait()
+
+	// Swap
 	KhoaHeThong.Lock()
 	CacheSanPham = tmpSP; CacheDanhMuc = tmpDM; CacheThuongHieu = tmpTH; CacheNhaCungCap = tmpNCC
 	CacheKhachHang = tmpKH
@@ -90,15 +134,17 @@ func LamMoiHeThong() {
 	CacheKhuyenMai = tmpKM; CacheCauHinhWeb = tmpWeb
 	CacheHoaDon = tmpHD; CacheHoaDonChiTiet = tmpHDCT
 	CachePhieuThuChi = tmpThuChi; CachePhieuBaoHanh = tmpBH
+	
 	HeThongDangBan = false
 	KhoaHeThong.Unlock()
 	log.Println("✅ [RELOAD] Hoán đổi hoàn tất.")
 }
 
-func thucHienNapDaLuong(
+// Helper nạp các bảng còn lại (Trừ KH, Config, PhanQuyen)
+func thucHienNapPhanConLai(
 	pSP *KhoSanPhamStore, pDM *KhoDanhMucStore, pTH *KhoThuongHieuStore, pNCC *KhoNhaCungCapStore,
-	pKH *KhoKhachHangStore, pPN *KhoPhieuNhapStore, pCTPN *KhoChiTietPhieuNhapStore, pPX *KhoPhieuXuatStore,
-	pCTPX *KhoChiTietPhieuXuatStore, pSer *KhoSerialStore, pKM *KhoKhuyenMaiStore, pWeb *KhoCauHinhWebStore,
+	pPN *KhoPhieuNhapStore, pCTPN *KhoChiTietPhieuNhapStore, pPX *KhoPhieuXuatStore,
+	pCTPX *KhoChiTietPhieuXuatStore, pSer *KhoSerialStore, pKM *KhoKhuyenMaiStore,
 	pHD *KhoHoaDonStore, pHDCT *KhoHoaDonChiTietStore, pThuChi *KhoPhieuThuChiStore, pBH *KhoPhieuBaoHanhStore,
 ) {
 	var wg sync.WaitGroup
@@ -106,17 +152,15 @@ func thucHienNapDaLuong(
 
 	go func() { 
 		defer wg.Done()
-		napDanhMuc(pDM); napThuongHieu(pTH); napSanPham(pSP)
-		napKhachHang(pKH); napNhaCungCap(pNCC); napCauHinhWeb(pWeb)
-		napPhanQuyen() // Trong file phan_quyen.go (cùng package bo_nho_dem)
+		napDanhMuc(pDM); napThuongHieu(pTH); napSanPham(pSP); napNhaCungCap(pNCC)
 	}()
 	go func() { 
-		defer wg.Done(); time.Sleep(100 * time.Millisecond)
+		defer wg.Done()
 		napPhieuNhap(pPN); napChiTietPhieuNhap(pCTPN); napPhieuXuat(pPX); napChiTietPhieuXuat(pCTPX)
 		napSerial(pSer); napKhuyenMai(pKM) 
 	}()
 	go func() { 
-		defer wg.Done(); time.Sleep(200 * time.Millisecond)
+		defer wg.Done()
 		napHoaDon(pHD); napHoaDonChiTiet(pHDCT); napPhieuThuChi(pThuChi); napPhieuBaoHanh(pBH) 
 	}()
 	wg.Wait()

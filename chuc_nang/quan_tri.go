@@ -1,7 +1,6 @@
 package chuc_nang
 
 import (
-	"fmt"
 	"net/http"
 	"sort"
 	"time"
@@ -49,8 +48,7 @@ func tinhToanThongKe() DuLieuDashboard {
 
 	// 1. Lấy dữ liệu thô từ Cache (Có Read Lock)
 	listSP := nghiep_vu.LayDanhSachSanPham()
-	// Lưu ý: Cần thêm hàm lấy danh sách KH/PX trong truy_xuat.go nếu chưa có, 
-	// nhưng ở đây tôi giả định truy cập thẳng Cache để code ngắn gọn (Thực tế nên dùng Getter an toàn)
+	
 	nghiep_vu.KhoaHeThong.RLock()
 	defer nghiep_vu.KhoaHeThong.RUnlock()
 
@@ -115,5 +113,5 @@ func API_NapLaiDuLieu(c *gin.Context) {
 		return
 	}
 	nghiep_vu.KhoiTaoBoNho()
-	c.JSON(http.StatusOK, gin.H{"trang_thai": "thanh_cong", "thong_diep": "Đã reload hệ thống!"})
+	c.JSON(http.StatusOK, gin.H{"trang_thai": "thanh_cong", "thong_diep": "Đã nạp lại dữ liệu mới nhất từ Google Sheet!"})
 }

@@ -3,6 +3,7 @@ package chuc_nang
 import (
 	"fmt"
 	"net/http"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -20,24 +21,39 @@ func TrangQuanLySanPham(c *gin.Context) {
 	userID := c.GetString("USER_ID")
 	kh, _ := nghiep_vu.LayThongTinKhachHang(userID)
 
-	// [MỚI] Lấy thêm dữ liệu bổ trợ để hiện Dropdown
+	// 1. Lấy danh sách sản phẩm (Slice)
 	listSP := nghiep_vu.LayDanhSachSanPham()
-	listDM := nghiep_vu.LayDanhSachDanhMuc()
-	listTH := nghiep_vu.LayDanhSachThuongHieu()
+	
+	// 2. Lấy Danh Mục (Map -> Slice để sort)
+	// Hàm LayDanhSachDanhMuc nằm trong nghiep_vu/truy_xuat.go trả về Map
+	mapDM := nghiep_vu.LayDanhSachDanhMuc()
+	var listDM []mo_hinh.DanhMuc
+	for _, v := range mapDM { listDM = append(listDM, v) }
+	
+	// Sắp xếp Danh mục A-Z
+	sort.Slice(listDM, func(i, j int) bool { return listDM[i].TenDanhMuc < listDM[j].TenDanhMuc })
+
+	// 3. Lấy Thương Hiệu (Map -> Slice để sort)
+	mapTH := nghiep_vu.LayDanhSachThuongHieu()
+	var listTH []mo_hinh.ThuongHieu
+	for _, v := range mapTH { listTH = append(listTH, v) }
+	
+	// Sắp xếp Thương hiệu A-Z
+	sort.Slice(listTH, func(i, j int) bool { return listTH[i].TenThuongHieu < listTH[j].TenThuongHieu })
 
 	c.HTML(http.StatusOK, "quan_tri_san_pham", gin.H{
-		"TieuDe":       "Quản lý sản phẩm",
-		"NhanVien":     kh,
-		"DaDangNhap":   true,
-		"TenNguoiDung": kh.TenKhachHang,
-		"QuyenHan":     kh.VaiTroQuyenHan,
-		"DanhSach":     listSP,
-		"ListDanhMuc":  listDM, // Gửi sang view
-		"ListThuongHieu": listTH, // Gửi sang view
+		"TieuDe":         "Quản lý sản phẩm",
+		"NhanVien":       kh,
+		"DaDangNhap":     true,
+		"TenNguoiDung":   kh.TenKhachHang,
+		"QuyenHan":       kh.VaiTroQuyenHan,
+		"DanhSach":       listSP,
+		"ListDanhMuc":    listDM, 
+		"ListThuongHieu": listTH,
 	})
 }
 
-// API_LuuSanPham : Xử lý Full trường
+// API_LuuSanPham : Xử lý Full trường (Dùng chi_muc.go)
 func API_LuuSanPham(c *gin.Context) {
 	// 1. Check quyền
 	vaiTro := c.GetString("USER_ROLE")
@@ -46,20 +62,18 @@ func API_LuuSanPham(c *gin.Context) {
 		return
 	}
 
-	// 2. Lấy dữ liệu form (FULL)
+	// 2. Lấy dữ liệu form
 	maSP        := strings.TrimSpace(c.PostForm("ma_san_pham"))
 	tenSP       := strings.TrimSpace(c.PostForm("ten_san_pham"))
 	tenRutGon   := strings.TrimSpace(c.PostForm("ten_rut_gon"))
 	sku         := strings.TrimSpace(c.PostForm("sku"))
 	
-	// Xử lý giá tiền (Xóa dấu chấm phân cách: 1.500.000 -> 1500000)
+	// Xử lý giá tiền (1.500.000 -> 1500000)
 	giaBanStr   := strings.ReplaceAll(c.PostForm("gia_ban_le"), ".", "")
 	giaBanStr    = strings.ReplaceAll(giaBanStr, ",", "")
 	giaBan, _   := strconv.ParseFloat(giaBanStr, 64)
 
-	// Danh mục (Tags) gửi lên dạng: [{"value":"Mainboard"}, {"value":"Asus"}] hoặc "Mainboard, Asus"
-	// Ta sẽ lưu dạng chuỗi cách nhau dấu phẩy
-	danhMucRaw  := c.PostForm("ma_danh_muc") // Nhận từ Tagify
+	danhMucRaw  := c.PostForm("ma_danh_muc")
 	danhMuc     := xuLyTags(danhMucRaw)
 
 	thuongHieu  := c.PostForm("ma_thuong_hieu")
@@ -72,7 +86,6 @@ func API_LuuSanPham(c *gin.Context) {
 	tinhTrang   := c.PostForm("tinh_trang")
 	ghiChu      := c.PostForm("ghi_chu")
 	
-	// Trạng thái (Checkbox)
 	trangThai := 0
 	if c.PostForm("trang_thai") == "on" { trangThai = 1 }
 
@@ -90,7 +103,6 @@ func API_LuuSanPham(c *gin.Context) {
 	bo_nho_dem.KhoaHeThong.Lock()
 	
 	if maSP == "" {
-		// TẠO MỚI
 		isNew = true
 		maSP = taoMaSPMoi()
 		sp = mo_hinh.SanPham{
@@ -99,7 +111,6 @@ func API_LuuSanPham(c *gin.Context) {
 			NguoiTao:  userID,
 		}
 	} else {
-		// SỬA
 		if oldSP, ok := bo_nho_dem.CacheSanPham.DuLieu[maSP]; ok {
 			sp = oldSP
 		} else {
@@ -107,7 +118,7 @@ func API_LuuSanPham(c *gin.Context) {
 		}
 	}
 
-	// Map dữ liệu vào Struct
+	// Map dữ liệu
 	sp.TenSanPham = tenSP
 	sp.TenRutGon = tenRutGon
 	sp.Sku = sku
@@ -139,7 +150,7 @@ func API_LuuSanPham(c *gin.Context) {
 	}
 	bo_nho_dem.KhoaHeThong.Unlock()
 
-	// 5. Ghi Sheet (Tạm thời append nếu mới)
+	// 5. Ghi Sheet (Sử dụng mo_hinh/chi_muc.go hiện có)
 	sID := cau_hinh.BienCauHinh.IdFileSheet
 	sheetName := "SAN_PHAM"
 	targetRow := 0
@@ -148,7 +159,6 @@ func API_LuuSanPham(c *gin.Context) {
 	}
 
 	if targetRow > 0 {
-		// Ghi đủ 18 cột
 		nghiep_vu.ThemVaoHangCho(sID, sheetName, targetRow, mo_hinh.CotSP_MaSanPham, sp.MaSanPham)
 		nghiep_vu.ThemVaoHangCho(sID, sheetName, targetRow, mo_hinh.CotSP_TenSanPham, sp.TenSanPham)
 		nghiep_vu.ThemVaoHangCho(sID, sheetName, targetRow, mo_hinh.CotSP_TenRutGon, sp.TenRutGon)
@@ -173,11 +183,9 @@ func API_LuuSanPham(c *gin.Context) {
 	c.JSON(200, gin.H{"status": "ok", "msg": "Đã lưu sản phẩm thành công!"})
 }
 
-// Helper: Xử lý chuỗi JSON từ Tagify về chuỗi thường "Tag1, Tag2"
+// Helper xử lý Tags
 func xuLyTags(raw string) string {
-	if !strings.Contains(raw, "[") { return raw } // Nếu không phải JSON
-	// Parse đơn giản bằng string manipulation cho nhanh, khỏi struct
-	// Input: [{"value":"A"},{"value":"B"}] -> Output: "A, B"
+	if !strings.Contains(raw, "[") { return raw }
 	res := strings.ReplaceAll(raw, "[", "")
 	res = strings.ReplaceAll(res, "]", "")
 	res = strings.ReplaceAll(res, "{", "")

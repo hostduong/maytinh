@@ -3,11 +3,17 @@
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
     <style>
+        /* CSS trạng thái input */
         .input-error { border-color: #ef4444 !important; background-color: #fef2f2; }
         .input-success { border-color: #22c55e !important; background-color: #f0fdf4; }
         .input-normal { border-color: #d1d5db !important; background-color: #ffffff; }
+        
+        /* CSS thông báo lỗi */
+        .error-text { color: #ef4444; font-size: 0.75rem; margin-top: 0.25rem; display: none; }
+        .error-text.show { display: block; }
+
+        /* Nút bấm */
         button:disabled { opacity: 0.6; cursor: not-allowed; background-color: #9ca3af !important; }
-        .hidden { display: none; }
     </style>
 
     <div class="flex items-center justify-center min-h-[calc(100vh-200px)] py-12 px-4 bg-gray-50">
@@ -26,11 +32,11 @@
             {{ end }}
 
             <form id="formLogin" class="mt-8 space-y-6" action="/login" method="POST" novalidate>
-                <div class="rounded-md shadow-sm space-y-4">
+                <div class="space-y-4">
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Mã KH / Tên đăng nhập / Email</label>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Tên đăng nhập / Email / Mã KH</label>
                         <input id="user" name="input_dinh_danh" type="text" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition input-normal" placeholder="Ví dụ: KH_0001 hoặc admin">
-                        <p id="err_user" class="text-red-500 text-xs mt-1 hidden"></p>
+                        <p id="err_user" class="error-text">Vui lòng nhập tài khoản hợp lệ (không chứa ký tự đặc biệt).</p>
                     </div>
 
                     <div>
@@ -38,18 +44,15 @@
                         <div class="relative">
                             <input id="pass" name="mat_khau" type="password" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition input-normal" placeholder="••••••••">
                             <button type="button" onclick="togglePass('pass')" class="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-blue-600">
-                                <svg id="eye_slash_pass" class="w-5 h-5 block" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" d="M3.98 8.223A10.477 10.477 0 001.934 12C3.226 16.338 7.244 19.5 12 19.5c.993 0 1.953-.138 2.863-.395M6.228 6.228A10.45 10.45 0 0112 4.5c4.756 0 8.773 3.162 10.065 7.498a10.523 10.523 0 01-4.293 5.774M6.228 6.228L3 3m3.228 3.228l3.65 3.65m7.894 7.894L21 21m-3.228-3.228l-3.65-3.65m0 0a3 3 0 10-4.243-4.243m4.242 4.242L9.88 9.88" />
-                                </svg>
-                                <svg id="eye_open_pass" class="w-5 h-5 hidden" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" /><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                                </svg>
+                                <svg id="eye_slash_pass" class="w-5 h-5 block" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3.98 8.223A10.477 10.477 0 001.934 12C3.226 16.338 7.244 19.5 12 19.5c.993 0 1.953-.138 2.863-.395M6.228 6.228A10.45 10.45 0 0112 4.5c4.756 0 8.773 3.162 10.065 7.498a10.523 10.523 0 01-4.293 5.774M6.228 6.228L3 3m3.228 3.228l3.65 3.65m7.894 7.894L21 21m-3.228-3.228l-3.65-3.65m0 0a3 3 0 10-4.243-4.243m4.242 4.242L9.88 9.88" /></svg>
+                                <svg id="eye_open_pass" class="w-5 h-5 hidden" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" /><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
                             </button>
                         </div>
+                        <p id="err_pass" class="error-text">Mật khẩu phải từ 8 ký tự trở lên.</p>
                     </div>
                 </div>
 
-                <div class="flex items-center justify-between">
+                <div class="flex items-center justify-between mt-2">
                     <a href="/register" class="text-sm font-medium text-blue-600 hover:text-blue-500">Chưa có tài khoản?</a>
                     <a href="/forgot-password" class="text-sm font-medium text-gray-600 hover:text-blue-600">Quên mật khẩu?</a>
                 </div>
@@ -65,35 +68,59 @@
     <script>
         const u = document.getElementById('user');
         const p = document.getElementById('pass');
-        const errU = document.getElementById('err_user');
         const btn = document.getElementById('btnSubmit');
 
+        // Hàm hiển thị lỗi
+        function setError(input, msgId, isError) {
+            const msgEl = document.getElementById(msgId);
+            if (isError) {
+                input.classList.add('input-error');
+                input.classList.remove('input-normal', 'input-success');
+                msgEl.classList.add('show');
+            } else {
+                input.classList.remove('input-error');
+                if (input.value.trim() !== "") input.classList.add('input-success');
+                else input.classList.add('input-normal');
+                msgEl.classList.remove('show');
+            }
+            checkSubmit();
+        }
+
         function checkSubmit() {
-            // Validate đơn giản: Không rỗng và đủ độ dài tối thiểu
-            const validLen = u.value.trim().length >= 4 && p.value.length >= 8; // Mã KH có thể ngắn (KH_1)
-            const hasError = document.querySelectorAll('.input-error').length > 0;
+            // Logic đơn giản: Không có lỗi nào đang hiển thị và các ô không rỗng
+            const hasError = document.querySelectorAll('.error-text.show').length > 0;
+            const notEmpty = u.value.trim().length > 0 && p.value.length > 0;
             
-            if (!hasError && validLen) {
+            if (!hasError && notEmpty) {
                 btn.removeAttribute('disabled');
             } else {
                 btn.setAttribute('disabled', 'true');
             }
         }
 
+        // Validate Tài khoản (Cho phép: chữ, số, @, ., _, -)
         u.addEventListener('input', function() {
-            // Cho phép nhập: Chữ, số, @, dấu chấm, gạch dưới, gạch ngang (cho email/mã KH)
-            // Cấm: Ký tự đặc biệt khác, dấu cách
-            if (/[^a-zA-Z0-9@._\-]/.test(this.value)) {
-                u.classList.add('input-error'); u.classList.remove('input-normal', 'input-success');
-                errU.innerText = "Chứa ký tự không hợp lệ."; errU.classList.remove('hidden');
-            } else {
-                u.classList.add('input-normal'); u.classList.remove('input-error', 'input-success');
-                errU.classList.add('hidden');
-            }
-            checkSubmit();
+            // Regex chặn ký tự đặc biệt lạ (VD: dấu cách, ngoặc, $, #...)
+            const isInvalid = /[^a-zA-Z0-9@._\-]/.test(this.value);
+            setError(this, 'err_user', isInvalid);
+        });
+        
+        u.addEventListener('blur', function() {
+            // Khi rời chuột, kiểm tra độ dài tối thiểu
+            const tooShort = this.value.trim().length < 4;
+            setError(this, 'err_user', tooShort);
         });
 
-        p.addEventListener('input', checkSubmit);
+        // Validate Mật khẩu (Chỉ kiểm tra độ dài cơ bản để bật nút)
+        p.addEventListener('input', function() {
+            setError(this, 'err_pass', false); // Reset lỗi khi gõ
+            checkSubmit();
+        });
+        
+        p.addEventListener('blur', function() {
+            const tooShort = this.value.length < 1; // Login thì chỉ cần không rỗng, server check tiếp
+            setError(this, 'err_pass', tooShort);
+        });
 
         function togglePass(id) {
             const input = document.getElementById(id);
@@ -111,7 +138,6 @@
             }
         }
 
-        // [LOADING EFFECT]
         document.getElementById('formLogin').addEventListener('submit', function(e) {
             if (btn.disabled) { e.preventDefault(); return; }
             btn.setAttribute('disabled', 'true');

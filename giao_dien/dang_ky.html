@@ -78,7 +78,7 @@
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-1">Tên đăng nhập <span class="text-red-500">*</span></label>
                     <input id="ten_dang_nhap" name="ten_dang_nhap" type="text" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 input-normal" placeholder="user123">
-                    <p id="err_ten_dang_nhap" class="error-text">6-30 ký tự (a-z, 0-9, ., _). Không bắt đầu/kết thúc/lặp lại ký tự đặc biệt.</p>
+                    <p id="err_ten_dang_nhap" class="error-text">6-30 ký tự (a-z, 0-9, ., _). Không bắt đầu/kết thúc bằng ký tự đặc biệt.</p>
                 </div>
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
@@ -123,26 +123,41 @@
         const inputPhone = document.querySelector("#dien_thoai");
         const iti = window.intlTelInput(inputPhone, { initialCountry: "vn", separateDialCode: true, utilsScript: "https://cdn.jsdelivr.net/npm/intl-tel-input@18.2.1/build/js/utils.js" });
 
-        // [QUY TẮC MỚI NHẤT]
+        // [CẤU HÌNH REGEX THEO YÊU CẦU]
         const RULES = {
             ho_ten: {
-                // Unicode (Tiếng Việt) + Khoảng trắng. Flag 'u' rất quan trọng.
-                regex: /^[\p{L}\s]{6,50}$/u 
+                // Regex 1: Chặn ký tự lạ (Input) - Cho phép chữ + khoảng trắng
+                char_regex: /[^\p{L}\s]/u, 
+                // Regex 2: Full check (Blur) - Độ dài 6-50
+                full_regex: /^[\p{L}\s]{6,50}$/u,
+                msg: "Họ tên 6-50 ký tự, không chứa số hoặc ký tự lạ."
             },
             email: {
-                // Regex chuẩn, chặn @mail..com
-                regex: /^[a-z0-9._%+\-]+@(?:[a-z0-9-]+\.)+[a-z]{2,}$/ 
+                // Input: Cho phép a-z 0-9 . _ % + - @
+                char_regex: /[^a-z0-9._%+\-@]/, 
+                // Blur: Full format email + Chặn @mail..com
+                full_regex: /^[a-z0-9._%+\-]+@(?:[a-z0-9-]+\.)+[a-z]{2,}$/, 
+                // Độ dài kiểm tra riêng bằng length (6-100)
+                msg: "Email không đúng định dạng (VD: abc@mail.com)."
             },
             ma_pin: {
-                regex: /^\d{8}$/ 
+                char_regex: /[^0-9]/,
+                full_regex: /^\d{8}$/,
+                msg: "Mã PIN phải đúng 8 số."
             },
             ten_dang_nhap: {
-                // Lookahead chặn .. __ ._ _.
-                regex: /^[a-z0-9](?!.*[._]{2})[a-z0-9._]{4,28}[a-z0-9]$/ 
+                // Input: a-z 0-9 . _
+                char_regex: /[^a-z0-9._]/,
+                // Blur: Regex Lookahead chặn .. __ ._ _.
+                full_regex: /^[a-z0-9](?!.*(\.\.|__|_\.|\._))[a-z0-9._]{4,28}[a-z0-9]$/,
+                msg: "6-30 ký tự (a-z, 0-9, ., _). Không bắt đầu/kết thúc bằng . _ và không chứa .. __ ._"
             },
             mat_khau: {
-                // Whitelist ký tự đặc biệt
-                regex: /^[a-zA-Z0-9!@#$%^&*()\-+_.,?]{8,30}$/ 
+                // Input: Whitelist ký tự
+                char_regex: /[^a-zA-Z0-9!@#$%^&*()\-+_.,?]/,
+                // Blur: Check độ dài
+                full_regex: /^[a-zA-Z0-9!@#$%^&*()\-+_.,?]{8,30}$/,
+                msg: "8-30 ký tự. Chỉ gồm chữ, số và !@#$%^&*()-_+.,?"
             }
         };
 
@@ -155,7 +170,6 @@
                 msg.classList.add('show');
             } else {
                 input.classList.remove('input-error');
-                // Nếu có value thì xanh, không thì trắng
                 if (input.value.trim() !== "") input.classList.add('input-success');
                 else input.classList.add('input-normal');
                 msg.classList.remove('show');
@@ -163,67 +177,91 @@
             checkSubmitButton();
         }
 
-        function checkInput(id) {
+        // LOGIC 1: Kiểm tra ký tự ngay khi nhập (INPUT)
+        function handleInput(id) {
+            const el = document.getElementById(id);
+            const rule = RULES[id];
+            
+            // Auto lowercase
+            if (id === 'email' || id === 'ten_dang_nhap') el.value = el.value.toLowerCase();
+            
+            const val = el.value;
+            // Nếu chứa ký tự cấm -> Báo lỗi NGAY LẬP TỨC
+            if (val !== "" && rule.char_regex.test(val)) {
+                setError(id, true);
+            } else {
+                // Nếu ký tự ổn -> Tắt lỗi tạm thời (Chưa check độ dài vội để đỡ phiền user)
+                // Trừ khi ô đang trống thì về normal
+                if (val === "") {
+                    el.classList.remove('input-error', 'input-success');
+                    el.classList.add('input-normal');
+                    document.getElementById('err_' + id).classList.remove('show');
+                } else {
+                    // Xóa lỗi đỏ nhưng chưa xanh hẳn (để chờ blur check full)
+                    el.classList.remove('input-error');
+                    document.getElementById('err_' + id).classList.remove('show');
+                }
+            }
+            checkSubmitButton();
+        }
+
+        // LOGIC 2: Kiểm tra toàn diện khi rời chuột (BLUR)
+        function handleBlur(id) {
             const el = document.getElementById(id);
             const val = el.value.trim();
             const rule = RULES[id];
 
-            // 1. Check độ dài Email thủ công (Do regex check length phức tạp)
+            if (val === "") return; // Rỗng thì thôi
+
+            // 1. Check độ dài Email thủ công
             if (id === 'email') {
-                if (val.length > 0 && (val.length < 6 || val.length > 100)) {
+                if (val.length < 6 || val.length > 100) {
                     setError(id, true); return;
                 }
             }
 
-            // 2. Check Regex chính
-            if (val !== "" && !rule.regex.test(val)) {
+            // 2. Check Regex Full
+            if (!rule.full_regex.test(val)) {
                 setError(id, true);
             } else {
-                setError(id, false);
+                setError(id, false); // Thành công -> Xanh
             }
         }
 
-        // Gắn Event cho các trường chính
+        // Gắn Event
         Object.keys(RULES).forEach(id => {
             const el = document.getElementById(id);
-            el.addEventListener('input', function() {
-                // Auto lowercase cho email và user
-                if (id === 'email' || id === 'ten_dang_nhap') this.value = this.value.toLowerCase();
-                // Check realtime để xóa lỗi
-                checkInput(id);
-            });
-            el.addEventListener('blur', function() {
-                checkInput(id);
-            });
+            el.addEventListener('input', () => handleInput(id));
+            el.addEventListener('blur', () => handleBlur(id));
         });
 
-        // Xử lý riêng Re-Pass
+        // Xử lý Re-Pass
         const rePass = document.getElementById('re_mat_khau');
         const pass = document.getElementById('mat_khau');
-        
-        function checkRePass() {
-            const val = rePass.value;
-            if (val !== "" && val !== pass.value) setError('re_mat_khau', true);
-            else setError('re_mat_khau', false);
-        }
-        rePass.addEventListener('input', checkRePass);
-        rePass.addEventListener('blur', checkRePass);
+        rePass.addEventListener('input', function() {
+            // Check ký tự lạ password
+            if (/[^a-zA-Z0-9!@#$%^&*()\-+_.,?]/.test(this.value)) setError('re_mat_khau', true);
+            else {
+                document.getElementById('err_re_mat_khau').classList.remove('show');
+                this.classList.remove('input-error');
+            }
+            checkSubmitButton();
+        });
+        rePass.addEventListener('blur', function() {
+            if (this.value !== "" && this.value !== pass.value) setError('re_mat_khau', true);
+            else if (this.value !== "") setError('re_mat_khau', false);
+        });
 
-        // Xử lý riêng Phone (Intl-Tel-Input)
+        // Xử lý Phone
         inputPhone.addEventListener('blur', () => {
             const val = inputPhone.value.trim();
-            const errPhone = document.getElementById('err_dien_thoai');
+            const err = document.getElementById('err_dien_thoai');
             if (val !== "") {
                 if (!iti.isValidNumber()) { 
-                    inputPhone.classList.add('input-error'); inputPhone.classList.remove('input-success'); 
-                    errPhone.classList.add('show');
+                    inputPhone.classList.add('input-error'); inputPhone.classList.remove('input-success'); err.classList.add('show');
                 } else { 
-                    inputPhone.classList.add('input-success'); inputPhone.classList.remove('input-error'); 
-                    errPhone.classList.remove('show');
+                    inputPhone.classList.add('input-success'); inputPhone.classList.remove('input-error'); err.classList.remove('show');
                 }
-            } else {
-                inputPhone.classList.remove('input-error', 'input-success');
-                errPhone.classList.remove('show');
             }
             checkSubmitButton();
         });
@@ -231,13 +269,9 @@
         function checkSubmitButton() {
             const requiredIds = ['ho_ten', 'email', 'ma_pin', 'ten_dang_nhap', 'mat_khau', 're_mat_khau'];
             let allGreen = true;
-            
-            // Tất cả ô input phải có class input-success
             for (const id of requiredIds) { 
                 if (!document.getElementById(id).classList.contains('input-success')) { allGreen = false; break; } 
             }
-            
-            // Check thêm checkbox và phone
             const terms = document.getElementById('terms').checked;
             let phoneOk = true; 
             if (inputPhone.value.trim() !== "" && !iti.isValidNumber()) phoneOk = false;
@@ -249,12 +283,10 @@
 
         document.getElementById('terms').addEventListener('change', checkSubmitButton);
 
-        // Submit Handler
         document.getElementById('formDangKy').addEventListener('submit', function(e) {
             const btn = document.getElementById('btnSubmit');
             if (btn.disabled) { e.preventDefault(); return; }
             if(inputPhone.value.trim() !== "") document.getElementById("dien_thoai_full").value = iti.getNumber();
-            
             btn.setAttribute('disabled', 'true');
             btn.innerHTML = `<svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-white inline-block" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> Đang xử lý...`;
         });

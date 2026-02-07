@@ -28,7 +28,6 @@ var (
 	CacheCauHinhWeb      *KhoCauHinhWebStore
 )
 
-// Helper tạo struct rỗng
 func taoMoiCacStore() (
 	*KhoSanPhamStore, *KhoDanhMucStore, *KhoThuongHieuStore, *KhoNhaCungCapStore,
 	*KhoKhachHangStore, *KhoPhieuNhapStore, *KhoChiTietPhieuNhapStore, *KhoPhieuXuatStore,
@@ -53,7 +52,6 @@ func taoMoiCacStore() (
 		&KhoPhieuBaoHanhStore{DuLieu: make(map[string]mo_hinh.PhieuBaoHanh), TenKey: TaoKeyCache("PHIEU_BAO_HANH")}
 }
 
-// 1. Init RAM
 func KhoiTaoCacStore() {
 	CacheSanPham, CacheDanhMuc, CacheThuongHieu, CacheNhaCungCap,
 	CacheKhachHang, CachePhieuNhap, CacheChiTietNhap, CachePhieuXuat,
@@ -62,7 +60,6 @@ func KhoiTaoCacStore() {
 	log.Println("✅ [MEMORY] Đã khởi tạo bộ nhớ rỗng.")
 }
 
-// 2. Boot Loader
 func KhoiTaoBoNho() {
 	log.Println("--- [BOOT] Bắt đầu nạp dữ liệu ---")
 	thucHienNapDaLuong(
@@ -74,23 +71,15 @@ func KhoiTaoBoNho() {
 	log.Println("--- [BOOT] Hoàn tất ---")
 }
 
-// 3. Safe Reload
 func LamMoiHeThong() {
 	log.Println("⚡ [RELOAD] Bắt đầu quy trình Tách Ly Đọc Ghi...")
 	HeThongDangBan = true
-	
-	// Gọi Callback để ghi sheet (nếu đã được gán từ main)
-	if CallbackGhiSheet != nil {
-		CallbackGhiSheet(true)
-	}
+	if CallbackGhiSheet != nil { CallbackGhiSheet(true) }
 
 	tmpSP, tmpDM, tmpTH, tmpNCC, tmpKH, tmpPN, tmpCTPN, tmpPX, 
 	tmpCTPX, tmpSer, tmpKM, tmpWeb, tmpHD, tmpHDCT, tmpThuChi, tmpBH := taoMoiCacStore()
 
-	thucHienNapDaLuong(
-		tmpSP, tmpDM, tmpTH, tmpNCC, tmpKH, tmpPN, tmpCTPN, tmpPX, 
-		tmpCTPX, tmpSer, tmpKM, tmpWeb, tmpHD, tmpHDCT, tmpThuChi, tmpBH,
-	)
+	thucHienNapDaLuong(tmpSP, tmpDM, tmpTH, tmpNCC, tmpKH, tmpPN, tmpCTPN, tmpPX, tmpCTPX, tmpSer, tmpKM, tmpWeb, tmpHD, tmpHDCT, tmpThuChi, tmpBH)
 
 	KhoaHeThong.Lock()
 	CacheSanPham = tmpSP; CacheDanhMuc = tmpDM; CacheThuongHieu = tmpTH; CacheNhaCungCap = tmpNCC
@@ -101,7 +90,6 @@ func LamMoiHeThong() {
 	CacheKhuyenMai = tmpKM; CacheCauHinhWeb = tmpWeb
 	CacheHoaDon = tmpHD; CacheHoaDonChiTiet = tmpHDCT
 	CachePhieuThuChi = tmpThuChi; CachePhieuBaoHanh = tmpBH
-	
 	HeThongDangBan = false
 	KhoaHeThong.Unlock()
 	log.Println("✅ [RELOAD] Hoán đổi hoàn tất.")
@@ -120,7 +108,7 @@ func thucHienNapDaLuong(
 		defer wg.Done()
 		napDanhMuc(pDM); napThuongHieu(pTH); napSanPham(pSP)
 		napKhachHang(pKH); napNhaCungCap(pNCC); napCauHinhWeb(pWeb)
-		NapDuLieuPhanQuyen() // Hàm này trong file cau_hinh.go
+		napPhanQuyen() // Trong file phan_quyen.go (cùng package bo_nho_dem)
 	}()
 	go func() { 
 		defer wg.Done(); time.Sleep(100 * time.Millisecond)

@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"app/bao_mat"
+	"app/bo_nho_dem" // [MỚI] Import để check cờ HeThongDangBan
 	"app/cau_hinh"
 	"app/mo_hinh"
 	"app/nghiep_vu"
@@ -31,11 +32,8 @@ func KhoiTaoBoDemRateLimit() {
 
 // MIDDLEWARE CHÍNH
 func KiemTraQuyenHan(c *gin.Context) {
-	// [MỚI] 1. CHỐT CHẶN BẢO TRÌ (Cơ chế Tách Ly Đọc Ghi)
-	// Nếu hệ thống đang trong quá trình Reload (biến cờ HeThongDangBan = true)
-	// Và Request là hành động Ghi (POST, PUT, DELETE...) -> Chặn lại để bảo toàn dữ liệu.
-	// Request xem (GET) vẫn cho qua bình thường.
-	if nghiep_vu.HeThongDangBan && c.Request.Method != "GET" {
+	// [MỚI] 1. CHỐT CHẶN BẢO TRÌ (Sửa biến trỏ về bo_nho_dem)
+	if bo_nho_dem.HeThongDangBan && c.Request.Method != "GET" {
 		c.AbortWithStatusJSON(http.StatusServiceUnavailable, gin.H{
 			"trang_thai": "he_thong_ban",
 			"thong_diep": "Hệ thống đang đồng bộ dữ liệu, vui lòng thử lại sau 5 giây.",
@@ -65,33 +63,26 @@ func KiemTraQuyenHan(c *gin.Context) {
 	}
 
 	// 3. KIỂM TRA ĐĂNG NHẬP & BẢO MẬT (AUTH)
-	
-	// Nếu không có cookie session -> Khách vãng lai
 	if cookieID == "" {
 		c.Next()
 		return
 	}
 
 	// KIỂM TRA TÍNH TOÀN VẸN (SECURITY CHECK)
-	// Nếu có Session ID nhưng thiếu Chữ ký hoặc Chữ ký sai -> ĐUỔI NGAY
 	userAgent := c.Request.UserAgent()
 	signatureServer := bao_mat.TaoChuKyBaoMat(cookieID, userAgent)
 
 	if err2 != nil || cookieSign != signatureServer {
-		// Dấu hiệu hack (Copy cookie sang máy khác hoặc giả mạo)
 		c.SetCookie("session_id", "", -1, "/", "", false, true)
 		c.SetCookie("session_sign", "", -1, "/", "", false, true)
 		c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"loi": "Phát hiện bất thường (Cookie Mismatch)! Vui lòng đăng nhập lại."})
 		return
 	}
 
-	// 4. TÌM USER TRONG RAM (Khi đã qua cửa bảo mật)
+	// 4. TÌM USER TRONG RAM (Gọi qua nghiep_vu - logic này đã được update bên trong nghiep_vu ở Bước 2)
 	khachHang, timThay := nghiep_vu.TimKhachHangTheoCookie(cookieID)
 
 	if !timThay {
-		// Cookie hợp lệ về mặt chữ ký nhưng Server (RAM) không tìm thấy dữ liệu
-		// (Do Server vừa restart chưa load kịp, hoặc Cookie quá cũ đã bị xóa khỏi DB)
-		// => Xóa cookie để user đăng nhập lại sạch sẽ
 		c.SetCookie("session_id", "", -1, "/", "", false, true)
 		c.SetCookie("session_sign", "", -1, "/", "", false, true)
 		c.Next()
@@ -114,13 +105,10 @@ func KiemTraQuyenHan(c *gin.Context) {
 	thoiGianConLai := time.Duration(thoiGianHetHan - now) * time.Second
 	if thoiGianConLai < cau_hinh.ThoiGianAnHan {
 		
-		// A. Tính thời gian mới (+30 phút)
 		newExp := time.Now().Add(cau_hinh.ThoiGianHetHanCookie).Unix()
-		
-		// B. Cập nhật vào RAM ngay
 		khachHang.CookieExpired = newExp
 
-		// C. Đẩy vào Hàng Chờ Ghi -> Ghi vào Sheet KHACH_HANG
+		// Gọi qua nghiep_vu để đẩy vào hàng chờ
 		rowID := nghiep_vu.LayDongKhachHang(khachHang.MaKhachHang)
 		if rowID > 0 {
 			nghiep_vu.ThemVaoHangCho(
@@ -132,13 +120,11 @@ func KiemTraQuyenHan(c *gin.Context) {
 			)
 		}
 
-		// D. Set lại Cookie mới cho trình duyệt (Cả 2 cookie để đồng bộ thời gian)
 		maxAge := int(cau_hinh.ThoiGianHetHanCookie.Seconds())
 		c.SetCookie("session_id", cookieID, maxAge, "/", "", false, true)
 		c.SetCookie("session_sign", cookieSign, maxAge, "/", "", false, true)
 	}
 
-	// Lưu thông tin user vào Context để Controller dùng
 	c.Set("USER_ID", khachHang.MaKhachHang)
 	c.Set("USER_ROLE", khachHang.VaiTroQuyenHan)
 	

@@ -16,28 +16,89 @@ import (
 // [CƠ CHẾ KHÓA HỆ THỐNG]
 var KhoaHeThong sync.RWMutex
 
-// [CỜ TRẠNG THÁI] True = Đang reload, từ chối request Ghi
+// [CỜ TRẠNG THÁI] True = Đang reload, Middleware sẽ chặn request Ghi (POST/PUT/DELETE)
 var HeThongDangBan bool = false
 
-// ... (CÁC STRUCT STORE GIỮ NGUYÊN) ...
-type KhoSanPhamStore struct { DuLieu map[string]mo_hinh.SanPham; DanhSach []mo_hinh.SanPham; TenKey string }
-type KhoDanhMucStore struct { DuLieu map[string]mo_hinh.DanhMuc; TenKey string }
-type KhoThuongHieuStore struct { DuLieu map[string]mo_hinh.ThuongHieu; TenKey string }
-type KhoNhaCungCapStore struct { DuLieu map[string]mo_hinh.NhaCungCap; TenKey string }
-type KhoKhachHangStore struct { DuLieu map[string]*mo_hinh.KhachHang; TenKey string; SpreadsheetID string }
-type KhoPhieuNhapStore struct { DuLieu map[string]mo_hinh.PhieuNhap; DanhSach []mo_hinh.PhieuNhap; TenKey string }
-type KhoChiTietPhieuNhapStore struct { DanhSach []mo_hinh.ChiTietPhieuNhap; TenKey string }
-type KhoPhieuXuatStore struct { DuLieu map[string]mo_hinh.PhieuXuat; DanhSach []mo_hinh.PhieuXuat; TenKey string }
-type KhoChiTietPhieuXuatStore struct { DanhSach []mo_hinh.ChiTietPhieuXuat; TenKey string }
-type KhoSerialStore struct { DuLieu map[string]mo_hinh.SerialSanPham; TenKey string }
-type KhoHoaDonStore struct { DuLieu map[string]mo_hinh.HoaDon; TenKey string }
-type KhoHoaDonChiTietStore struct { DanhSach []mo_hinh.HoaDonChiTiet; TenKey string }
-type KhoPhieuThuChiStore struct { DuLieu map[string]mo_hinh.PhieuThuChi; DanhSach []mo_hinh.PhieuThuChi; TenKey string }
-type KhoPhieuBaoHanhStore struct { DuLieu map[string]mo_hinh.PhieuBaoHanh; DanhSach []mo_hinh.PhieuBaoHanh; TenKey string }
-type KhoKhuyenMaiStore struct { DuLieu map[string]mo_hinh.KhuyenMai; TenKey string }
-type KhoCauHinhWebStore struct { DuLieu map[string]mo_hinh.CauHinhWeb; TenKey string }
+// =================================================================================
+// 1. ĐỊNH NGHĨA KHO DỮ LIỆU (STORE STRUCTS)
+// =================================================================================
 
-// BIẾN TOÀN CỤC (GLOBAL POINTERS)
+type KhoSanPhamStore struct {
+	DuLieu   map[string]mo_hinh.SanPham
+	DanhSach []mo_hinh.SanPham
+	TenKey   string
+}
+type KhoDanhMucStore struct {
+	DuLieu map[string]mo_hinh.DanhMuc
+	TenKey string
+}
+type KhoThuongHieuStore struct {
+	DuLieu map[string]mo_hinh.ThuongHieu
+	TenKey string
+}
+type KhoNhaCungCapStore struct {
+	DuLieu map[string]mo_hinh.NhaCungCap
+	TenKey string
+}
+
+type KhoKhachHangStore struct {
+	DuLieu        map[string]*mo_hinh.KhachHang
+	TenKey        string
+	SpreadsheetID string
+}
+
+type KhoPhieuNhapStore struct {
+	DuLieu   map[string]mo_hinh.PhieuNhap
+	DanhSach []mo_hinh.PhieuNhap
+	TenKey   string
+}
+type KhoChiTietPhieuNhapStore struct {
+	DanhSach []mo_hinh.ChiTietPhieuNhap
+	TenKey   string
+}
+type KhoPhieuXuatStore struct {
+	DuLieu   map[string]mo_hinh.PhieuXuat
+	DanhSach []mo_hinh.PhieuXuat
+	TenKey   string
+}
+type KhoChiTietPhieuXuatStore struct {
+	DanhSach []mo_hinh.ChiTietPhieuXuat
+	TenKey   string
+}
+type KhoSerialStore struct {
+	DuLieu map[string]mo_hinh.SerialSanPham
+	TenKey string
+}
+type KhoHoaDonStore struct {
+	DuLieu map[string]mo_hinh.HoaDon
+	TenKey string
+}
+type KhoHoaDonChiTietStore struct {
+	DanhSach []mo_hinh.HoaDonChiTiet
+	TenKey   string
+}
+type KhoPhieuThuChiStore struct {
+	DuLieu   map[string]mo_hinh.PhieuThuChi
+	DanhSach []mo_hinh.PhieuThuChi
+	TenKey   string
+}
+type KhoPhieuBaoHanhStore struct {
+	DuLieu   map[string]mo_hinh.PhieuBaoHanh
+	DanhSach []mo_hinh.PhieuBaoHanh
+	TenKey   string
+}
+type KhoKhuyenMaiStore struct {
+	DuLieu map[string]mo_hinh.KhuyenMai
+	TenKey string
+}
+type KhoCauHinhWebStore struct {
+	DuLieu map[string]mo_hinh.CauHinhWeb
+	TenKey string
+}
+
+// =================================================================================
+// 2. BIẾN TOÀN CỤC (GLOBAL POINTERS)
+// =================================================================================
 var (
 	CacheSanPham         *KhoSanPhamStore
 	CacheDanhMuc         *KhoDanhMucStore
@@ -58,17 +119,17 @@ var (
 )
 
 func TaoKeyCache(tenSheet string) string {
-	return fmt.Sprintf("%s__%s", strings.TrimSpace(cau_hinh.BienCauHinh.IdFileSheet), tenSheet)
+	idSheet := cau_hinh.BienCauHinh.IdFileSheet
+	return fmt.Sprintf("%s__%s", strings.TrimSpace(idSheet), tenSheet)
 }
 
-// Hàm khởi tạo struct rỗng (Helper)
+// Hàm khởi tạo struct rỗng (Helper để tạo biến tạm hoặc khởi tạo ban đầu)
 func taoMoiCacStore() (
 	*KhoSanPhamStore, *KhoDanhMucStore, *KhoThuongHieuStore, *KhoNhaCungCapStore,
 	*KhoKhachHangStore, *KhoPhieuNhapStore, *KhoChiTietPhieuNhapStore, *KhoPhieuXuatStore,
 	*KhoChiTietPhieuXuatStore, *KhoSerialStore, *KhoKhuyenMaiStore, *KhoCauHinhWebStore,
 	*KhoHoaDonStore, *KhoHoaDonChiTietStore, *KhoPhieuThuChiStore, *KhoPhieuBaoHanhStore,
 ) {
-	// Khởi tạo và trả về bộ pointer mới tinh
 	return &KhoSanPhamStore{DuLieu: make(map[string]mo_hinh.SanPham), TenKey: TaoKeyCache("SAN_PHAM")},
 		&KhoDanhMucStore{DuLieu: make(map[string]mo_hinh.DanhMuc), TenKey: TaoKeyCache("DANH_MUC")},
 		&KhoThuongHieuStore{DuLieu: make(map[string]mo_hinh.ThuongHieu), TenKey: TaoKeyCache("THUONG_HIEU")},
@@ -87,9 +148,12 @@ func taoMoiCacStore() (
 		&KhoPhieuBaoHanhStore{DuLieu: make(map[string]mo_hinh.PhieuBaoHanh), TenKey: TaoKeyCache("PHIEU_BAO_HANH")}
 }
 
-// 1. Khởi tạo lần đầu (Boot)
+// =================================================================================
+// 3. CÁC HÀM KHỞI TẠO VÀ LÀM MỚI (RELOAD LOGIC)
+// =================================================================================
+
+// 1. Khởi tạo lần đầu (Boot) - Nạp thẳng vào biến Global
 func KhoiTaoCacStore() {
-	// Gán vào biến toàn cục
 	CacheSanPham, CacheDanhMuc, CacheThuongHieu, CacheNhaCungCap,
 	CacheKhachHang, CachePhieuNhap, CacheChiTietNhap, CachePhieuXuat,
 	CacheChiTietXuat, CacheSerial, CacheKhuyenMai, CacheCauHinhWeb,
@@ -98,10 +162,9 @@ func KhoiTaoCacStore() {
 	log.Println("✅ [MEMORY] Đã khởi tạo bộ nhớ rỗng.")
 }
 
-// 2. Logic Nạp Dữ Liệu (Booting - Load trực tiếp vào Global)
+// 2. Logic Nạp Dữ Liệu (Booting)
 func KhoiTaoBoNho() {
 	log.Println("--- [BOOT] Bắt đầu nạp dữ liệu ---")
-	// Gọi nạp vào chính các biến toàn cục
 	thucHienNapDaLuong(
 		CacheSanPham, CacheDanhMuc, CacheThuongHieu, CacheNhaCungCap,
 		CacheKhachHang, CachePhieuNhap, CacheChiTietNhap, CachePhieuXuat,
@@ -112,21 +175,22 @@ func KhoiTaoBoNho() {
 }
 
 // 3. Logic Làm Mới (Reload - Shadow Load)
+// Quy trình: Chặn Ghi -> Tải vào biến tạm -> Hoán đổi -> Mở Ghi
 func LamMoiHeThong() {
 	log.Println("⚡ [RELOAD] Bắt đầu quy trình Tách Ly Đọc Ghi...")
 
 	// B1: Bật cờ Bận -> Middleware sẽ chặn POST
 	HeThongDangBan = true
 	
-	// B2: Vét sạch dữ liệu tồn đọng
+	// B2: Vét sạch dữ liệu tồn đọng trong Hàng Chờ (Flush)
 	ThucHienGhiSheet(true) 
 
-	// B3: Tạo biến tạm (Shadow Memory)
+	// B3: Tạo biến tạm (Shadow Memory) - RAM Sạch hoàn toàn
 	tmpSP, tmpDM, tmpTH, tmpNCC, tmpKH, tmpPN, tmpCTPN, tmpPX, 
 	tmpCTPX, tmpSer, tmpKM, tmpWeb, tmpHD, tmpHDCT, tmpThuChi, tmpBH := taoMoiCacStore()
 
 	// B4: Tải dữ liệu vào biến tạm (Mất 3-5s)
-	// Trong lúc này User vẫn đọc biến cũ (Cache...) bình thường
+	// Trong lúc này User vẫn đọc biến cũ (Cache...) bình thường, không bị lag
 	thucHienNapDaLuong(
 		tmpSP, tmpDM, tmpTH, tmpNCC, tmpKH, tmpPN, tmpCTPN, tmpPX, 
 		tmpCTPX, tmpSer, tmpKM, tmpWeb, tmpHD, tmpHDCT, tmpThuChi, tmpBH,
@@ -151,14 +215,14 @@ func LamMoiHeThong() {
 	CachePhieuThuChi = tmpThuChi
 	CachePhieuBaoHanh = tmpBH
 	
-	// Reset lại cờ
+	// Reset lại cờ, mở khóa
 	HeThongDangBan = false
 	KhoaHeThong.Unlock()
 
 	log.Println("✅ [RELOAD] Hoán đổi hoàn tất. Hệ thống mở lại.")
 }
 
-// Hàm chạy Goroutine nạp (Được sửa để nhận tham số Pointer thay vì dùng Global)
+// Hàm chạy Goroutine nạp (Nhận tham số Pointer thay vì dùng Global)
 func thucHienNapDaLuong(
 	pSP *KhoSanPhamStore, pDM *KhoDanhMucStore, pTH *KhoThuongHieuStore, pNCC *KhoNhaCungCapStore,
 	pKH *KhoKhachHangStore, pPN *KhoPhieuNhapStore, pCTPN *KhoChiTietPhieuNhapStore, pPX *KhoPhieuXuatStore,
@@ -168,27 +232,59 @@ func thucHienNapDaLuong(
 	var wg sync.WaitGroup
 	wg.Add(3)
 
-	go func() { defer wg.Done(); napDanhMuc(pDM); napThuongHieu(pTH); napSanPham(pSP); napKhachHang(pKH); napNhaCungCap(pNCC); napCauHinhWeb(pWeb); NapDuLieuPhanQuyen() }()
+	// Nhóm 1: Master Data
+	go func() { 
+		defer wg.Done()
+		napDanhMuc(pDM)
+		napThuongHieu(pTH)
+		napSanPham(pSP)
+		napKhachHang(pKH)
+		napNhaCungCap(pNCC)
+		napCauHinhWeb(pWeb)
+		NapDuLieuPhanQuyen() // Hàm này tự quản lý biến riêng của nó
+	}()
 	
-	go func() { defer wg.Done(); napPhieuNhap(pPN); napChiTietPhieuNhap(pCTPN); napPhieuXuat(pPX); napChiTietPhieuXuat(pCTPX); napSerial(pSer); napKhuyenMai(pKM) }()
+	// Nhóm 2: Giao dịch hàng hóa
+	go func() { 
+		defer wg.Done()
+		// Tạo delay giả lập nhỏ nếu cần để tránh Google chặn rate limit quá gắt (Opsional)
+		time.Sleep(100 * time.Millisecond) 
+		napPhieuNhap(pPN)
+		napChiTietPhieuNhap(pCTPN)
+		napPhieuXuat(pPX)
+		napChiTietPhieuXuat(pCTPX)
+		napSerial(pSer)
+		napKhuyenMai(pKM) 
+	}()
 	
-	go func() { defer wg.Done(); napHoaDon(pHD); napHoaDonChiTiet(pHDCT); napPhieuThuChi(pThuChi); napPhieuBaoHanh(pBH) }()
+	// Nhóm 3: Tài chính
+	go func() { 
+		defer wg.Done()
+		time.Sleep(200 * time.Millisecond)
+		napHoaDon(pHD)
+		napHoaDonChiTiet(pHDCT)
+		napPhieuThuChi(pThuChi)
+		napPhieuBaoHanh(pBH) 
+	}()
 
 	wg.Wait()
 }
 
-// =================================================================================
-// LOGIC NẠP CHI TIẾT (ĐÃ SỬA ĐỂ NHẬN THAM SỐ)
-// =================================================================================
-
+// Helper load sheet
 func loadSheetData(sheetName string, keyCache string) ([][]interface{}, error) {
 	duLieu, err := kho_du_lieu.DocToanBoSheet(sheetName)
-	if err != nil { log.Printf("LỖI ĐỌC %s: %v", sheetName, err); return nil, err }
-	// Khi load vào biến tạm thì không cần lock KeyCache cũ, nhưng giữ nguyên để an toàn
+	if err != nil {
+		log.Printf("LỖI ĐỌC %s: %v", sheetName, err)
+		return nil, err
+	}
 	return duLieu, nil
 }
 
-// VD: Sửa hàm napKhachHang nhận tham số target
+// =================================================================================
+// 4. LOGIC NẠP CHI TIẾT CHO TỪNG BẢNG (16 BẢNG)
+// =================================================================================
+
+// 1. KHACH_HANG
 func napKhachHang(target *KhoKhachHangStore) {
 	raw, err := loadSheetData("KHACH_HANG", target.TenKey)
 	if err != nil { return }
@@ -211,9 +307,15 @@ func napKhachHang(target *KhoKhachHangStore) {
 			UrlTiktok:      layString(r, mo_hinh.CotKH_UrlTiktok),
 			DiaChi:         layString(r, mo_hinh.CotKH_DiaChi),
 			MaSoThue:       layString(r, mo_hinh.CotKH_MaSoThue),
-			TrangThai:      layInt(r, mo_hinh.CotKH_TrangThai),
+			DangNo:         layFloat(r, mo_hinh.CotKH_DangNo),
+			TongMua:        layFloat(r, mo_hinh.CotKH_TongMua),
+			ChucVu:         layString(r, mo_hinh.CotKH_ChucVu),
 			VaiTroQuyenHan: layString(r, mo_hinh.CotKH_VaiTroQuyenHan),
+			TrangThai:      layInt(r, mo_hinh.CotKH_TrangThai),
+			GhiChu:         layString(r, mo_hinh.CotKH_GhiChu),
+			NguoiTao:       layString(r, mo_hinh.CotKH_NguoiTao),
 			NgayTao:        layString(r, mo_hinh.CotKH_NgayTao),
+			NgayCapNhat:    layString(r, mo_hinh.CotKH_NgayCapNhat),
 		}
 		target.DuLieu[item.MaKhachHang] = item
 		if item.TenDangNhap != "" { target.DuLieu[strings.ToLower(item.TenDangNhap)] = item }
@@ -221,7 +323,7 @@ func napKhachHang(target *KhoKhachHangStore) {
 	}
 }
 
-// ... CÁC HÀM KHÁC CŨNG SỬA TƯƠNG TỰ (Thêm tham số target) ...
+// 2. SAN_PHAM
 func napSanPham(target *KhoSanPhamStore) {
 	raw, err := loadSheetData("SAN_PHAM", target.TenKey)
 	if err != nil { return }
@@ -229,46 +331,335 @@ func napSanPham(target *KhoSanPhamStore) {
 		if i < (mo_hinh.DongBatDauDuLieu - 1) { continue }
 		if len(r) <= mo_hinh.CotSP_MaSanPham || layString(r, mo_hinh.CotSP_MaSanPham) == "" { continue }
 		item := mo_hinh.SanPham{
-			MaSanPham: layString(r, mo_hinh.CotSP_MaSanPham),
-			TenSanPham: layString(r, mo_hinh.CotSP_TenSanPham),
-			GiaBanLe: layFloat(r, mo_hinh.CotSP_GiaBanLe),
-			// ... (Map đủ các trường) ...
+			MaSanPham:    layString(r, mo_hinh.CotSP_MaSanPham),
+			TenSanPham:   layString(r, mo_hinh.CotSP_TenSanPham),
+			TenRutGon:    layString(r, mo_hinh.CotSP_TenRutGon),
+			Sku:          layString(r, mo_hinh.CotSP_Sku),
+			MaDanhMuc:    layString(r, mo_hinh.CotSP_MaDanhMuc),
+			MaThuongHieu: layString(r, mo_hinh.CotSP_MaThuongHieu),
+			DonVi:        layString(r, mo_hinh.CotSP_DonVi),
+			MauSac:       layString(r, mo_hinh.CotSP_MauSac),
+			UrlHinhAnh:   layString(r, mo_hinh.CotSP_UrlHinhAnh),
+			ThongSo:      layString(r, mo_hinh.CotSP_ThongSo),
+			MoTaChiTiet:  layString(r, mo_hinh.CotSP_MoTaChiTiet),
+			BaoHanhThang: layInt(r, mo_hinh.CotSP_BaoHanhThang),
+			TinhTrang:    layString(r, mo_hinh.CotSP_TinhTrang),
+			TrangThai:    layInt(r, mo_hinh.CotSP_TrangThai),
+			GiaBanLe:     layFloat(r, mo_hinh.CotSP_GiaBanLe),
+			GhiChu:       layString(r, mo_hinh.CotSP_GhiChu),
+			NguoiTao:     layString(r, mo_hinh.CotSP_NguoiTao),
+			NgayTao:      layString(r, mo_hinh.CotSP_NgayTao),
+			NgayCapNhat:  layString(r, mo_hinh.CotSP_NgayCapNhat),
 		}
 		target.DuLieu[item.MaSanPham] = item
 		target.DanhSach = append(target.DanhSach, item)
 	}
 }
 
-// Tôi viết tắt các hàm còn lại, bạn chỉ cần thêm tham số `target *Kho...` 
-// và thay `Cache...` bằng `target` trong thân hàm.
-func napDanhMuc(target *KhoDanhMucStore) { raw,_:=loadSheetData("DANH_MUC",target.TenKey); for i,r:=range raw{ if i<10{continue}; item:=mo_hinh.DanhMuc{MaDanhMuc:layString(r,mo_hinh.CotDM_MaDanhMuc),TenDanhMuc:layString(r,mo_hinh.CotDM_TenDanhMuc)}; target.DuLieu[item.MaDanhMuc]=item } }
-func napThuongHieu(target *KhoThuongHieuStore) { raw,_:=loadSheetData("THUONG_HIEU",target.TenKey); for i,r:=range raw{ if i<10{continue}; item:=mo_hinh.ThuongHieu{MaThuongHieu:layString(r,mo_hinh.CotTH_MaThuongHieu)}; target.DuLieu[item.MaThuongHieu]=item } }
-func napNhaCungCap(target *KhoNhaCungCapStore) { raw,_:=loadSheetData("NHA_CUNG_CAP",target.TenKey); for i,r:=range raw{ if i<10{continue}; item:=mo_hinh.NhaCungCap{MaNhaCungCap:layString(r,mo_hinh.CotNCC_MaNhaCungCap)}; target.DuLieu[item.MaNhaCungCap]=item } }
-func napPhieuNhap(target *KhoPhieuNhapStore) { raw,_:=loadSheetData("PHIEU_NHAP",target.TenKey); for i,r:=range raw{ if i<10{continue}; item:=mo_hinh.PhieuNhap{MaPhieuNhap:layString(r,mo_hinh.CotPN_MaPhieuNhap)}; target.DuLieu[item.MaPhieuNhap]=item; target.DanhSach=append(target.DanhSach,item) } }
-func napChiTietPhieuNhap(target *KhoChiTietPhieuNhapStore) { raw,_:=loadSheetData("CHI_TIET_PHIEU_NHAP",target.TenKey); for i,r:=range raw{ if i<10{continue}; item:=mo_hinh.ChiTietPhieuNhap{MaPhieuNhap:layString(r,mo_hinh.CotCTPN_MaPhieuNhap)}; target.DanhSach=append(target.DanhSach,item) } }
-func napPhieuXuat(target *KhoPhieuXuatStore) { 
-	raw,_:=loadSheetData("PHIEU_XUAT",target.TenKey)
-	for i,r:=range raw{ 
-		if i<10{continue}
-		item:=mo_hinh.PhieuXuat{
-			MaPhieuXuat:layString(r,mo_hinh.CotPX_MaPhieuXuat),
-			TongTienPhieu:layFloat(r,mo_hinh.CotPX_TongTienPhieu),
-			TrangThai:layString(r,mo_hinh.CotPX_TrangThai),
-			NgayTao:layString(r,mo_hinh.CotPX_NgayTao),
+// 3. DANH_MUC
+func napDanhMuc(target *KhoDanhMucStore) {
+	raw, err := loadSheetData("DANH_MUC", target.TenKey)
+	if err != nil { return }
+	for i, r := range raw {
+		if i < (mo_hinh.DongBatDauDuLieu - 1) { continue }
+		if len(r) <= mo_hinh.CotDM_MaDanhMuc || layString(r, mo_hinh.CotDM_MaDanhMuc) == "" { continue }
+		item := mo_hinh.DanhMuc{
+			MaDanhMuc:    layString(r, mo_hinh.CotDM_MaDanhMuc),
+			ThuTuHienThi: layInt(r, mo_hinh.CotDM_ThuTuHienThi),
+			TenDanhMuc:   layString(r, mo_hinh.CotDM_TenDanhMuc),
+			Slug:         layString(r, mo_hinh.CotDM_Slug),
+			MaDanhMucCha: layString(r, mo_hinh.CotDM_MaDanhMucCha),
 		}
-		target.DuLieu[item.MaPhieuXuat]=item; target.DanhSach=append(target.DanhSach,item) 
-	} 
+		target.DuLieu[item.MaDanhMuc] = item
+	}
 }
-func napChiTietPhieuXuat(target *KhoChiTietPhieuXuatStore) { raw,_:=loadSheetData("CHI_TIET_PHIEU_XUAT",target.TenKey); for i,r:=range raw{ if i<10{continue}; item:=mo_hinh.ChiTietPhieuXuat{MaPhieuXuat:layString(r,mo_hinh.CotCTPX_MaPhieuXuat)}; target.DanhSach=append(target.DanhSach,item) } }
-func napSerial(target *KhoSerialStore) { raw,_:=loadSheetData("SERIAL_SAN_PHAM",target.TenKey); for i,r:=range raw{ if i<10{continue}; item:=mo_hinh.SerialSanPham{SerialImei:layString(r,mo_hinh.CotSerial_SerialImei)}; target.DuLieu[item.SerialImei]=item } }
-func napKhuyenMai(target *KhoKhuyenMaiStore) { raw,_:=loadSheetData("KHUYEN_MAI",target.TenKey); for i,r:=range raw{ if i<10{continue}; item:=mo_hinh.KhuyenMai{MaVoucher:layString(r,mo_hinh.CotKM_MaVoucher)}; target.DuLieu[item.MaVoucher]=item } }
-func napCauHinhWeb(target *KhoCauHinhWebStore) { raw,_:=loadSheetData("CAU_HINH_WEB",target.TenKey); for i,r:=range raw{ if i<10{continue}; item:=mo_hinh.CauHinhWeb{MaCauHinh:layString(r,mo_hinh.CotCH_MaCauHinh)}; target.DuLieu[item.MaCauHinh]=item } }
-func napHoaDon(target *KhoHoaDonStore) { raw,_:=loadSheetData("HOA_DON",target.TenKey); for i,r:=range raw{ if i<10{continue}; item:=mo_hinh.HoaDon{MaHoaDon:layString(r,mo_hinh.CotHD_MaHoaDon)}; target.DuLieu[item.MaHoaDon]=item } }
-func napHoaDonChiTiet(target *KhoHoaDonChiTietStore) { raw,_:=loadSheetData("HOA_DON_CHI_TIET",target.TenKey); for i,r:=range raw{ if i<10{continue}; item:=mo_hinh.HoaDonChiTiet{MaHoaDon:layString(r,mo_hinh.CotHDCT_MaHoaDon)}; target.DanhSach=append(target.DanhSach,item) } }
-func napPhieuThuChi(target *KhoPhieuThuChiStore) { raw,_:=loadSheetData("PHIEU_THU_CHI",target.TenKey); for i,r:=range raw{ if i<10{continue}; item:=mo_hinh.PhieuThuChi{MaPhieuThuChi:layString(r,mo_hinh.CotPTC_MaPhieuThuChi)}; target.DuLieu[item.MaPhieuThuChi]=item; target.DanhSach=append(target.DanhSach,item) } }
-func napPhieuBaoHanh(target *KhoPhieuBaoHanhStore) { raw,_:=loadSheetData("PHIEU_BAO_HANH",target.TenKey); for i,r:=range raw{ if i<10{continue}; item:=mo_hinh.PhieuBaoHanh{MaPhieuBaoHanh:layString(r,mo_hinh.CotPBH_MaPhieuBaoHanh)}; target.DuLieu[item.MaPhieuBaoHanh]=item; target.DanhSach=append(target.DanhSach,item) } }
 
-// Helper giữ nguyên
-func layString(dong []interface{}, index int) string { if index >= len(dong) || dong[index] == nil { return "" }; return fmt.Sprintf("%v", dong[index]) }
-func layInt(dong []interface{}, index int) int { str:=layString(dong,index); str=strings.ReplaceAll(str,".",""); val,_:=strconv.Atoi(str); return val }
-func layFloat(dong []interface{}, index int) float64 { str:=layString(dong,index); str=strings.ReplaceAll(str,".",""); val,_:=strconv.ParseFloat(str,64); return val }
+// 4. THUONG_HIEU
+func napThuongHieu(target *KhoThuongHieuStore) {
+	raw, err := loadSheetData("THUONG_HIEU", target.TenKey)
+	if err != nil { return }
+	for i, r := range raw {
+		if i < (mo_hinh.DongBatDauDuLieu - 1) { continue }
+		if len(r) <= mo_hinh.CotTH_MaThuongHieu || layString(r, mo_hinh.CotTH_MaThuongHieu) == "" { continue }
+		item := mo_hinh.ThuongHieu{
+			MaThuongHieu:  layString(r, mo_hinh.CotTH_MaThuongHieu),
+			TenThuongHieu: layString(r, mo_hinh.CotTH_TenThuongHieu),
+			LogoUrl:       layString(r, mo_hinh.CotTH_LogoUrl),
+		}
+		target.DuLieu[item.MaThuongHieu] = item
+	}
+}
+
+// 5. NHA_CUNG_CAP
+func napNhaCungCap(target *KhoNhaCungCapStore) {
+	raw, err := loadSheetData("NHA_CUNG_CAP", target.TenKey)
+	if err != nil { return }
+	for i, r := range raw {
+		if i < (mo_hinh.DongBatDauDuLieu - 1) { continue }
+		if len(r) <= mo_hinh.CotNCC_MaNhaCungCap || layString(r, mo_hinh.CotNCC_MaNhaCungCap) == "" { continue }
+		item := mo_hinh.NhaCungCap{
+			MaNhaCungCap:  layString(r, mo_hinh.CotNCC_MaNhaCungCap),
+			TenNhaCungCap: layString(r, mo_hinh.CotNCC_TenNhaCungCap),
+			DienThoai:     layString(r, mo_hinh.CotNCC_DienThoai),
+			Email:         layString(r, mo_hinh.CotNCC_Email),
+			DiaChi:        layString(r, mo_hinh.CotNCC_DiaChi),
+			NoCanTra:      layFloat(r, mo_hinh.CotNCC_NoCanTra),
+			TrangThai:     layInt(r, mo_hinh.CotNCC_TrangThai),
+		}
+		target.DuLieu[item.MaNhaCungCap] = item
+	}
+}
+
+// 6. PHIEU_XUAT
+func napPhieuXuat(target *KhoPhieuXuatStore) {
+	raw, err := loadSheetData("PHIEU_XUAT", target.TenKey)
+	if err != nil { return }
+	for i, r := range raw {
+		if i < (mo_hinh.DongBatDauDuLieu - 1) { continue }
+		if len(r) <= mo_hinh.CotPX_MaPhieuXuat || layString(r, mo_hinh.CotPX_MaPhieuXuat) == "" { continue }
+		item := mo_hinh.PhieuXuat{
+			MaPhieuXuat:      layString(r, mo_hinh.CotPX_MaPhieuXuat),
+			LoaiXuat:         layString(r, mo_hinh.CotPX_LoaiXuat),
+			NgayXuat:         layString(r, mo_hinh.CotPX_NgayXuat),
+			MaKho:            layString(r, mo_hinh.CotPX_MaKho),
+			MaKhachHang:      layString(r, mo_hinh.CotPX_MaKhachHang),
+			TrangThai:        layString(r, mo_hinh.CotPX_TrangThai),
+			MaVoucher:        layString(r, mo_hinh.CotPX_MaVoucher),
+			TienGiamVoucher:  layFloat(r, mo_hinh.CotPX_TienGiamVoucher),
+			TongTienPhieu:    layFloat(r, mo_hinh.CotPX_TongTienPhieu),
+			DaThu:            layFloat(r, mo_hinh.CotPX_DaThu),
+			ConNo:            layFloat(r, mo_hinh.CotPX_ConNo),
+			PhuongThucThanhToan:     layString(r, mo_hinh.CotPX_PhuongThucThanhToan),
+			PhiVanChuyen:     layFloat(r, mo_hinh.CotPX_PhiVanChuyen),
+			NguonDonHang:     layString(r, mo_hinh.CotPX_NguonDonHang),
+			ThongTinGiaoHang: layString(r, mo_hinh.CotPX_ThongTinGiaoHang),
+			NguoiTao:         layString(r, mo_hinh.CotPX_NguoiTao),
+		}
+		target.DuLieu[item.MaPhieuXuat] = item
+		target.DanhSach = append(target.DanhSach, item)
+	}
+}
+
+// 7. CHI_TIET_PHIEU_XUAT
+func napChiTietPhieuXuat(target *KhoChiTietPhieuXuatStore) {
+	raw, err := loadSheetData("CHI_TIET_PHIEU_XUAT", target.TenKey)
+	if err != nil { return }
+	for i, r := range raw {
+		if i < (mo_hinh.DongBatDauDuLieu - 1) { continue }
+		if len(r) <= mo_hinh.CotCTPX_MaPhieuXuat || layString(r, mo_hinh.CotCTPX_MaPhieuXuat) == "" { continue }
+		item := mo_hinh.ChiTietPhieuXuat{
+			MaPhieuXuat:   layString(r, mo_hinh.CotCTPX_MaPhieuXuat),
+			MaSanPham:     layString(r, mo_hinh.CotCTPX_MaSanPham),
+			TenSanPham:    layString(r, mo_hinh.CotCTPX_TenSanPham),
+			SoLuong:       layInt(r, mo_hinh.CotCTPX_SoLuong),
+			DonGiaBan:     layFloat(r, mo_hinh.CotCTPX_DonGiaBan),
+			ThanhTienDong: layFloat(r, mo_hinh.CotCTPX_ThanhTienDong),
+			GiaVon:        layFloat(r, mo_hinh.CotCTPX_GiaVon),
+		}
+		target.DanhSach = append(target.DanhSach, item)
+	}
+}
+
+// 8. PHIEU_NHAP
+func napPhieuNhap(target *KhoPhieuNhapStore) {
+	raw, err := loadSheetData("PHIEU_NHAP", target.TenKey)
+	if err != nil { return }
+	for i, r := range raw {
+		if i < (mo_hinh.DongBatDauDuLieu - 1) { continue }
+		if len(r) <= mo_hinh.CotPN_MaPhieuNhap || layString(r, mo_hinh.CotPN_MaPhieuNhap) == "" { continue }
+		item := mo_hinh.PhieuNhap{
+			MaPhieuNhap:   layString(r, mo_hinh.CotPN_MaPhieuNhap),
+			MaNhaCungCap:  layString(r, mo_hinh.CotPN_MaNhaCungCap),
+			MaKho:         layString(r, mo_hinh.CotPN_MaKho),
+			NgayNhap:      layString(r, mo_hinh.CotPN_NgayNhap),
+			TrangThai:     layString(r, mo_hinh.CotPN_TrangThai),
+			TongTienPhieu: layFloat(r, mo_hinh.CotPN_TongTienPhieu),
+			DaThanhToan:   layFloat(r, mo_hinh.CotPN_DaThanhToan),
+			ConNo:         layFloat(r, mo_hinh.CotPN_ConNo),
+		}
+		target.DuLieu[item.MaPhieuNhap] = item
+		target.DanhSach = append(target.DanhSach, item)
+	}
+}
+
+// 9. CHI_TIET_PHIEU_NHAP
+func napChiTietPhieuNhap(target *KhoChiTietPhieuNhapStore) {
+	raw, err := loadSheetData("CHI_TIET_PHIEU_NHAP", target.TenKey)
+	if err != nil { return }
+	for i, r := range raw {
+		if i < (mo_hinh.DongBatDauDuLieu - 1) { continue }
+		if len(r) <= mo_hinh.CotCTPN_MaPhieuNhap || layString(r, mo_hinh.CotCTPN_MaPhieuNhap) == "" { continue }
+		item := mo_hinh.ChiTietPhieuNhap{
+			MaPhieuNhap:   layString(r, mo_hinh.CotCTPN_MaPhieuNhap),
+			MaSanPham:     layString(r, mo_hinh.CotCTPN_MaSanPham),
+			SoLuong:       layInt(r, mo_hinh.CotCTPN_SoLuong),
+			DonGiaNhap:    layFloat(r, mo_hinh.CotCTPN_DonGiaNhap),
+			ThanhTienDong: layFloat(r, mo_hinh.CotCTPN_ThanhTienDong),
+		}
+		target.DanhSach = append(target.DanhSach, item)
+	}
+}
+
+// 10. SERIAL_SAN_PHAM
+func napSerial(target *KhoSerialStore) {
+	raw, err := loadSheetData("SERIAL_SAN_PHAM", target.TenKey)
+	if err != nil { return }
+	for i, r := range raw {
+		if i < (mo_hinh.DongBatDauDuLieu - 1) { continue }
+		if len(r) <= mo_hinh.CotSerial_SerialImei || layString(r, mo_hinh.CotSerial_SerialImei) == "" { continue }
+		item := mo_hinh.SerialSanPham{
+			SerialImei:         layString(r, mo_hinh.CotSerial_SerialImei),
+			MaSanPham:          layString(r, mo_hinh.CotSerial_MaSanPham),
+			MaPhieuNhap:        layString(r, mo_hinh.CotSerial_MaPhieuNhap),
+			MaPhieuXuat:        layString(r, mo_hinh.CotSerial_MaPhieuXuat),
+			TrangThai:          layInt(r, mo_hinh.CotSerial_TrangThai),
+			MaKhachHangHienTai: layString(r, mo_hinh.CotSerial_MaKhachHangHienTai),
+		}
+		target.DuLieu[item.SerialImei] = item
+	}
+}
+
+// 11. KHUYEN_MAI
+func napKhuyenMai(target *KhoKhuyenMaiStore) {
+	raw, err := loadSheetData("KHUYEN_MAI", target.TenKey)
+	if err != nil { return }
+	for i, r := range raw {
+		if i < (mo_hinh.DongBatDauDuLieu - 1) { continue }
+		if len(r) <= mo_hinh.CotKM_MaVoucher || layString(r, mo_hinh.CotKM_MaVoucher) == "" { continue }
+		item := mo_hinh.KhuyenMai{
+			MaVoucher:      layString(r, mo_hinh.CotKM_MaVoucher),
+			LoaiGiam:       layString(r, mo_hinh.CotKM_LoaiGiam),
+			GiaTriGiam:     layFloat(r, mo_hinh.CotKM_GiaTriGiam),
+			DonToThieu:     layFloat(r, mo_hinh.CotKM_DonToThieu),
+			SoLuongConLai:  layInt(r, mo_hinh.CotKM_SoLuongConLai),
+			TrangThai:      layInt(r, mo_hinh.CotKM_TrangThai),
+		}
+		target.DuLieu[item.MaVoucher] = item
+	}
+}
+
+// 12. CAU_HINH_WEB
+func napCauHinhWeb(target *KhoCauHinhWebStore) {
+	raw, err := loadSheetData("CAU_HINH_WEB", target.TenKey)
+	if err != nil { return }
+	for i, r := range raw {
+		if i < (mo_hinh.DongBatDauDuLieu - 1) { continue }
+		if len(r) <= mo_hinh.CotCH_MaCauHinh || layString(r, mo_hinh.CotCH_MaCauHinh) == "" { continue }
+		item := mo_hinh.CauHinhWeb{
+			MaCauHinh: layString(r, mo_hinh.CotCH_MaCauHinh),
+			GiaTri:    layString(r, mo_hinh.CotCH_GiaTri),
+			TrangThai: layInt(r, mo_hinh.CotCH_TrangThai),
+		}
+		target.DuLieu[item.MaCauHinh] = item
+	}
+}
+
+// 13. HOA_DON
+func napHoaDon(target *KhoHoaDonStore) {
+	raw, err := loadSheetData("HOA_DON", target.TenKey)
+	if err != nil { return }
+	for i, r := range raw {
+		if i < (mo_hinh.DongBatDauDuLieu - 1) { continue }
+		if len(r) <= mo_hinh.CotHD_MaHoaDon || layString(r, mo_hinh.CotHD_MaHoaDon) == "" { continue }
+		item := mo_hinh.HoaDon{
+			MaHoaDon:      layString(r, mo_hinh.CotHD_MaHoaDon),
+			MaTraCuu:      layString(r, mo_hinh.CotHD_MaTraCuu),
+			XmlUrl:        layString(r, mo_hinh.CotHD_XmlUrl),
+			MaPhieuXuat:   layString(r, mo_hinh.CotHD_MaPhieuXuat),
+			TongTienPhieu: layFloat(r, mo_hinh.CotHD_TongTienPhieu),
+			TongVat:       layFloat(r, mo_hinh.CotHD_TongVat),
+			TrangThai:     layString(r, mo_hinh.CotHD_TrangThai),
+		}
+		target.DuLieu[item.MaHoaDon] = item
+	}
+}
+
+// 14. HOA_DON_CHI_TIET
+func napHoaDonChiTiet(target *KhoHoaDonChiTietStore) {
+	raw, err := loadSheetData("HOA_DON_CHI_TIET", target.TenKey)
+	if err != nil { return }
+	for i, r := range raw {
+		if i < (mo_hinh.DongBatDauDuLieu - 1) { continue }
+		if len(r) <= mo_hinh.CotHDCT_MaHoaDon || layString(r, mo_hinh.CotHDCT_MaHoaDon) == "" { continue }
+		item := mo_hinh.HoaDonChiTiet{
+			MaHoaDon:   layString(r, mo_hinh.CotHDCT_MaHoaDon),
+			MaSanPham:  layString(r, mo_hinh.CotHDCT_MaSanPham),
+			SoLuong:    layInt(r, mo_hinh.CotHDCT_SoLuong),
+			ThanhTien:  layFloat(r, mo_hinh.CotHDCT_ThanhTien),
+		}
+		target.DanhSach = append(target.DanhSach, item)
+	}
+}
+
+// 15. PHIEU_THU_CHI
+func napPhieuThuChi(target *KhoPhieuThuChiStore) {
+	raw, err := loadSheetData("PHIEU_THU_CHI", target.TenKey)
+	if err != nil { return }
+	for i, r := range raw {
+		if i < (mo_hinh.DongBatDauDuLieu - 1) { continue }
+		if len(r) <= mo_hinh.CotPTC_MaPhieuThuChi || layString(r, mo_hinh.CotPTC_MaPhieuThuChi) == "" { continue }
+		item := mo_hinh.PhieuThuChi{
+			MaPhieuThuChi: layString(r, mo_hinh.CotPTC_MaPhieuThuChi),
+			LoaiPhieu:     layString(r, mo_hinh.CotPTC_LoaiPhieu),
+			SoTien:        layFloat(r, mo_hinh.CotPTC_SoTien),
+			HangMucThuChi: layString(r, mo_hinh.CotPTC_HangMucThuChi),
+			TrangThaiDuyet: layInt(r, mo_hinh.CotPTC_TrangThaiDuyet),
+		}
+		target.DuLieu[item.MaPhieuThuChi] = item
+		target.DanhSach = append(target.DanhSach, item)
+	}
+}
+
+// 16. PHIEU_BAO_HANH
+func napPhieuBaoHanh(target *KhoPhieuBaoHanhStore) {
+	raw, err := loadSheetData("PHIEU_BAO_HANH", target.TenKey)
+	if err != nil { return }
+	for i, r := range raw {
+		if i < (mo_hinh.DongBatDauDuLieu - 1) { continue }
+		if len(r) <= mo_hinh.CotPBH_MaPhieuBaoHanh || layString(r, mo_hinh.CotPBH_MaPhieuBaoHanh) == "" { continue }
+		item := mo_hinh.PhieuBaoHanh{
+			MaPhieuBaoHanh: layString(r, mo_hinh.CotPBH_MaPhieuBaoHanh),
+			SerialImei:     layString(r, mo_hinh.CotPBH_SerialImei),
+			TrangThai:      layInt(r, mo_hinh.CotPBH_TrangThai),
+			TinhTrangLoi:   layString(r, mo_hinh.CotPBH_TinhTrangLoi),
+		}
+		target.DuLieu[item.MaPhieuBaoHanh] = item
+		target.DanhSach = append(target.DanhSach, item)
+	}
+}
+
+// =================================================================================
+// 5. HELPER FUNCTIONS
+// =================================================================================
+
+func layString(dong []interface{}, index int) string {
+	if index >= len(dong) || dong[index] == nil { return "" }
+	return fmt.Sprintf("%v", dong[index])
+}
+
+func layInt(dong []interface{}, index int) int {
+	str := layString(dong, index)
+	if str == "" { return 0 }
+	
+	str = strings.ReplaceAll(str, ".", "")
+	str = strings.ReplaceAll(str, ",", "")
+	str = strings.ReplaceAll(str, " ", "")
+	
+	val, _ := strconv.Atoi(str)
+	return val
+}
+
+func layFloat(dong []interface{}, index int) float64 {
+	str := layString(dong, index)
+	if str == "" { return 0 }
+
+	str = strings.ReplaceAll(str, "đ", "")
+	str = strings.ReplaceAll(str, "USD", "")
+	str = strings.ReplaceAll(str, " ", "")
+	
+	str = strings.ReplaceAll(str, ".", "")
+	str = strings.ReplaceAll(str, ",", "")
+
+	val, _ := strconv.ParseFloat(str, 64)
+	return val
+}

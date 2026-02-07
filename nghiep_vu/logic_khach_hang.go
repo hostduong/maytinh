@@ -8,16 +8,14 @@ import (
 	"time"
 
 	"app/bao_mat"
+	"app/bo_nho_dem" // [MỚI]
 	"app/cau_hinh"
 	"app/mo_hinh"
 )
 
-// =============================================================
-// CÁC HÀM TRA CỨU & KIỂM TRA (GIỮ NGUYÊN)
-// =============================================================
-
 func TimKhachHangTheoCookie(cookie string) (*mo_hinh.KhachHang, bool) {
-	for _, kh := range CacheKhachHang.DuLieu {
+	// [SỬA] bo_nho_dem.CacheKhachHang
+	for _, kh := range bo_nho_dem.CacheKhachHang.DuLieu {
 		if kh.Cookie == cookie && kh.Cookie != "" {
 			if time.Now().Unix() > kh.CookieExpired { return nil, false }
 			return kh, true
@@ -28,34 +26,28 @@ func TimKhachHangTheoCookie(cookie string) (*mo_hinh.KhachHang, bool) {
 
 func TimKhachHangTheoUserOrEmail(input string) (*mo_hinh.KhachHang, bool) {
 	input = strings.ToLower(strings.TrimSpace(input))
-	if kh, ok := CacheKhachHang.DuLieu[input]; ok { return kh, true }
+	// [SỬA] bo_nho_dem.CacheKhachHang
+	if kh, ok := bo_nho_dem.CacheKhachHang.DuLieu[input]; ok { return kh, true }
 	return nil, false
 }
 
 func KiemTraTonTaiUserEmail(user, email string) bool {
 	user = strings.ToLower(strings.TrimSpace(user))
 	email = strings.ToLower(strings.TrimSpace(email))
-	if _, ok := CacheKhachHang.DuLieu[user]; ok { return true }
+	if _, ok := bo_nho_dem.CacheKhachHang.DuLieu[user]; ok { return true }
 	if email != "" {
-		if _, ok := CacheKhachHang.DuLieu[email]; ok { return true }
+		if _, ok := bo_nho_dem.CacheKhachHang.DuLieu[email]; ok { return true }
 	}
 	return false
 }
 
 func DemSoLuongKhachHang() int {
-	count := 0
-	seen := make(map[string]bool)
-	for _, v := range CacheKhachHang.DuLieu {
-		if !seen[v.MaKhachHang] {
-			seen[v.MaKhachHang] = true
-			count++
-		}
-	}
-	return count
+	// [SỬA] Đếm trực tiếp từ DanhSach (chuẩn hơn)
+	return len(bo_nho_dem.CacheKhachHang.DanhSach)
 }
 
 func LayDongKhachHang(maKH string) int {
-	if kh, ok := CacheKhachHang.DuLieu[maKH]; ok { return kh.DongTrongSheet }
+	if kh, ok := bo_nho_dem.CacheKhachHang.DuLieu[maKH]; ok { return kh.DongTrongSheet }
 	return 0
 }
 
@@ -64,10 +56,6 @@ func CapNhatPhienDangNhapKH(kh *mo_hinh.KhachHang) {
 	ThemVaoHangCho(idFile, "KHACH_HANG", kh.DongTrongSheet, mo_hinh.CotKH_Cookie, kh.Cookie)
 	ThemVaoHangCho(idFile, "KHACH_HANG", kh.DongTrongSheet, mo_hinh.CotKH_CookieExpired, kh.CookieExpired)
 }
-
-// =============================================================
-// LOGIC ĐĂNG KÝ CHÍNH (SỬA LẠI ĐỂ FIX DOUBLE HASHING)
-// =============================================================
 
 func ThemKhachHangMoi(input *mo_hinh.KhachHang) error {
 	input.TenDangNhap = strings.ToLower(strings.TrimSpace(input.TenDangNhap))
@@ -85,11 +73,10 @@ func ThemKhachHangMoi(input *mo_hinh.KhachHang) error {
 		chucVu = "Khách hàng"; vaiTro = "customer"
 	}
 
-	// [QUAN TRỌNG] Giữ nguyên DongBatDauDuLieu ở mo_hinh (theo file chi_muc.go)
 	dongMoi := mo_hinh.DongBatDauDuLieu
-	if len(CacheKhachHang.DuLieu) > 0 {
+	if len(bo_nho_dem.CacheKhachHang.DuLieu) > 0 {
 		maxRow := 0
-		for _, v := range CacheKhachHang.DuLieu {
+		for _, v := range bo_nho_dem.CacheKhachHang.DuLieu {
 			if v.DongTrongSheet > maxRow { maxRow = v.DongTrongSheet }
 		}
 		if maxRow >= mo_hinh.DongBatDauDuLieu {
@@ -100,15 +87,9 @@ func ThemKhachHangMoi(input *mo_hinh.KhachHang) error {
 	maMoi := TaoMaKhachHangMoi()
 	now := time.Now().Format("2006-01-02 15:04:05")
 	
-	// [FIX DOUBLE HASHING]: Không băm lại mật khẩu
-	// hashPass, _ := bao_mat.HashMatKhau(input.MatKhauHash) <--- ĐÃ BỎ DÒNG NÀY
-	
-	// Mã PIN chưa băm -> Băm tại đây
 	hashPin, _ := bao_mat.HashMatKhau(input.MaPinHash)
 
-	// Update struct
 	input.MaKhachHang = maMoi
-	// input.MatKhauHash giữ nguyên (đã hash ở Controller)
 	input.MaPinHash = hashPin
 	input.ChucVu = chucVu
 	input.VaiTroQuyenHan = vaiTro
@@ -117,12 +98,15 @@ func ThemKhachHangMoi(input *mo_hinh.KhachHang) error {
 	input.NgayCapNhat = now
 	input.DongTrongSheet = dongMoi
 
-	// Lưu Cache
-	CacheKhachHang.DuLieu[maMoi] = input
-	CacheKhachHang.DuLieu[input.TenDangNhap] = input
-	if input.Email != "" { CacheKhachHang.DuLieu[input.Email] = input }
+	// [CẦN KHÓA] Ghi vào RAM cần lock để an toàn
+	bo_nho_dem.KhoaHeThong.Lock()
+	bo_nho_dem.CacheKhachHang.DuLieu[maMoi] = input
+	bo_nho_dem.CacheKhachHang.DuLieu[input.TenDangNhap] = input
+	if input.Email != "" { bo_nho_dem.CacheKhachHang.DuLieu[input.Email] = input }
+	// Đừng quên thêm vào danh sách
+	bo_nho_dem.CacheKhachHang.DanhSach = append(bo_nho_dem.CacheKhachHang.DanhSach, input)
+	bo_nho_dem.KhoaHeThong.Unlock()
 
-	// GHI XUỐNG SHEET
 	idFile := cau_hinh.BienCauHinh.IdFileSheet
 	sheet := "KHACH_HANG"
 	
@@ -147,10 +131,8 @@ func ThemKhachHangMoi(input *mo_hinh.KhachHang) error {
 
 func TaoMaKhachHangMoi() string {
 	maxID := 0
-	seen := make(map[string]bool)
-	for _, kh := range CacheKhachHang.DuLieu {
-		if seen[kh.MaKhachHang] { continue }
-		seen[kh.MaKhachHang] = true
+	// [SỬA] Duyệt danh sách thay vì map
+	for _, kh := range bo_nho_dem.CacheKhachHang.DanhSach {
 		parts := strings.Split(kh.MaKhachHang, "_")
 		if len(parts) == 2 {
 			var id int

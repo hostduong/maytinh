@@ -5,6 +5,7 @@
     <script src="https://cdn.jsdelivr.net/npm/intl-tel-input@18.2.1/build/js/intlTelInput.min.js"></script>
     
     <style>
+        /* CSS Validation */
         .input-error { border-color: #ef4444 !important; background-color: #fef2f2; }
         .input-success { border-color: #22c55e !important; background-color: #f0fdf4; }
         .input-normal { border-color: #d1d5db !important; background-color: #fff; }
@@ -82,13 +83,24 @@
         <div class="bg-white p-8 rounded-3xl shadow-2xl w-96 transform transition-all">
             <h3 class="text-2xl font-bold mb-6 text-gray-800">🔐 Đổi mật khẩu</h3>
             <div class="space-y-4">
-                <div class="relative">
-                    <input type="password" id="oldPass" placeholder="Mật khẩu hiện tại" class="w-full p-3.5 pr-10 border border-gray-300 rounded-xl outline-none transition">
-                    <button type="button" onclick="togglePass('oldPass')" class="absolute inset-y-0 right-0 pr-3.5 flex items-center text-gray-400"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg></button>
+                <div>
+                    <div class="relative">
+                        <input type="password" id="oldPass" placeholder="Mật khẩu hiện tại" class="w-full p-3.5 pr-10 border border-gray-300 rounded-xl outline-none transition">
+                        <button type="button" onclick="togglePass('oldPass')" class="absolute inset-y-0 right-0 pr-3.5 flex items-center text-gray-400 hover:text-blue-600">
+                            <svg id="eye_slash_oldPass" class="w-5 h-5 block" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3.98 8.223A10.477 10.477 0 001.934 12C3.226 16.338 7.244 19.5 12 19.5c.993 0 1.953-.138 2.863-.395M6.228 6.228A10.45 10.45 0 0112 4.5c4.756 0 8.773 3.162 10.065 7.498a10.523 10.523 0 01-4.293 5.774M6.228 6.228L3 3m3.228 3.228l3.65 3.65m7.894 7.894L21 21m-3.228-3.228l-3.65-3.65m0 0a3 3 0 10-4.243-4.243m4.242 4.242L9.88 9.88" /></svg>
+                            <svg id="eye_open_oldPass" class="w-5 h-5 hidden" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" /><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+                        </button>
+                    </div>
                 </div>
-                <div class="relative">
-                    <input type="password" id="newPass" placeholder="Mật khẩu mới (8-30 ký tự)" class="w-full p-3.5 pr-10 border border-gray-300 rounded-xl outline-none transition input-normal">
-                    <button type="button" onclick="togglePass('newPass')" class="absolute inset-y-0 right-0 pr-3.5 flex items-center text-gray-400"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg></button>
+
+                <div>
+                    <div class="relative">
+                        <input type="password" id="newPass" placeholder="Mật khẩu mới (8-30 ký tự)" class="w-full p-3.5 pr-10 border border-gray-300 rounded-xl outline-none transition input-normal">
+                        <button type="button" onclick="togglePass('newPass')" class="absolute inset-y-0 right-0 pr-3.5 flex items-center text-gray-400 hover:text-blue-600">
+                            <svg id="eye_slash_newPass" class="w-5 h-5 block" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3.98 8.223A10.477 10.477 0 001.934 12C3.226 16.338 7.244 19.5 12 19.5c.993 0 1.953-.138 2.863-.395M6.228 6.228A10.45 10.45 0 0112 4.5c4.756 0 8.773 3.162 10.065 7.498a10.523 10.523 0 01-4.293 5.774M6.228 6.228L3 3m3.228 3.228l3.65 3.65m7.894 7.894L21 21m-3.228-3.228l-3.65-3.65m0 0a3 3 0 10-4.243-4.243m4.242 4.242L9.88 9.88" /></svg>
+                            <svg id="eye_open_newPass" class="w-5 h-5 hidden" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" /><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+                        </button>
+                    </div>
                     <p id="err_newPass" class="error-text">8-30 ký tự (Chữ, số, ký tự đặc biệt). Không khoảng trắng.</p>
                 </div>
             </div>
@@ -106,12 +118,12 @@
                 <div>
                     <label class="text-xs font-bold text-gray-400 uppercase mb-1 block">Họ và tên đầy đủ</label>
                     <input type="text" id="newName" value="{{ .NhanVien.TenKhachHang }}" class="w-full p-3.5 border border-gray-300 rounded-xl outline-none input-normal transition">
-                    <p id="err_newName" class="error-text">Họ tên 6-50 ký tự, không chứa số/ký tự lạ.</p>
+                    <p id="err_newName" class="error-text hidden"></p>
                 </div>
                 <div>
                     <label class="text-xs font-bold text-gray-400 uppercase mb-1 block">Số điện thoại</label>
                     <input type="tel" id="newPhone" value="{{ .NhanVien.DienThoai }}" class="w-full p-3.5 border border-gray-300 rounded-xl outline-none input-normal transition">
-                    <p id="err_newPhone" class="error-text">SĐT không hợp lệ.</p>
+                    <p id="err_newPhone" class="error-text hidden"></p>
                 </div>
                 <div class="grid grid-cols-2 gap-4">
                     <div>
@@ -140,15 +152,27 @@
             <h3 class="text-2xl font-bold mb-2 text-gray-800">🔢 Mã PIN bảo mật</h3>
             
             <div id="viewChangePin" class="space-y-4 pt-4">
-                <div class="relative">
-                    <input type="password" id="oldPin" maxlength="8" placeholder="Mã PIN hiện tại" class="w-full p-3.5 pr-10 border border-gray-300 rounded-xl outline-none transition">
-                    <button type="button" onclick="togglePass('oldPin')" class="absolute inset-y-0 right-0 pr-3.5 flex items-center text-gray-400 hover:text-purple-600"><svg id="eye_oldPin" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5"><path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" /><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg></button>
+                <div>
+                    <div class="relative">
+                        <input type="password" id="oldPin" maxlength="8" placeholder="Mã PIN hiện tại" class="w-full p-3.5 pr-10 border border-gray-300 rounded-xl outline-none transition">
+                        <button type="button" onclick="togglePass('oldPin')" class="absolute inset-y-0 right-0 pr-3.5 flex items-center text-gray-400 hover:text-purple-600">
+                            <svg id="eye_slash_oldPin" class="w-5 h-5 block" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3.98 8.223A10.477 10.477 0 001.934 12C3.226 16.338 7.244 19.5 12 19.5c.993 0 1.953-.138 2.863-.395M6.228 6.228A10.45 10.45 0 0112 4.5c4.756 0 8.773 3.162 10.065 7.498a10.523 10.523 0 01-4.293 5.774M6.228 6.228L3 3m3.228 3.228l3.65 3.65m7.894 7.894L21 21m-3.228-3.228l-3.65-3.65m0 0a3 3 0 10-4.243-4.243m4.242 4.242L9.88 9.88" /></svg>
+                            <svg id="eye_open_oldPin" class="w-5 h-5 hidden" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" /><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+                        </button>
+                    </div>
                 </div>
-                <div class="relative">
-                    <input type="password" id="newPin" maxlength="8" placeholder="Mã PIN mới (8 số)" class="w-full p-3.5 pr-10 border border-gray-300 rounded-xl outline-none input-normal transition">
-                    <button type="button" onclick="togglePass('newPin')" class="absolute inset-y-0 right-0 pr-3.5 flex items-center text-gray-400 hover:text-purple-600"><svg id="eye_newPin" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5"><path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" /><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg></button>
-                    <p id="err_newPin" class="error-text hidden"></p>
+
+                <div>
+                    <div class="relative">
+                        <input type="password" id="newPin" maxlength="8" placeholder="Mã PIN mới (8 số)" class="w-full p-3.5 pr-10 border border-gray-300 rounded-xl outline-none input-normal transition">
+                        <button type="button" onclick="togglePass('newPin')" class="absolute inset-y-0 right-0 pr-3.5 flex items-center text-gray-400 hover:text-purple-600">
+                            <svg id="eye_slash_newPin" class="w-5 h-5 block" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3.98 8.223A10.477 10.477 0 001.934 12C3.226 16.338 7.244 19.5 12 19.5c.993 0 1.953-.138 2.863-.395M6.228 6.228A10.45 10.45 0 0112 4.5c4.756 0 8.773 3.162 10.065 7.498a10.523 10.523 0 01-4.293 5.774M6.228 6.228L3 3m3.228 3.228l3.65 3.65m7.894 7.894L21 21m-3.228-3.228l-3.65-3.65m0 0a3 3 0 10-4.243-4.243m4.242 4.242L9.88 9.88" /></svg>
+                            <svg id="eye_open_newPin" class="w-5 h-5 hidden" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" /><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+                        </button>
+                    </div>
+                    <p id="err_newPin" class="error-text">Mã PIN phải đúng 8 chữ số.</p>
                 </div>
+
                 <div class="text-right">
                     <button onclick="switchPinView('forgot')" class="text-xs text-blue-600 hover:underline font-bold">Quên mã PIN?</button>
                 </div>
@@ -181,7 +205,7 @@
             utilsScript: "https://cdn.jsdelivr.net/npm/intl-tel-input@18.2.1/build/js/utils.js",
         });
 
-        // --- HÀM BỔ TRỢ UI ---
+        // --- UI HELPERS ---
         function setBtnLoading(id, text) {
             const btn = document.getElementById(id);
             btn.disabled = true;
@@ -195,10 +219,21 @@
             btn.innerHTML = btn.dataset.oldText;
         }
 
+        // Toggle Icon Mắt và Input Type
         function togglePass(id) {
             const input = document.getElementById(id);
-            if (input.type === "password") input.type = "text";
-            else input.type = "password";
+            const eyeSlash = document.getElementById('eye_slash_' + id);
+            const eyeOpen = document.getElementById('eye_open_' + id);
+            
+            if (input.type === "password") {
+                input.type = "text";
+                eyeSlash.classList.add('hidden');
+                eyeOpen.classList.remove('hidden');
+            } else {
+                input.type = "password";
+                eyeOpen.classList.add('hidden');
+                eyeSlash.classList.remove('hidden');
+            }
         }
 
         function toggleModal(id) {

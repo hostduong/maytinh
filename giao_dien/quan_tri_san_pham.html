@@ -34,7 +34,17 @@
                             <td class="px-6 py-4"><span class="bg-blue-100 text-blue-800 text-xs font-medium px-2.5 py-0.5 rounded">{{ .MaDanhMuc }}</span></td>
                             <td class="px-6 py-4 text-right font-bold text-red-600">{{ printf "%.0f" .GiaBanLe }}</td>
                             <td class="px-6 py-4 text-center">
-                                <button onclick="editSP('{{ .MaSanPham }}')" class="text-blue-600 hover:underline font-medium">Sửa</button>
+                                <button 
+                                    onclick="editSP(this)"
+                                    data-id="{{ .MaSanPham }}"
+                                    data-ten="{{ .TenSanPham }}"
+                                    data-gia="{{ .GiaBanLe }}"
+                                    data-dm="{{ .MaDanhMuc }}"
+                                    data-img="{{ .UrlHinhAnh }}"
+                                    data-mota="{{ .MoTaChiTiet }}"
+                                    class="text-blue-600 hover:underline font-medium">
+                                    Sửa
+                                </button>
                             </td>
                         </tr>
                         {{ end }}
@@ -69,13 +79,15 @@
 
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-1">Link Hình Ảnh</label>
-                    <input type="text" name="url_hinh_anh" id="url_hinh_anh" class="w-full p-2.5 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" placeholder="https://...">
+                    <input type="text" name="url_hinh_anh" id="url_hinh_anh" class="w-full p-2.5 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none">
                 </div>
 
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-1">Mô tả ngắn</label>
                     <textarea name="mo_ta_chi_tiet" id="mo_ta_chi_tiet" rows="3" class="w-full p-2.5 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"></textarea>
                 </div>
+
+                <input type="hidden" name="bao_hanh_thang" value="12"> 
 
                 <div class="flex justify-end gap-3 pt-4 border-t">
                     <button type="button" onclick="closeModal()" class="px-4 py-2 text-gray-500 hover:bg-gray-100 rounded-lg">Hủy</button>
@@ -86,21 +98,6 @@
     </div>
 
     <script>
-
-        // Lưu ý: Template Go sẽ render JSON object vào đây. Nếu lỗi, ta sẽ fetch API sau.
-        // Để đơn giản cho V1, ta làm fetch API detail hoặc filter mảng JS.
-        // Cách tốt nhất: Tạo map JS từ Go template
-        const mapSP = {};
-        {{ range .DanhSach }}
-            mapSP["{{ .MaSanPham }}"] = {
-                ten: "{{ .TenSanPham }}",
-                gia: {{ .GiaBanLe }},
-                dm: "{{ .MaDanhMuc }}",
-                img: "{{ .UrlHinhAnh }}",
-                mota: `{{ .MoTaChiTiet }}`
-            };
-        {{ end }}
-
         function openModal() {
             document.getElementById('formSP').reset();
             document.getElementById('ma_san_pham').value = "";
@@ -112,16 +109,16 @@
             document.getElementById('modalSP').classList.add('hidden');
         }
 
-        function editSP(id) {
-            const sp = mapSP[id];
-            if(!sp) return;
+        // Hàm sửa mới: Đọc dữ liệu từ chính nút bấm
+        function editSP(btn) {
+            const id = btn.dataset.id;
             
             document.getElementById('ma_san_pham').value = id;
-            document.getElementById('ten_san_pham').value = sp.ten;
-            document.getElementById('gia_ban_le').value = sp.gia;
-            document.getElementById('danh_muc').value = sp.dm;
-            document.getElementById('url_hinh_anh').value = sp.img;
-            document.getElementById('mo_ta_chi_tiet').value = sp.mota;
+            document.getElementById('ten_san_pham').value = btn.dataset.ten;
+            document.getElementById('gia_ban_le').value = btn.dataset.gia;
+            document.getElementById('danh_muc').value = btn.dataset.dm;
+            document.getElementById('url_hinh_anh').value = btn.dataset.img;
+            document.getElementById('mo_ta_chi_tiet').value = btn.dataset.mota;
 
             document.getElementById('modalTitle').innerText = "Sửa Sản Phẩm: " + id;
             document.getElementById('modalSP').classList.remove('hidden');

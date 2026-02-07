@@ -1,0 +1,149 @@
+{{ define "quan_tri_san_pham" }}
+    {{ template "header" . }}
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+    <div class="container mx-auto px-4 py-8">
+        <div class="flex justify-between items-center mb-6">
+            <h1 class="text-2xl font-bold text-gray-800">📦 Quản Lý Sản Phẩm</h1>
+            <button onclick="openModal()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-bold shadow-md flex items-center gap-2">
+                ➕ Thêm Sản Phẩm
+            </button>
+        </div>
+
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+            <div class="overflow-x-auto">
+                <table class="w-full text-sm text-left text-gray-500">
+                    <thead class="text-xs text-gray-700 uppercase bg-gray-50">
+                        <tr>
+                            <th class="px-6 py-3">Mã SP</th>
+                            <th class="px-6 py-3">Hình ảnh</th>
+                            <th class="px-6 py-3">Tên Sản Phẩm</th>
+                            <th class="px-6 py-3">Danh Mục</th>
+                            <th class="px-6 py-3 text-right">Giá Bán</th>
+                            <th class="px-6 py-3 text-center">Thao tác</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {{ range .DanhSach }}
+                        <tr class="bg-white border-b hover:bg-gray-50">
+                            <td class="px-6 py-4 font-bold">{{ .MaSanPham }}</td>
+                            <td class="px-6 py-4">
+                                <img src="{{ if .UrlHinhAnh }}{{ .UrlHinhAnh }}{{ else }}https://via.placeholder.com/50{{ end }}" class="w-10 h-10 object-cover rounded border">
+                            </td>
+                            <td class="px-6 py-4 font-medium text-gray-900">{{ .TenSanPham }}</td>
+                            <td class="px-6 py-4"><span class="bg-blue-100 text-blue-800 text-xs font-medium px-2.5 py-0.5 rounded">{{ .MaDanhMuc }}</span></td>
+                            <td class="px-6 py-4 text-right font-bold text-red-600">{{ printf "%.0f" .GiaBanLe }}</td>
+                            <td class="px-6 py-4 text-center">
+                                <button onclick="editSP('{{ .MaSanPham }}')" class="text-blue-600 hover:underline font-medium">Sửa</button>
+                            </td>
+                        </tr>
+                        {{ end }}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div id="modalSP" class="hidden fixed inset-0 bg-gray-900/50 flex items-center justify-center z-50 backdrop-blur-sm">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg p-6 transform transition-all scale-100">
+            <h3 class="text-xl font-bold mb-4 text-gray-800" id="modalTitle">Thêm Sản Phẩm Mới</h3>
+            
+            <form id="formSP" class="space-y-4">
+                <input type="hidden" name="ma_san_pham" id="ma_san_pham">
+                
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Tên sản phẩm</label>
+                    <input type="text" name="ten_san_pham" id="ten_san_pham" class="w-full p-2.5 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" required>
+                </div>
+
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Giá bán lẻ</label>
+                        <input type="number" name="gia_ban_le" id="gia_ban_le" class="w-full p-2.5 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" required>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Danh mục (Mã)</label>
+                        <input type="text" name="danh_muc" id="danh_muc" class="w-full p-2.5 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" placeholder="LAPTOP, RAM...">
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Link Hình Ảnh</label>
+                    <input type="text" name="url_hinh_anh" id="url_hinh_anh" class="w-full p-2.5 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" placeholder="https://...">
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Mô tả ngắn</label>
+                    <textarea name="mo_ta_chi_tiet" id="mo_ta_chi_tiet" rows="3" class="w-full p-2.5 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"></textarea>
+                </div>
+
+                <div class="flex justify-end gap-3 pt-4 border-t">
+                    <button type="button" onclick="closeModal()" class="px-4 py-2 text-gray-500 hover:bg-gray-100 rounded-lg">Hủy</button>
+                    <button type="button" onclick="saveSP()" class="px-6 py-2 bg-blue-600 text-white font-bold rounded-lg hover:bg-blue-700 shadow-lg">Lưu lại</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // Dữ liệu từ Server render ra JS để dùng cho nút Sửa
+        const allProducts = {{ .DanhSach }}; 
+        // Lưu ý: Template Go sẽ render JSON object vào đây. Nếu lỗi, ta sẽ fetch API sau.
+        // Để đơn giản cho V1, ta làm fetch API detail hoặc filter mảng JS.
+        // Cách tốt nhất: Tạo map JS từ Go template
+        const mapSP = {};
+        {{ range .DanhSach }}
+            mapSP["{{ .MaSanPham }}"] = {
+                ten: "{{ .TenSanPham }}",
+                gia: {{ .GiaBanLe }},
+                dm: "{{ .MaDanhMuc }}",
+                img: "{{ .UrlHinhAnh }}",
+                mota: `{{ .MoTaChiTiet }}`
+            };
+        {{ end }}
+
+        function openModal() {
+            document.getElementById('formSP').reset();
+            document.getElementById('ma_san_pham').value = "";
+            document.getElementById('modalTitle').innerText = "Thêm Sản Phẩm Mới";
+            document.getElementById('modalSP').classList.remove('hidden');
+        }
+
+        function closeModal() {
+            document.getElementById('modalSP').classList.add('hidden');
+        }
+
+        function editSP(id) {
+            const sp = mapSP[id];
+            if(!sp) return;
+            
+            document.getElementById('ma_san_pham').value = id;
+            document.getElementById('ten_san_pham').value = sp.ten;
+            document.getElementById('gia_ban_le').value = sp.gia;
+            document.getElementById('danh_muc').value = sp.dm;
+            document.getElementById('url_hinh_anh').value = sp.img;
+            document.getElementById('mo_ta_chi_tiet').value = sp.mota;
+
+            document.getElementById('modalTitle').innerText = "Sửa Sản Phẩm: " + id;
+            document.getElementById('modalSP').classList.remove('hidden');
+        }
+
+        async function saveSP() {
+            const form = document.getElementById('formSP');
+            const fd = new FormData(form);
+            
+            try {
+                const res = await fetch('/admin/api/product/save', { method: 'POST', body: fd });
+                const data = await res.json();
+                if(data.status === 'ok') {
+                    Swal.fire('Thành công', data.msg, 'success').then(() => location.reload());
+                } else {
+                    Swal.fire('Lỗi', data.msg, 'error');
+                }
+            } catch(e) {
+                Swal.fire('Lỗi', 'Không thể kết nối server', 'error');
+            }
+        }
+    </script>
+    {{ template "footer" . }}
+{{ end }}

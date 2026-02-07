@@ -3,10 +3,11 @@
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
     <style>
-        .input-error { border-color: #ef4444 !important; }
-        .input-success { border-color: #22c55e !important; }
-        .input-normal { border-color: #d1d5db !important; }
+        .input-error { border-color: #ef4444 !important; background-color: #fef2f2; }
+        .input-success { border-color: #22c55e !important; background-color: #f0fdf4; }
+        .input-normal { border-color: #d1d5db !important; background-color: #ffffff; }
         button:disabled { opacity: 0.6; cursor: not-allowed; background-color: #9ca3af !important; }
+        .hidden { display: none; }
     </style>
 
     <div class="flex items-center justify-center min-h-[calc(100vh-200px)] py-12 px-4 bg-gray-50">
@@ -27,8 +28,8 @@
             <form id="formLogin" class="mt-8 space-y-6" action="/login" method="POST" novalidate>
                 <div class="rounded-md shadow-sm space-y-4">
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Tên đăng nhập / Email</label>
-                        <input id="user" name="ten_dang_nhap" type="text" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition input-normal" placeholder="Ví dụ: duongyour">
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Mã KH / Tên đăng nhập / Email</label>
+                        <input id="user" name="input_dinh_danh" type="text" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition input-normal" placeholder="Ví dụ: KH_0001 hoặc admin">
                         <p id="err_user" class="text-red-500 text-xs mt-1 hidden"></p>
                     </div>
 
@@ -36,7 +37,14 @@
                         <label class="block text-sm font-medium text-gray-700 mb-1">Mật khẩu</label>
                         <div class="relative">
                             <input id="pass" name="mat_khau" type="password" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition input-normal" placeholder="••••••••">
-                            <button type="button" onclick="togglePass('pass')" class="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400">👁️</button>
+                            <button type="button" onclick="togglePass('pass')" class="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-blue-600">
+                                <svg id="eye_slash_pass" class="w-5 h-5 block" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M3.98 8.223A10.477 10.477 0 001.934 12C3.226 16.338 7.244 19.5 12 19.5c.993 0 1.953-.138 2.863-.395M6.228 6.228A10.45 10.45 0 0112 4.5c4.756 0 8.773 3.162 10.065 7.498a10.523 10.523 0 01-4.293 5.774M6.228 6.228L3 3m3.228 3.228l3.65 3.65m7.894 7.894L21 21m-3.228-3.228l-3.65-3.65m0 0a3 3 0 10-4.243-4.243m4.242 4.242L9.88 9.88" />
+                                </svg>
+                                <svg id="eye_open_pass" class="w-5 h-5 hidden" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" /><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                </svg>
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -61,8 +69,9 @@
         const btn = document.getElementById('btnSubmit');
 
         function checkSubmit() {
+            // Validate đơn giản: Không rỗng và đủ độ dài tối thiểu
+            const validLen = u.value.trim().length >= 4 && p.value.length >= 8; // Mã KH có thể ngắn (KH_1)
             const hasError = document.querySelectorAll('.input-error').length > 0;
-            const validLen = u.value.length >= 6 && p.value.length >= 8;
             
             if (!hasError && validLen) {
                 btn.removeAttribute('disabled');
@@ -72,10 +81,11 @@
         }
 
         u.addEventListener('input', function() {
-            this.value = this.value.toLowerCase();
-            if (/[\s'"<>\`]/.test(this.value)) {
+            // Cho phép nhập: Chữ, số, @, dấu chấm, gạch dưới, gạch ngang (cho email/mã KH)
+            // Cấm: Ký tự đặc biệt khác, dấu cách
+            if (/[^a-zA-Z0-9@._\-]/.test(this.value)) {
                 u.classList.add('input-error'); u.classList.remove('input-normal', 'input-success');
-                errU.innerText = "Không chứa dấu cách hoặc ký tự lạ."; errU.classList.remove('hidden');
+                errU.innerText = "Chứa ký tự không hợp lệ."; errU.classList.remove('hidden');
             } else {
                 u.classList.add('input-normal'); u.classList.remove('input-error', 'input-success');
                 errU.classList.add('hidden');
@@ -83,22 +93,22 @@
             checkSubmit();
         });
 
-        u.addEventListener('blur', function() {
-            if (this.value === "") return;
-            if (this.value.length < 6) {
-                u.classList.add('input-error'); u.classList.remove('input-success');
-                errU.innerText = "Tên đăng nhập/Email quá ngắn."; errU.classList.remove('hidden');
-            } else if (!u.classList.contains('input-error')) {
-                u.classList.add('input-success');
-            }
-            checkSubmit();
-        });
-
         p.addEventListener('input', checkSubmit);
 
         function togglePass(id) {
-            const el = document.getElementById(id);
-            el.type = el.type === 'password' ? 'text' : 'password';
+            const input = document.getElementById(id);
+            const eyeSlash = document.getElementById('eye_slash_' + id);
+            const eyeOpen = document.getElementById('eye_open_' + id);
+            
+            if (input.type === "password") {
+                input.type = "text";
+                eyeSlash.classList.add('hidden');
+                eyeOpen.classList.remove('hidden');
+            } else {
+                input.type = "password";
+                eyeOpen.classList.add('hidden');
+                eyeSlash.classList.remove('hidden');
+            }
         }
 
         // [LOADING EFFECT]

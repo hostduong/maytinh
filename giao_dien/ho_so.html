@@ -335,4 +335,5 @@
         async function doiPin() { setBtnLoading('btnSavePin', 'Lưu...'); handleRes(await postData('/api/user/change-pin', { pin_cu: document.getElementById('oldPin').value, pin_moi: document.getElementById('newPin').value }), 'modalPin', 'btnSavePin'); }
         async function guiYeuCauResetPin() { setBtnLoading('btnConfirmForgot', 'Gửi...'); try { const r = await fetch('/api/user/send-otp-pin', {method:'POST'}); handleRes(await r.json(), 'modalPin', 'btnConfirmForgot'); } catch(e){ setBtnNormal('btnConfirmForgot'); } }
     </script>
+    {{ template "footer" . }}
 {{ end }}

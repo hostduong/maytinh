@@ -12,17 +12,15 @@ import (
 	"app/mo_hinh"
 )
 
-// [CƠ CHẾ KHÓA HỆ THỐNG]
+// [KHÓA HỆ THỐNG]
 var KhoaHeThong sync.RWMutex
-
-// [CỜ TRẠNG THÁI]
 var HeThongDangBan bool = false
 
-// [CALLBACK] Để tránh vòng lặp import, main.go sẽ gán hàm ThucHienGhiSheet vào đây
+// [CALLBACK] Để main.go gán hàm ghi sheet vào đây (tránh vòng lặp import)
 var CallbackGhiSheet func(bool)
 
 // =================================================================================
-// ĐỊNH NGHĨA KHO DỮ LIỆU (STORE STRUCTS)
+// ĐỊNH NGHĨA STRUCT STORE (KHO CHỨA)
 // =================================================================================
 
 type KhoSanPhamStore struct { DuLieu map[string]mo_hinh.SanPham; DanhSach []mo_hinh.SanPham; TenKey string }
@@ -30,7 +28,7 @@ type KhoDanhMucStore struct { DuLieu map[string]mo_hinh.DanhMuc; TenKey string }
 type KhoThuongHieuStore struct { DuLieu map[string]mo_hinh.ThuongHieu; TenKey string }
 type KhoNhaCungCapStore struct { DuLieu map[string]mo_hinh.NhaCungCap; TenKey string }
 
-// Khách hàng có thêm DanhSach để đếm
+// Khách hàng có thêm DanhSach để đếm user
 type KhoKhachHangStore struct {
 	DuLieu        map[string]*mo_hinh.KhachHang
 	DanhSach      []*mo_hinh.KhachHang
@@ -51,12 +49,11 @@ type KhoKhuyenMaiStore struct { DuLieu map[string]mo_hinh.KhuyenMai; TenKey stri
 type KhoCauHinhWebStore struct { DuLieu map[string]mo_hinh.CauHinhWeb; TenKey string }
 
 // =================================================================================
-// HELPER FUNCTIONS
+// HELPER FUNCTIONS (DÙNG CHUNG CHO TẤT CẢ CÁC FILE CON)
 // =================================================================================
 
 func TaoKeyCache(tenSheet string) string {
-	idSheet := cau_hinh.BienCauHinh.IdFileSheet
-	return fmt.Sprintf("%s__%s", strings.TrimSpace(idSheet), tenSheet)
+	return fmt.Sprintf("%s__%s", strings.TrimSpace(cau_hinh.BienCauHinh.IdFileSheet), tenSheet)
 }
 
 func loadSheetData(sheetName string) ([][]interface{}, error) {

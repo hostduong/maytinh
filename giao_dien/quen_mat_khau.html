@@ -3,7 +3,6 @@
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <style> 
         .tab-active { border-bottom: 2px solid #2563eb; color: #2563eb; font-weight: 600; } 
-        /* CSS Error Standard */
         .input-error { border-color: #ef4444 !important; background-color: #fef2f2; }
         .input-success { border-color: #22c55e !important; background-color: #f0fdf4; }
         .input-normal { border-color: #d1d5db !important; background-color: #ffffff; }
@@ -24,7 +23,7 @@
             <div id="formPin" class="space-y-4">
                 <div>
                     <input type="text" id="pinUser" placeholder="Mã KH / Tên đăng nhập / Email" class="w-full p-3 border rounded-lg bg-gray-50 focus:ring-2 focus:ring-blue-500 outline-none">
-                    <p class="error-text" id="err_pinUser">Vui lòng nhập thông tin định danh hợp lệ.</p>
+                    <p class="error-text" id="err_pinUser">Vui lòng nhập định danh hợp lệ.</p>
                 </div>
                 <div>
                     <input type="text" id="pinCode" maxlength="8" placeholder="Mã PIN bảo mật (8 số)" class="w-full p-3 border rounded-lg bg-gray-50 focus:ring-2 focus:ring-blue-500 outline-none">
@@ -38,7 +37,7 @@
                             <svg id="eye_open_pinNewPass" class="w-5 h-5 hidden" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" /><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
                         </button>
                     </div>
-                    <p class="error-text" id="err_pinNewPass">8-30 ký tự (Chữ, số, ký tự đặc biệt). Không chứa dấu cách.</p>
+                    <p class="error-text" id="err_pinNewPass">8-30 ký tự (Chữ, số, ký tự đặc biệt). Không khoảng trắng.</p>
                 </div>
                 <button id="btnResetByPin" onclick="resetByPin()" disabled class="w-full bg-blue-600 text-white py-3 rounded-lg font-bold hover:bg-blue-700 shadow-lg shadow-blue-500/30 transition">ĐỔI MẬT KHẨU</button>
             </div>
@@ -46,29 +45,22 @@
             <div id="formEmail" class="space-y-4 hidden">
                 <div id="step1">
                     <div class="bg-blue-50 text-blue-700 p-3 text-xs rounded border border-blue-200 mb-3">
-                        ℹ️ Hệ thống sẽ tự tìm Email đăng ký của bạn để gửi mã xác nhận.
+                        ℹ️ Hệ thống sẽ tự tìm Email đăng ký để gửi mã.
                     </div>
                     <div>
                         <input type="text" id="otpUser" placeholder="Mã KH / Tên đăng nhập / Email" class="w-full p-3 border rounded-lg bg-gray-50 mb-3 focus:ring-2 focus:ring-purple-500 outline-none">
-                        <p class="error-text" id="err_otpUser">Vui lòng nhập thông tin định danh.</p>
+                        <p class="error-text" id="err_otpUser">Vui lòng nhập định danh hợp lệ.</p>
                     </div>
-                    
                     <button id="btnSendOtp" onclick="sendOtp()" disabled class="w-full bg-purple-600 text-white py-3 rounded-lg font-bold hover:bg-purple-700 shadow-lg shadow-purple-500/30 transition">GỬI MÃ OTP</button>
-                    
-                    <div id="countdownArea" class="hidden text-center mt-3 text-sm text-gray-500">
-                        Gửi lại mã sau <span id="timer" class="font-bold text-purple-600">60</span>s
-                    </div>
+                    <div id="countdownArea" class="hidden text-center mt-3 text-sm text-gray-500">Gửi lại sau <span id="timer" class="font-bold text-purple-600">60</span>s</div>
                 </div>
                 
                 <div id="step2" class="hidden space-y-3">
-                    <div class="bg-green-50 text-green-700 p-3 text-sm rounded border border-green-200 flex items-center gap-2">
-                        <span>✅</span> Đã gửi mã OTP 6 số về email.
-                    </div>
+                    <div class="bg-green-50 text-green-700 p-3 text-sm rounded border border-green-200 flex items-center gap-2"><span>✅</span> Đã gửi mã OTP 6 số.</div>
                     <div>
                         <input type="text" id="otpInput" placeholder="Nhập mã OTP (6 số)" class="w-full p-3 border rounded-lg bg-gray-50 focus:ring-2 focus:ring-green-500 outline-none">
-                        <p class="error-text" id="err_otpInput">Mã OTP phải đủ 6 chữ số.</p>
+                        <p class="error-text" id="err_otpInput">Mã OTP phải là 6 chữ số.</p>
                     </div>
-                    
                     <div>
                         <div class="relative">
                             <input type="password" id="otpNewPass" placeholder="Mật khẩu mới (min 8 ký tự)" class="w-full p-3 border rounded-lg bg-gray-50 focus:ring-2 focus:ring-green-500 outline-none">
@@ -77,9 +69,8 @@
                                 <svg id="eye_open_otpNewPass" class="w-5 h-5 hidden" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" /><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
                             </button>
                         </div>
-                        <p class="error-text" id="err_otpNewPass">8-30 ký tự (Chữ, số, ký tự đặc biệt). Không chứa dấu cách.</p>
+                        <p class="error-text" id="err_otpNewPass">8-30 ký tự (Chữ, số, ký tự đặc biệt). Không khoảng trắng.</p>
                     </div>
-
                     <button id="btnResetByOtp" onclick="resetByOtp()" disabled class="w-full bg-green-600 text-white py-3 rounded-lg font-bold hover:bg-green-700 shadow-lg shadow-green-500/30 transition">XÁC NHẬN ĐỔI</button>
                 </div>
             </div>
@@ -91,130 +82,100 @@
     </div>
 
     <script>
-        // --- UI HELPERS ---
         function setBtnLoading(id, text) {
-            const btn = document.getElementById(id);
-            btn.disabled = true;
-            btn.dataset.oldText = btn.innerHTML;
+            const btn = document.getElementById(id); btn.disabled = true; btn.dataset.oldText = btn.innerHTML;
             btn.innerHTML = `<svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-white inline-block" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> ${text}`;
         }
-        
         function setBtnNormal(id) {
-            const btn = document.getElementById(id);
-            if (btn.dataset.oldText) btn.innerHTML = btn.dataset.oldText;
-            checkAllForms(); // Kiểm tra lại để xem có nên enable nút không
+            const btn = document.getElementById(id); if (btn.dataset.oldText) btn.innerHTML = btn.dataset.oldText; checkAllForms();
         }
-
         function setError(inputId, errId, isError) {
-            const input = document.getElementById(inputId);
-            const msg = document.getElementById(errId);
-            if (isError) {
-                input.classList.add('input-error');
-                input.classList.remove('input-success');
-                msg.classList.add('show');
-            } else {
-                input.classList.remove('input-error');
-                if(input.value.trim() !== "") input.classList.add('input-success');
-                msg.classList.remove('show');
-            }
+            const input = document.getElementById(inputId); const msg = document.getElementById(errId);
+            if (isError) { input.classList.add('input-error'); input.classList.remove('input-success', 'input-normal'); msg.classList.add('show'); }
+            else { input.classList.remove('input-error'); if(input.value.trim() !== "") input.classList.add('input-success'); else input.classList.add('input-normal'); msg.classList.remove('show'); }
             checkAllForms();
         }
-
         function togglePass(id) {
-            const input = document.getElementById(id);
-            const eyeSlash = document.getElementById('eye_slash_' + id);
-            const eyeOpen = document.getElementById('eye_open_' + id);
-            if (input.type === "password") {
-                input.type = "text";
-                eyeSlash.classList.add('hidden');
-                eyeOpen.classList.remove('hidden');
-            } else {
-                input.type = "password";
-                eyeOpen.classList.add('hidden');
-                eyeSlash.classList.remove('hidden');
-            }
+            const input = document.getElementById(id); const eyeSlash = document.getElementById('eye_slash_' + id); const eyeOpen = document.getElementById('eye_open_' + id);
+            if (input.type === "password") { input.type = "text"; eyeSlash.classList.add('hidden'); eyeOpen.classList.remove('hidden'); }
+            else { input.type = "password"; eyeOpen.classList.add('hidden'); eyeSlash.classList.remove('hidden'); }
         }
-
         function switchTab(tab) {
-            document.getElementById('formPin').classList.add('hidden');
-            document.getElementById('formEmail').classList.add('hidden');
-            document.getElementById('btnTabPin').classList.remove('tab-active');
-            document.getElementById('btnTabEmail').classList.remove('tab-active');
-            if(tab === 'pin') {
-                document.getElementById('formPin').classList.remove('hidden');
-                document.getElementById('btnTabPin').classList.add('tab-active');
-            } else {
-                document.getElementById('formEmail').classList.remove('hidden');
-                document.getElementById('btnTabEmail').classList.add('tab-active');
-            }
+            document.getElementById('formPin').classList.add('hidden'); document.getElementById('formEmail').classList.add('hidden');
+            document.getElementById('btnTabPin').classList.remove('tab-active'); document.getElementById('btnTabEmail').classList.remove('tab-active');
+            if(tab === 'pin') { document.getElementById('formPin').classList.remove('hidden'); document.getElementById('btnTabPin').classList.add('tab-active'); }
+            else { document.getElementById('formEmail').classList.remove('hidden'); document.getElementById('btnTabEmail').classList.add('tab-active'); }
         }
 
-        // --- VALIDATION & LOGIC ---
-        // 1. Regex định danh (User/Mail/KH) - Giống Login
-        const regexUser = /[^a-zA-Z0-9@._\-]/; 
-        // 2. Regex Password (Whitelist chặt chẽ)
-        const regexPass = /^[a-zA-Z0-9!@#$%^&*()\-+_.,?]{8,30}$/;
-        // 3. Regex PIN (8 số)
-        const regexPin = /^\d{8}$/;
-        // 4. Regex OTP (6 số)
-        const regexOtp = /^\d{6}$/;
+        // --- RULES ---
+        const regexUser = {
+            char: /[^a-zA-Z0-9@._\-]/, // Chặn ký tự lạ khi gõ
+            full: /.{4,}/ // Blur check: min 4
+        };
+        const regexPass = {
+            char: /[^a-zA-Z0-9!@#$%^&*()\-+_.,?]/,
+            full: /^[a-zA-Z0-9!@#$%^&*()\-+_.,?]{8,30}$/
+        };
+        const regexPin = { char: /[^0-9]/, full: /^\d{8}$/ };
+        const regexOtp = { char: /[^0-9]/, full: /^\d{6}$/ };
 
-        function validateField(id, regex, errId, type) {
+        // --- VALIDATE HANDLER (Input & Blur) ---
+        function handleInput(id, rules, errId) {
             const el = document.getElementById(id);
-            const val = el.value.trim();
-            let isError = false;
-
-            if (type === 'user') {
-                // Với user: Báo lỗi nếu chứa ký tự cấm VÀ độ dài < 4
-                if (regexUser.test(val)) isError = true;
-                if (val.length < 4) isError = true; 
-            } else if (type === 'pass') {
-                isError = !regexPass.test(val);
-            } else if (type === 'pin') {
-                isError = !regexPin.test(val);
-            } else if (type === 'otp') {
-                isError = !regexOtp.test(val);
+            const val = el.value;
+            // Nếu có ký tự cấm -> Báo lỗi NGAY
+            if (val !== "" && rules.char.test(val)) setError(id, errId, true);
+            else {
+                // Nếu sạch -> Tắt lỗi tạm (để user gõ tiếp), về normal
+                el.classList.remove('input-error', 'input-success'); el.classList.add('input-normal');
+                document.getElementById(errId).classList.remove('show');
+                checkAllForms();
             }
-
-            setError(id, errId, isError);
-            return !isError;
         }
+        function handleBlur(id, rules, errId) {
+            const val = document.getElementById(id).value.trim();
+            if (val === "") return;
+            // Blur xong mới check Full (độ dài, định dạng phức tạp)
+            if (!rules.full.test(val)) setError(id, errId, true);
+            else setError(id, errId, false);
+        }
+
+        // Mapping Events
+        const fields = [
+            { id: 'pinUser', rule: regexUser, err: 'err_pinUser' },
+            { id: 'pinCode', rule: regexPin, err: 'err_pinCode' },
+            { id: 'pinNewPass', rule: regexPass, err: 'err_pinNewPass' },
+            { id: 'otpUser', rule: regexUser, err: 'err_otpUser' },
+            { id: 'otpInput', rule: regexOtp, err: 'err_otpInput' },
+            { id: 'otpNewPass', rule: regexPass, err: 'err_otpNewPass' }
+        ];
+
+        fields.forEach(f => {
+            const el = document.getElementById(f.id);
+            el.addEventListener('input', () => handleInput(f.id, f.rule, f.err));
+            el.addEventListener('blur', () => handleBlur(f.id, f.rule, f.err));
+        });
 
         function checkAllForms() {
-            // Check Form PIN
-            const pinUserOk = !regexUser.test(document.getElementById('pinUser').value) && document.getElementById('pinUser').value.length >= 4;
-            const pinCodeOk = regexPin.test(document.getElementById('pinCode').value);
-            const pinPassOk = regexPass.test(document.getElementById('pinNewPass').value);
-            document.getElementById('btnResetByPin').disabled = !(pinUserOk && pinCodeOk && pinPassOk);
+            // Check PIN form
+            const pinU = !document.getElementById('pinUser').classList.contains('input-error') && document.getElementById('pinUser').value.length >= 4;
+            const pinC = document.getElementById('pinCode').classList.contains('input-success');
+            const pinP = document.getElementById('pinNewPass').classList.contains('input-success');
+            document.getElementById('btnResetByPin').disabled = !(pinU && pinC && pinP);
 
-            // Check Form Email Step 1
-            const otpUserOk = !regexUser.test(document.getElementById('otpUser').value) && document.getElementById('otpUser').value.length >= 4;
-            document.getElementById('btnSendOtp').disabled = !otpUserOk;
+            // Check OTP form
+            const otpU = !document.getElementById('otpUser').classList.contains('input-error') && document.getElementById('otpUser').value.length >= 4;
+            document.getElementById('btnSendOtp').disabled = !otpU;
 
-            // Check Form Email Step 2
-            const otpCodeOk = regexOtp.test(document.getElementById('otpInput').value);
-            const otpPassOk = regexPass.test(document.getElementById('otpNewPass').value);
-            document.getElementById('btnResetByOtp').disabled = !(otpCodeOk && otpPassOk);
+            const otpC = document.getElementById('otpInput').classList.contains('input-success');
+            const otpP = document.getElementById('otpNewPass').classList.contains('input-success');
+            document.getElementById('btnResetByOtp').disabled = !(otpC && otpP);
         }
-
-        // --- EVENT LISTENERS ---
-        // Form PIN
-        document.getElementById('pinUser').addEventListener('input', () => validateField('pinUser', regexUser, 'err_pinUser', 'user'));
-        document.getElementById('pinCode').addEventListener('input', () => validateField('pinCode', regexPin, 'err_pinCode', 'pin'));
-        document.getElementById('pinNewPass').addEventListener('input', () => validateField('pinNewPass', regexPass, 'err_pinNewPass', 'pass'));
-
-        // Form OTP
-        document.getElementById('otpUser').addEventListener('input', () => validateField('otpUser', regexUser, 'err_otpUser', 'user'));
-        document.getElementById('otpInput').addEventListener('input', () => validateField('otpInput', regexOtp, 'err_otpInput', 'otp'));
-        document.getElementById('otpNewPass').addEventListener('input', () => validateField('otpNewPass', regexPass, 'err_otpNewPass', 'pass'));
-
 
         // --- API CALLS ---
         async function postData(url, data) {
-            const formData = new FormData();
-            for(const k in data) formData.append(k, data[k]);
-            const res = await fetch(url, { method: 'POST', body: formData });
-            return await res.json();
+            const formData = new FormData(); for(const k in data) formData.append(k, data[k]);
+            const res = await fetch(url, { method: 'POST', body: formData }); return await res.json();
         }
 
         async function resetByPin() {
@@ -225,56 +186,23 @@
                     pin: document.getElementById('pinCode').value, 
                     pass_moi: document.getElementById('pinNewPass').value 
                 });
-                if(res.status === 'ok') {
-                    Swal.fire({ icon: 'success', title: 'Thành công!', text: res.msg }).then(() => location.href = '/login');
-                } else {
-                    setBtnNormal('btnResetByPin');
-                    Swal.fire({ icon: 'error', title: 'Lỗi!', text: res.msg });
-                }
-            } catch (e) {
-                setBtnNormal('btnResetByPin');
-                Swal.fire({ icon: 'error', title: 'Lỗi', text: 'Kết nối server thất bại' });
-            }
+                if(res.status === 'ok') Swal.fire({ icon: 'success', title: 'Thành công!', text: res.msg }).then(() => location.href = '/login');
+                else { setBtnNormal('btnResetByPin'); Swal.fire({ icon: 'error', title: 'Lỗi!', text: res.msg }); }
+            } catch (e) { setBtnNormal('btnResetByPin'); Swal.fire({ icon: 'error', title: 'Lỗi', text: 'Lỗi kết nối' }); }
         }
 
         let countdownInterval;
-        function startCountdown() {
-            const btn = document.getElementById('btnSendOtp');
-            const area = document.getElementById('countdownArea');
-            const timer = document.getElementById('timer');
-            let timeLeft = 60;
-            btn.classList.add('hidden');
-            area.classList.remove('hidden');
-            timer.innerText = timeLeft;
-            countdownInterval = setInterval(() => {
-                timeLeft--;
-                timer.innerText = timeLeft;
-                if(timeLeft <= 0) {
-                    clearInterval(countdownInterval);
-                    btn.innerText = "GỬI LẠI MÃ OTP";
-                    btn.classList.remove('hidden');
-                    area.classList.add('hidden');
-                    setBtnNormal('btnSendOtp'); // Enable lại nút khi hết giờ
-                }
-            }, 1000);
-        }
-
         async function sendOtp() {
             setBtnLoading('btnSendOtp', 'Đang gửi...');
             try {
                 const res = await postData('/api/auth/send-otp', { dinh_danh: document.getElementById('otpUser').value });
                 if(res.status === 'ok') {
-                    startCountdown();
-                    document.getElementById('step1').classList.add('hidden');
-                    document.getElementById('step2').classList.remove('hidden');
-                } else {
-                    setBtnNormal('btnSendOtp');
-                    Swal.fire({ icon: 'error', title: 'Lỗi!', text: res.msg });
-                }
-            } catch (e) {
-                setBtnNormal('btnSendOtp');
-                Swal.fire({ icon: 'error', title: 'Lỗi', text: 'Không thể gửi mã lúc này' });
-            }
+                    document.getElementById('step1').classList.add('hidden'); document.getElementById('step2').classList.remove('hidden');
+                    let timeLeft = 60; const timer = document.getElementById('timer');
+                    document.getElementById('countdownArea').classList.remove('hidden');
+                    countdownInterval = setInterval(() => { timeLeft--; timer.innerText = timeLeft; if(timeLeft<=0) clearInterval(countdownInterval); }, 1000);
+                } else { setBtnNormal('btnSendOtp'); Swal.fire({ icon: 'error', title: 'Lỗi!', text: res.msg }); }
+            } catch (e) { setBtnNormal('btnSendOtp'); Swal.fire({ icon: 'error', title: 'Lỗi', text: 'Không thể gửi mã' }); }
         }
 
         async function resetByOtp() {
@@ -285,16 +213,9 @@
                     otp: document.getElementById('otpInput').value,
                     pass_moi: document.getElementById('otpNewPass').value
                 });
-                if(res.status === 'ok') {
-                    Swal.fire({ icon: 'success', title: 'Thành công!', text: res.msg }).then(() => location.href = '/login');
-                } else {
-                    setBtnNormal('btnResetByOtp');
-                    Swal.fire({ icon: 'error', title: 'Lỗi!', text: res.msg });
-                }
-            } catch (e) {
-                setBtnNormal('btnResetByOtp');
-                Swal.fire({ icon: 'error', title: 'Lỗi', text: 'Xác nhận thất bại' });
-            }
+                if(res.status === 'ok') Swal.fire({ icon: 'success', title: 'Thành công!', text: res.msg }).then(() => location.href = '/login');
+                else { setBtnNormal('btnResetByOtp'); Swal.fire({ icon: 'error', title: 'Lỗi!', text: res.msg }); }
+            } catch (e) { setBtnNormal('btnResetByOtp'); Swal.fire({ icon: 'error', title: 'Lỗi', text: 'Xác nhận thất bại' }); }
         }
     </script>
     {{ template "footer" . }}

@@ -100,6 +100,8 @@ func main() {
 		admin.GET("/tong-quan", chuc_nang.TrangTongQuan)
 		admin.GET("/reload", chuc_nang.API_NapLaiDuLieu)
 		admin.POST("/api/member/update", chuc_nang.API_Admin_SuaThanhVien)
+        admin.GET("/san-pham", chuc_nang.TrangQuanLySanPham)
+		admin.POST("/api/product/save", chuc_nang.API_LuuSanPham)		
 	}
 
 	// --- KHỞI CHẠY SERVER ---

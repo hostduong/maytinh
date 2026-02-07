@@ -20,39 +20,33 @@ import (
 //go:embed giao_dien/*.html
 var f embed.FS
 
-// Middleware để bảo vệ người dùng khi hệ thống đang reload (Read Lock)
-func MW_KiemTraHeThong(c *gin.Context) {
-	nghiep_vu.KhoaHeThong.RLock()
-	defer nghiep_vu.KhoaHeThong.RUnlock()
-	c.Next()
-}
+// [ĐÃ XÓA] Middleware MW_KiemTraHeThong vì gây deadlock với tính năng Reload
 
 func main() {
 	log.Println(">>> [SYSTEM] KHỞI ĐỘNG...")
 
 	cau_hinh.KhoiTaoCauHinh()
 	
-	// Kết nối Google Sheet (ADC)
+	// Kết nối Google Sheet
 	func() { defer func() { recover() }(); kho_du_lieu.KhoiTaoKetNoiGoogle() }()
 
 	// Khởi tạo các Store rỗng
 	nghiep_vu.KhoiTaoCacStore()
 	
-	// Nạp dữ liệu lần đầu (Chạy ngầm để server start nhanh)
+	// Nạp dữ liệu lần đầu
 	go func() {
 		log.Println("--- [BOOT] Đang nạp dữ liệu khởi động... ---")
-		// Hàm này giờ đã bao gồm cả nạp PHAN_QUYEN
 		nghiep_vu.KhoiTaoBoNho() 
 	}()
 	
-	// Khởi động Worker ghi Sheet và Rate Limit
+	// Khởi động Worker
 	nghiep_vu.KhoiTaoWorkerGhiSheet()
 	chuc_nang.KhoiTaoBoDemRateLimit()
 
 	router := gin.Default()
 	
-	// Áp dụng Middleware "Êm ái" cho toàn bộ web
-	router.Use(MW_KiemTraHeThong)
+	// [QUAN TRỌNG] Đã bỏ dòng router.Use(MW_KiemTraHeThong)
+	// Để tránh xung đột khóa khi Reload
 
 	templ := template.Must(template.New("").ParseFS(f, "giao_dien/*.html"))
 	router.SetHTMLTemplate(templ)
@@ -92,14 +86,11 @@ func main() {
 		} else { c.Redirect(http.StatusFound, "/login") }
 	})
 
-	// --- 2. NHÓM ADMIN (CÓ PHÂN QUYỀN RBAC) ---
+	// --- 2. NHÓM ADMIN ---
 	admin := router.Group("/admin")
-	admin.Use(chuc_nang.KiemTraQuyenHan) // Middleware chặn người không phận sự
+	admin.Use(chuc_nang.KiemTraQuyenHan) 
 	{
-		// Dashboard [ĐÃ CẬP NHẬT]: Trỏ về hàm xử lý thống kê mới
 		admin.GET("/tong-quan", chuc_nang.TrangTongQuan)
-
-		// API Quản trị
 		admin.GET("/reload", chuc_nang.API_NapLaiDuLieu)
 		admin.POST("/api/member/update", chuc_nang.API_Admin_SuaThanhVien)
 	}
@@ -117,15 +108,13 @@ func main() {
 		}
 	}()
 
-	// Graceful Shutdown
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 	<-quit
 	
 	log.Println("⚠️ Đang tắt Server...")
-	nghiep_vu.ThucHienGhiSheet(true) // Ghi nốt dữ liệu còn sót lại
+	nghiep_vu.ThucHienGhiSheet(true) 
 	log.Println("✅ Server tắt an toàn.")
 }
 
-// Hàm phụ trợ (giữ nguyên để tránh lỗi biên dịch nếu file khác không dùng)
 func mustGetCookie(c *gin.Context) string { cookie, _ := c.Cookie("session_id"); return cookie }

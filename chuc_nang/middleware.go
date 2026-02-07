@@ -31,7 +31,19 @@ func KhoiTaoBoDemRateLimit() {
 
 // MIDDLEWARE CHÍNH
 func KiemTraQuyenHan(c *gin.Context) {
-	// 1. KIỂM TRA RATE LIMIT (CHỐNG SPAM)
+	// [MỚI] 1. CHỐT CHẶN BẢO TRÌ (Cơ chế Tách Ly Đọc Ghi)
+	// Nếu hệ thống đang trong quá trình Reload (biến cờ HeThongDangBan = true)
+	// Và Request là hành động Ghi (POST, PUT, DELETE...) -> Chặn lại để bảo toàn dữ liệu.
+	// Request xem (GET) vẫn cho qua bình thường.
+	if nghiep_vu.HeThongDangBan && c.Request.Method != "GET" {
+		c.AbortWithStatusJSON(http.StatusServiceUnavailable, gin.H{
+			"trang_thai": "he_thong_ban",
+			"thong_diep": "Hệ thống đang đồng bộ dữ liệu, vui lòng thử lại sau 5 giây.",
+		})
+		return
+	}
+
+	// 2. KIỂM TRA RATE LIMIT (CHỐNG SPAM)
 	cookieID, err1 := c.Cookie("session_id")
 	cookieSign, err2 := c.Cookie("session_sign")
 	
@@ -52,7 +64,7 @@ func KiemTraQuyenHan(c *gin.Context) {
 		return
 	}
 
-	// 2. KIỂM TRA ĐĂNG NHẬP & BẢO MẬT (AUTH)
+	// 3. KIỂM TRA ĐĂNG NHẬP & BẢO MẬT (AUTH)
 	
 	// Nếu không có cookie session -> Khách vãng lai
 	if cookieID == "" {
@@ -60,7 +72,7 @@ func KiemTraQuyenHan(c *gin.Context) {
 		return
 	}
 
-	// [MỚI] KIỂM TRA TÍNH TOÀN VẸN (SECURITY CHECK)
+	// KIỂM TRA TÍNH TOÀN VẸN (SECURITY CHECK)
 	// Nếu có Session ID nhưng thiếu Chữ ký hoặc Chữ ký sai -> ĐUỔI NGAY
 	userAgent := c.Request.UserAgent()
 	signatureServer := bao_mat.TaoChuKyBaoMat(cookieID, userAgent)
@@ -73,7 +85,7 @@ func KiemTraQuyenHan(c *gin.Context) {
 		return
 	}
 
-	// 3. TÌM USER TRONG RAM (Khi đã qua cửa bảo mật)
+	// 4. TÌM USER TRONG RAM (Khi đã qua cửa bảo mật)
 	khachHang, timThay := nghiep_vu.TimKhachHangTheoCookie(cookieID)
 
 	if !timThay {
@@ -86,7 +98,7 @@ func KiemTraQuyenHan(c *gin.Context) {
 		return
 	}
 
-	// 4. LOGIC GIA HẠN THÔNG MINH (Auto-Renew)
+	// 5. LOGIC GIA HẠN THÔNG MINH (Auto-Renew)
 	thoiGianHetHan := khachHang.CookieExpired // Dạng int64
 	now := time.Now().Unix()
 
@@ -103,9 +115,6 @@ func KiemTraQuyenHan(c *gin.Context) {
 	if thoiGianConLai < cau_hinh.ThoiGianAnHan {
 		
 		// A. Tính thời gian mới (+30 phút)
-		// Lưu ý: Logic gia hạn này mặc định cộng thêm thời gian ngắn. 
-		// Nếu muốn bảo lưu "Ghi nhớ đăng nhập" 30 ngày thì logic sẽ phức tạp hơn,
-		// nhưng với MVP thì gia hạn 30p là an toàn.
 		newExp := time.Now().Add(cau_hinh.ThoiGianHetHanCookie).Unix()
 		
 		// B. Cập nhật vào RAM ngay

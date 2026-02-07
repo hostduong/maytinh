@@ -14,8 +14,6 @@ import (
 )
 
 // [CƠ CHẾ KHÓA HỆ THỐNG]
-// Dùng RWMutex để reload không làm gián đoạn người dùng đang xem (Read Lock)
-// Chỉ chặn khi admin đang ghi đè dữ liệu mới (Write Lock)
 var KhoaHeThong sync.RWMutex
 
 // =================================================================================
@@ -40,7 +38,6 @@ type KhoNhaCungCapStore struct {
 	TenKey string
 }
 
-// Kho Khách Hàng (Lưu con trỏ *KhachHang)
 type KhoKhachHangStore struct {
 	DuLieu        map[string]*mo_hinh.KhachHang
 	TenKey        string
@@ -105,7 +102,6 @@ var (
 	CacheThuongHieu      *KhoThuongHieuStore
 	CacheNhaCungCap      *KhoNhaCungCapStore
 	CacheKhachHang       *KhoKhachHangStore
-	// Xóa CacheNhanVien
 	CachePhieuNhap       *KhoPhieuNhapStore
 	CacheChiTietNhap     *KhoChiTietPhieuNhapStore
 	CachePhieuXuat       *KhoPhieuXuatStore
@@ -128,11 +124,7 @@ func TaoKeyCache(tenSheet string) string {
 // 3. KHỞI TẠO VÀ NẠP DỮ LIỆU
 // =================================================================================
 
-// [SỬA ĐỔI QUAN TRỌNG]: Tách hàm khởi tạo biến ra (Public) để main.go gọi trước
 func KhoiTaoCacStore() {
-	// [THAY ĐỔI]: Bỏ dòng check nil để cho phép Reset RAM khi Reload
-	// if CacheSanPham != nil { return } <--- ĐÃ BỎ
-
 	CacheSanPham = &KhoSanPhamStore{DuLieu: make(map[string]mo_hinh.SanPham), TenKey: TaoKeyCache("SAN_PHAM")}
 	CacheDanhMuc = &KhoDanhMucStore{DuLieu: make(map[string]mo_hinh.DanhMuc), TenKey: TaoKeyCache("DANH_MUC")}
 	CacheThuongHieu = &KhoThuongHieuStore{DuLieu: make(map[string]mo_hinh.ThuongHieu), TenKey: TaoKeyCache("THUONG_HIEU")}
@@ -159,12 +151,9 @@ func KhoiTaoCacStore() {
 	log.Println("✅ [MEMORY] Đã khởi tạo/Làm mới bộ nhớ đệm (Rỗng)")
 }
 
-// Hàm này dùng để nạp dữ liệu thật từ Google Sheet (Chạy nặng, nên chạy ngầm)
 func KhoiTaoBoNho() {
 	log.Println("--- [CACHE] Bắt đầu tải dữ liệu từ Google Sheets ---")
 	
-	// Lưu ý: Không gọi KhoiTaoCacStore ở đây nữa, để main.go kiểm soát việc Reset hay không
-
 	var wg sync.WaitGroup
 
 	log.Println(">> Đợt 1: Nạp Master Data...")
@@ -178,7 +167,6 @@ func KhoiTaoBoNho() {
 	go func() { defer wg.Done(); NapDuLieuPhanQuyen() }()
 	wg.Wait()
 	
-	// Nghỉ 1 chút để tránh Google Rate Limit
 	time.Sleep(500 * time.Millisecond)
 
 	log.Println(">> Đợt 2: Nạp Giao dịch chính...")
@@ -215,22 +203,22 @@ func loadSheetData(sheetName string, keyCache string) ([][]interface{}, error) {
 	return duLieu, nil
 }
 
-// 1. KHACH_HANG (Đã sửa lại map đúng cột & Thêm logic map nhiều key)
+// 1. KHACH_HANG (Đã cập nhật logic map nhiều Key)
 func napKhachHang() {
 	raw, err := loadSheetData("KHACH_HANG", CacheKhachHang.TenKey)
 	if err != nil { return }
 	defer BoQuanLyKhoa.LayKhoa(CacheKhachHang.TenKey).Unlock()
 
 	for i, r := range raw {
+		// [Logic chuẩn] Dòng 11 là dòng bắt đầu dữ liệu -> Index = 10 -> Bỏ qua < 10
 		if i < (mo_hinh.DongBatDauDuLieu - 1) { continue }
 		if len(r) <= mo_hinh.CotKH_MaKhachHang || layString(r, mo_hinh.CotKH_MaKhachHang) == "" { continue }
 
 		item := &mo_hinh.KhachHang{
 			DongTrongSheet: i + 1,
 			MaKhachHang:    layString(r, mo_hinh.CotKH_MaKhachHang),
-			// [SỬA LẠI CHO KHỚP MO_HINH CỦA BẠN]
-			TenDangNhap:    layString(r, mo_hinh.CotKH_TenDangNhap), // Dùng TenDangNhap
-			MatKhauHash:    layString(r, mo_hinh.CotKH_MatKhauHash), // Dùng MatKhauHash
+			TenDangNhap:    layString(r, mo_hinh.CotKH_TenDangNhap),
+			MatKhauHash:    layString(r, mo_hinh.CotKH_MatKhauHash),
 			Cookie:         layString(r, mo_hinh.CotKH_Cookie),
 			CookieExpired:  int64(layFloat(r, mo_hinh.CotKH_CookieExpired)),
 			MaPinHash:      layString(r, mo_hinh.CotKH_MaPinHash),
@@ -257,16 +245,22 @@ func napKhachHang() {
 			NgayCapNhat:    layString(r, mo_hinh.CotKH_NgayCapNhat),
 		}
 		
-		// [QUAN TRỌNG]: Lưu nhiều Key để đăng nhập được bằng cả User và Email
-		// 1. Lưu theo Mã (để dùng cho các hàm sửa thông tin)
-		CacheKhachHang.DuLieu[item.MaKhachHang] = item
+		// [QUAN TRỌNG]: Map nhiều Key để tìm kiếm linh hoạt
 		
-		// 2. Lưu theo Tên đăng nhập (viết thường) để Đăng nhập
+		// 1. Key Mã KH gốc (Để lấy thông tin)
+		CacheKhachHang.DuLieu[item.MaKhachHang] = item
+
+		// 2. Key Mã KH chữ thường (Để đăng nhập bằng Mã KH không phân biệt hoa/thường)
+		if item.MaKhachHang != "" {
+			CacheKhachHang.DuLieu[strings.ToLower(item.MaKhachHang)] = item
+		}
+		
+		// 3. Key Tên đăng nhập chữ thường (Để đăng nhập bằng User)
 		if item.TenDangNhap != "" {
 			CacheKhachHang.DuLieu[strings.ToLower(item.TenDangNhap)] = item
 		}
 		
-		// 3. Lưu theo Email (viết thường) để Đăng nhập bằng Email
+		// 4. Key Email chữ thường (Để đăng nhập bằng Email)
 		if item.Email != "" {
 			CacheKhachHang.DuLieu[strings.ToLower(item.Email)] = item
 		}
@@ -280,7 +274,7 @@ func napSanPham() {
 	defer BoQuanLyKhoa.LayKhoa(CacheSanPham.TenKey).Unlock()
 
 	for i, r := range raw {
-		if i < mo_hinh.DongBatDauDuLieu { continue }
+		if i < (mo_hinh.DongBatDauDuLieu - 1) { continue }
 		if len(r) <= mo_hinh.CotSP_MaSanPham || layString(r, mo_hinh.CotSP_MaSanPham) == "" { continue }
 		
 		item := mo_hinh.SanPham{
@@ -316,7 +310,7 @@ func napDanhMuc() {
 	defer BoQuanLyKhoa.LayKhoa(CacheDanhMuc.TenKey).Unlock()
 
 	for i, r := range raw {
-		if i < mo_hinh.DongBatDauDuLieu { continue }
+		if i < (mo_hinh.DongBatDauDuLieu - 1) { continue }
 		if len(r) <= mo_hinh.CotDM_MaDanhMuc || layString(r, mo_hinh.CotDM_MaDanhMuc) == "" { continue }
 		
 		item := mo_hinh.DanhMuc{
@@ -337,7 +331,7 @@ func napThuongHieu() {
 	defer BoQuanLyKhoa.LayKhoa(CacheThuongHieu.TenKey).Unlock()
 
 	for i, r := range raw {
-		if i < mo_hinh.DongBatDauDuLieu { continue }
+		if i < (mo_hinh.DongBatDauDuLieu - 1) { continue }
 		if len(r) <= mo_hinh.CotTH_MaThuongHieu || layString(r, mo_hinh.CotTH_MaThuongHieu) == "" { continue }
 		
 		item := mo_hinh.ThuongHieu{
@@ -356,7 +350,7 @@ func napNhaCungCap() {
 	defer BoQuanLyKhoa.LayKhoa(CacheNhaCungCap.TenKey).Unlock()
 
 	for i, r := range raw {
-		if i < mo_hinh.DongBatDauDuLieu { continue }
+		if i < (mo_hinh.DongBatDauDuLieu - 1) { continue }
 		if len(r) <= mo_hinh.CotNCC_MaNhaCungCap || layString(r, mo_hinh.CotNCC_MaNhaCungCap) == "" { continue }
 		
 		item := mo_hinh.NhaCungCap{
@@ -379,7 +373,7 @@ func napPhieuXuat() {
 	defer BoQuanLyKhoa.LayKhoa(CachePhieuXuat.TenKey).Unlock()
 
 	for i, r := range raw {
-		if i < mo_hinh.DongBatDauDuLieu { continue }
+		if i < (mo_hinh.DongBatDauDuLieu - 1) { continue }
 		if len(r) <= mo_hinh.CotPX_MaPhieuXuat || layString(r, mo_hinh.CotPX_MaPhieuXuat) == "" { continue }
 
 		item := mo_hinh.PhieuXuat{
@@ -412,7 +406,7 @@ func napChiTietPhieuXuat() {
 	defer BoQuanLyKhoa.LayKhoa(CacheChiTietXuat.TenKey).Unlock()
 
 	for i, r := range raw {
-		if i < mo_hinh.DongBatDauDuLieu { continue }
+		if i < (mo_hinh.DongBatDauDuLieu - 1) { continue }
 		if len(r) <= mo_hinh.CotCTPX_MaPhieuXuat || layString(r, mo_hinh.CotCTPX_MaPhieuXuat) == "" { continue }
 
 		item := mo_hinh.ChiTietPhieuXuat{
@@ -435,7 +429,7 @@ func napPhieuNhap() {
 	defer BoQuanLyKhoa.LayKhoa(CachePhieuNhap.TenKey).Unlock()
 
 	for i, r := range raw {
-		if i < mo_hinh.DongBatDauDuLieu { continue }
+		if i < (mo_hinh.DongBatDauDuLieu - 1) { continue }
 		if len(r) <= mo_hinh.CotPN_MaPhieuNhap || layString(r, mo_hinh.CotPN_MaPhieuNhap) == "" { continue }
 
 		item := mo_hinh.PhieuNhap{
@@ -460,7 +454,7 @@ func napChiTietPhieuNhap() {
 	defer BoQuanLyKhoa.LayKhoa(CacheChiTietNhap.TenKey).Unlock()
 
 	for i, r := range raw {
-		if i < mo_hinh.DongBatDauDuLieu { continue }
+		if i < (mo_hinh.DongBatDauDuLieu - 1) { continue }
 		if len(r) <= mo_hinh.CotCTPN_MaPhieuNhap || layString(r, mo_hinh.CotCTPN_MaPhieuNhap) == "" { continue }
 
 		item := mo_hinh.ChiTietPhieuNhap{
@@ -481,7 +475,7 @@ func napSerial() {
 	defer BoQuanLyKhoa.LayKhoa(CacheSerial.TenKey).Unlock()
 
 	for i, r := range raw {
-		if i < mo_hinh.DongBatDauDuLieu { continue }
+		if i < (mo_hinh.DongBatDauDuLieu - 1) { continue }
 		if len(r) <= mo_hinh.CotSerial_SerialImei || layString(r, mo_hinh.CotSerial_SerialImei) == "" { continue }
 
 		item := mo_hinh.SerialSanPham{
@@ -503,7 +497,7 @@ func napKhuyenMai() {
 	defer BoQuanLyKhoa.LayKhoa(CacheKhuyenMai.TenKey).Unlock()
 
 	for i, r := range raw {
-		if i < mo_hinh.DongBatDauDuLieu { continue }
+		if i < (mo_hinh.DongBatDauDuLieu - 1) { continue }
 		if len(r) <= mo_hinh.CotKM_MaVoucher || layString(r, mo_hinh.CotKM_MaVoucher) == "" { continue }
 
 		item := mo_hinh.KhuyenMai{
@@ -525,7 +519,7 @@ func napCauHinhWeb() {
 	defer BoQuanLyKhoa.LayKhoa(CacheCauHinhWeb.TenKey).Unlock()
 
 	for i, r := range raw {
-		if i < mo_hinh.DongBatDauDuLieu { continue }
+		if i < (mo_hinh.DongBatDauDuLieu - 1) { continue }
 		if len(r) <= mo_hinh.CotCH_MaCauHinh || layString(r, mo_hinh.CotCH_MaCauHinh) == "" { continue }
 
 		item := mo_hinh.CauHinhWeb{
@@ -544,7 +538,7 @@ func napHoaDon() {
 	defer BoQuanLyKhoa.LayKhoa(CacheHoaDon.TenKey).Unlock()
 
 	for i, r := range raw {
-		if i < mo_hinh.DongBatDauDuLieu { continue }
+		if i < (mo_hinh.DongBatDauDuLieu - 1) { continue }
 		if len(r) <= mo_hinh.CotHD_MaHoaDon || layString(r, mo_hinh.CotHD_MaHoaDon) == "" { continue }
 
 		item := mo_hinh.HoaDon{
@@ -567,7 +561,7 @@ func napHoaDonChiTiet() {
 	defer BoQuanLyKhoa.LayKhoa(CacheHoaDonChiTiet.TenKey).Unlock()
 
 	for i, r := range raw {
-		if i < mo_hinh.DongBatDauDuLieu { continue }
+		if i < (mo_hinh.DongBatDauDuLieu - 1) { continue }
 		if len(r) <= mo_hinh.CotHDCT_MaHoaDon || layString(r, mo_hinh.CotHDCT_MaHoaDon) == "" { continue }
 
 		item := mo_hinh.HoaDonChiTiet{
@@ -587,7 +581,7 @@ func napPhieuThuChi() {
 	defer BoQuanLyKhoa.LayKhoa(CachePhieuThuChi.TenKey).Unlock()
 
 	for i, r := range raw {
-		if i < mo_hinh.DongBatDauDuLieu { continue }
+		if i < (mo_hinh.DongBatDauDuLieu - 1) { continue }
 		if len(r) <= mo_hinh.CotPTC_MaPhieuThuChi || layString(r, mo_hinh.CotPTC_MaPhieuThuChi) == "" { continue }
 
 		item := mo_hinh.PhieuThuChi{
@@ -609,7 +603,7 @@ func napPhieuBaoHanh() {
 	defer BoQuanLyKhoa.LayKhoa(CachePhieuBaoHanh.TenKey).Unlock()
 
 	for i, r := range raw {
-		if i < mo_hinh.DongBatDauDuLieu { continue }
+		if i < (mo_hinh.DongBatDauDuLieu - 1) { continue }
 		if len(r) <= mo_hinh.CotPBH_MaPhieuBaoHanh || layString(r, mo_hinh.CotPBH_MaPhieuBaoHanh) == "" { continue }
 
 		item := mo_hinh.PhieuBaoHanh{

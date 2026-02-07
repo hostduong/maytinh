@@ -105,13 +105,19 @@ func tinhToanThongKe() DuLieuDashboard {
 	return kq
 }
 
-// API Nạp lại dữ liệu (Giữ nguyên code cũ)
+// API Nạp lại dữ liệu
 func API_NapLaiDuLieu(c *gin.Context) {
 	vaiTro := c.GetString("USER_ROLE")
 	if !nghiep_vu.KiemTraQuyen(vaiTro, "system.reload") {
 		c.JSON(http.StatusForbidden, gin.H{"trang_thai": "loi", "thong_diep": "Không có quyền!"})
 		return
 	}
-	nghiep_vu.KhoiTaoBoNho()
-	c.JSON(http.StatusOK, gin.H{"trang_thai": "thanh_cong", "thong_diep": "Đã nạp lại dữ liệu mới nhất từ Google Sheet!"})
+
+	// Gọi hàm Reset an toàn (Tách ly đọc ghi)
+	nghiep_vu.LamMoiHeThong()
+
+	c.JSON(http.StatusOK, gin.H{
+		"trang_thai": "thanh_cong", 
+		"thong_diep": "Đã đồng bộ dữ liệu mới nhất (Shadow Load)!",
+	})
 }

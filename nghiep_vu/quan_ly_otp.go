@@ -66,22 +66,33 @@ func GuiMailThongBaoAPI(email, subject, name, body string) error {
 	return callApi(map[string]string{"type": "sender", "api_key": KEY_API_MAIL, "email": email, "subject": subject, "name": name, "body": body})
 }
 
-// [CẬP NHẬT HÀM NÀY ĐỂ DEBUG]
+// [CẬP NHẬT QUAN TRỌNG]: Lấy đúng field 'messenger' để trả về lỗi
 func callApi(payload interface{}) error {
 	b, _ := json.Marshal(payload)
 	resp, err := http.Post(URL_API_MAIL, "application/json", bytes.NewBuffer(b))
-	if err != nil { return err }
+	if err != nil { return fmt.Errorf("Lỗi kết nối đến Google: %v", err) }
 	defer resp.Body.Close()
 
-	// Đọc Raw Body để log
 	bodyBytes, _ := io.ReadAll(resp.Body)
-	log.Printf("📧 [MAIL API LOG]: %s", string(bodyBytes))
+	// log.Printf("📧 [MAIL DEBUG]: %s", string(bodyBytes)) // Bật lên nếu cần debug
 
-	var r struct{ Status string `json:"status"`; Messenger string `json:"messenger"` }
+	// Cấu trúc hứng phản hồi từ Google Apps Script
+	var r struct { 
+		Status string `json:"status"` 
+		Messenger string `json:"messenger"` 
+	}
+	
 	if err := json.Unmarshal(bodyBytes, &r); err != nil {
-		return fmt.Errorf("Lỗi định dạng JSON từ Google: %v", err)
+		return fmt.Errorf("Lỗi định dạng phản hồi từ Mail Service")
 	}
 
-	if r.Status == "true" { return nil }
-	return fmt.Errorf("%s", r.Messenger)
+	if r.Status == "true" { 
+		return nil 
+	}
+	
+	// Trả về nguyên văn thông báo lỗi từ Google Script (VD: "Email không đúng định dạng", "Sai API Key"...)
+	if r.Messenger != "" {
+		return fmt.Errorf("%s", r.Messenger)
+	}
+	return fmt.Errorf("Gửi mail thất bại (Lỗi không xác định)")
 }

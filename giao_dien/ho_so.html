@@ -25,8 +25,10 @@
                         <img src="https://api.dicebear.com/7.x/avataaars/svg?seed={{ .NhanVien.TenDangNhap }}" alt="Avatar" class="w-full h-full object-cover">
                     </div>
                 </div>
-                <h2 class="mt-3 text-3xl font-bold text-gray-800">{{ .NhanVien.TenKhachHang }}</h2>
-                <div class="text-blue-600 font-bold bg-blue-50 inline-block px-4 py-1 rounded-full text-xs mt-2 tracking-widest border border-blue-100">{{ .NhanVien.ChucVu }}</div>
+                <h2 class="mt-3 text-3xl font-bold text-gray-800" id="lblHoTen">{{ .NhanVien.TenKhachHang }}</h2>
+                <div class="text-blue-600 font-bold bg-blue-50 inline-block px-4 py-1 rounded-full text-xs mt-2 tracking-widest border border-blue-100">
+                    {{ .NhanVien.ChucVu }}
+                </div>
             </div>
             
             <div class="flex flex-wrap justify-center gap-3 py-8 px-6">
@@ -65,11 +67,11 @@
                 <div class="space-y-6">
                     <div>
                         <label class="text-[10px] text-gray-400 uppercase font-bold tracking-widest block mb-1">Số điện thoại</label>
-                        <div class="text-gray-900 font-semibold py-2">{{ if .NhanVien.DienThoai }} {{ .NhanVien.DienThoai }} {{ else }} <span class="text-gray-300 italic font-normal">Chưa cập nhật</span> {{ end }}</div>
+                        <div id="txtSdt" class="text-gray-900 font-semibold py-2">{{ if .NhanVien.DienThoai }} {{ .NhanVien.DienThoai }} {{ else }} <span class="text-gray-300 italic font-normal">Chưa cập nhật</span> {{ end }}</div>
                     </div>
                     <div>
                         <label class="text-[10px] text-gray-400 uppercase font-bold tracking-widest block mb-1">Ngày sinh</label>
-                        <div class="text-gray-900 font-semibold py-2">{{ if .NhanVien.NgaySinh }} {{ .NhanVien.NgaySinh }} {{ else }} <span class="text-gray-300 italic font-normal">--/--/----</span> {{ end }}</div>
+                        <div id="txtNgaySinh" class="text-gray-900 font-semibold py-2">{{ if .NhanVien.NgaySinh }} {{ .NhanVien.NgaySinh }} {{ else }} <span class="text-gray-300 italic font-normal">--/--/----</span> {{ end }}</div>
                     </div>
                 </div>
             </div>
@@ -140,12 +142,12 @@
             <div id="viewChangePin" class="space-y-4 pt-4">
                 <div class="relative">
                     <input type="password" id="oldPin" maxlength="8" placeholder="Mã PIN hiện tại" class="w-full p-3.5 pr-10 border border-gray-300 rounded-xl outline-none transition">
-                    <button type="button" onclick="togglePass('oldPin')" class="absolute inset-y-0 right-0 pr-3.5 flex items-center text-gray-400"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg></button>
+                    <button type="button" onclick="togglePass('oldPin')" class="absolute inset-y-0 right-0 pr-3.5 flex items-center text-gray-400 hover:text-purple-600"><svg id="eye_oldPin" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5"><path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" /><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg></button>
                 </div>
                 <div class="relative">
                     <input type="password" id="newPin" maxlength="8" placeholder="Mã PIN mới (8 số)" class="w-full p-3.5 pr-10 border border-gray-300 rounded-xl outline-none input-normal transition">
-                    <button type="button" onclick="togglePass('newPin')" class="absolute inset-y-0 right-0 pr-3.5 flex items-center text-gray-400"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg></button>
-                    <p id="err_newPin" class="error-text">Mã PIN phải đúng 8 chữ số.</p>
+                    <button type="button" onclick="togglePass('newPin')" class="absolute inset-y-0 right-0 pr-3.5 flex items-center text-gray-400 hover:text-purple-600"><svg id="eye_newPin" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5"><path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" /><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg></button>
+                    <p id="err_newPin" class="error-text hidden"></p>
                 </div>
                 <div class="text-right">
                     <button onclick="switchPinView('forgot')" class="text-xs text-blue-600 hover:underline font-bold">Quên mã PIN?</button>
@@ -164,7 +166,9 @@
                     XÁC NHẬN RESET VÀ GỬI EMAIL
                 </button>
                 <div class="mt-8 flex justify-start items-center border-t pt-5">
-                    <button onclick="switchPinView('change')" class="text-gray-400 text-sm font-bold hover:text-gray-600 transition flex items-center gap-1">Quay lại</button>
+                    <button onclick="switchPinView('change')" class="text-gray-400 text-sm font-bold hover:text-gray-600 transition flex items-center gap-1">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-4 h-4"><path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" /></svg> Quay lại
+                    </button>
                 </div>
             </div>
         </div>
@@ -172,99 +176,201 @@
 
     <script>
         const inputPhone = document.querySelector("#newPhone");
-        const iti = window.intlTelInput(inputPhone, { initialCountry: "vn", separateDialCode: true, utilsScript: "https://cdn.jsdelivr.net/npm/intl-tel-input@18.2.1/build/js/utils.js" });
+        const iti = window.intlTelInput(inputPhone, {
+            initialCountry: "vn", separateDialCode: true,
+            utilsScript: "https://cdn.jsdelivr.net/npm/intl-tel-input@18.2.1/build/js/utils.js",
+        });
 
-        // --- VALIDATION HELPERS ---
+        // --- HÀM BỔ TRỢ UI ---
+        function setBtnLoading(id, text) {
+            const btn = document.getElementById(id);
+            btn.disabled = true;
+            btn.dataset.oldText = btn.innerHTML;
+            btn.innerHTML = `<svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-white inline-block" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> ${text}`;
+        }
+        
+        function setBtnNormal(id) {
+            const btn = document.getElementById(id);
+            btn.disabled = false;
+            btn.innerHTML = btn.dataset.oldText;
+        }
+
+        function togglePass(id) {
+            const input = document.getElementById(id);
+            if (input.type === "password") input.type = "text";
+            else input.type = "password";
+        }
+
+        function toggleModal(id) {
+            const modal = document.getElementById(id);
+            modal.classList.toggle('hidden');
+            if (!modal.classList.contains('hidden')) checkBtns();
+        }
+
+        function switchPinView(mode) {
+            const vChange = document.getElementById('viewChangePin');
+            const vForgot = document.getElementById('viewForgotPin');
+            if(mode === 'forgot') {
+                vChange.classList.add('hidden'); vForgot.classList.remove('hidden');
+            } else {
+                vForgot.classList.add('hidden'); vChange.classList.remove('hidden');
+            }
+        }
+
+        // --- VALIDATION RULES & LOGIC ---
+        // 1. Regex Họ tên: Unicode + Space, không số
         const regexName = { char: /[^\p{L}\s]/u, full: /^[\p{L}\s]{6,50}$/u };
+        // 2. Regex Pass: Whitelist
         const regexPass = { char: /[^a-zA-Z0-9!@#$%^&*()\-+_.,?]/, full: /^[a-zA-Z0-9!@#$%^&*()\-+_.,?]{8,30}$/ };
+        // 3. Regex PIN: 8 số
         const regexPin  = { char: /[^0-9]/, full: /^\d{8}$/ };
 
         function setError(id, errId, isError) {
-            const input = document.getElementById(id); const msg = document.getElementById(errId);
-            if (isError) { input.classList.add('input-error'); input.classList.remove('input-success', 'input-normal'); msg.classList.add('show'); }
-            else { input.classList.remove('input-error'); if(input.value.trim()!=="") input.classList.add('input-success'); else input.classList.add('input-normal'); msg.classList.remove('show'); }
+            const input = document.getElementById(id);
+            const msg = document.getElementById(errId);
+            if (isError) {
+                input.classList.add('input-error');
+                input.classList.remove('input-success', 'input-normal');
+                msg.classList.add('show');
+            } else {
+                input.classList.remove('input-error');
+                if(input.value.trim() !== "") input.classList.add('input-success');
+                else input.classList.add('input-normal');
+                msg.classList.remove('show');
+            }
             checkBtns();
         }
 
+        // Logic Input: Check ký tự cấm ngay khi gõ
         function handleInput(id, rules, errId) {
             const val = document.getElementById(id).value;
-            if (val !== "" && rules.char.test(val)) setError(id, errId, true);
-            else { 
-                document.getElementById(id).classList.remove('input-error', 'input-success'); 
-                document.getElementById(id).classList.add('input-normal'); 
+            if (val !== "" && rules.char.test(val)) {
+                setError(id, errId, true);
+            } else {
+                // Tắt lỗi tạm để gõ tiếp
+                document.getElementById(id).classList.remove('input-error');
+                document.getElementById(id).classList.add('input-normal');
                 document.getElementById(errId).classList.remove('show');
-                checkBtns(); // Check but don't show error yet
+                checkBtns();
             }
         }
+
+        // Logic Blur: Check toàn vẹn (độ dài, format) khi rời chuột
         function handleBlur(id, rules, errId) {
             const val = document.getElementById(id).value.trim();
             if (val === "") return;
-            if (!rules.full.test(val)) setError(id, errId, true); else setError(id, errId, false);
+            
+            if (!rules.full.test(val)) {
+                setError(id, errId, true);
+            } else {
+                setError(id, errId, false);
+            }
         }
 
-        // --- MAP EVENTS ---
+        // Gắn Event Listeners
         const fields = [
             { id: 'newName', rule: regexName, err: 'err_newName' },
             { id: 'newPass', rule: regexPass, err: 'err_newPass' },
             { id: 'newPin', rule: regexPin, err: 'err_newPin' }
         ];
+
         fields.forEach(f => {
             const el = document.getElementById(f.id);
             el.addEventListener('input', () => handleInput(f.id, f.rule, f.err));
             el.addEventListener('blur', () => handleBlur(f.id, f.rule, f.err));
         });
 
-        // Phone Validation
+        // Xử lý riêng Phone (Intl-Input)
         inputPhone.addEventListener('blur', () => {
             const val = inputPhone.value.trim();
             if (val !== "") {
-                if (!iti.isValidNumber()) { inputPhone.classList.add('input-error'); document.getElementById('err_newPhone').classList.add('show'); }
-                else { inputPhone.classList.add('input-success'); inputPhone.classList.remove('input-error'); document.getElementById('err_newPhone').classList.remove('show'); }
-            } else { inputPhone.classList.remove('input-error', 'input-success'); document.getElementById('err_newPhone').classList.remove('show'); }
+                if (!iti.isValidNumber()) { 
+                    inputPhone.classList.add('input-error'); 
+                    document.getElementById('err_newPhone').classList.add('show');
+                } else { 
+                    inputPhone.classList.add('input-success'); inputPhone.classList.remove('input-error'); 
+                    document.getElementById('err_newPhone').classList.remove('show');
+                }
+            } else {
+                inputPhone.classList.remove('input-error', 'input-success');
+                document.getElementById('err_newPhone').classList.remove('show');
+            }
             checkBtns();
         });
 
         function checkBtns() {
-            // Info Btn
-            const nameOk = document.getElementById('newName').classList.contains('input-success') || (document.getElementById('newName').value === "{{ .NhanVien.TenKhachHang }}" && !document.getElementById('newName').classList.contains('input-error'));
+            // 1. Info Button
+            // Tên phải Xanh (hoặc là tên cũ chưa sửa) & Phone phải valid
+            const nameEl = document.getElementById('newName');
+            const nameOk = nameEl.classList.contains('input-success') || (nameEl.value === "{{ .NhanVien.TenKhachHang }}" && !nameEl.classList.contains('input-error'));
             const phoneOk = (inputPhone.value.trim() === "" || iti.isValidNumber());
+            
             document.getElementById('btnSaveInfo').disabled = !(nameOk && phoneOk);
 
-            // Pass Btn
+            // 2. Pass Button
+            // Pass mới phải Xanh & Pass cũ phải có nhập
             const newPassOk = document.getElementById('newPass').classList.contains('input-success');
             const oldPassOk = document.getElementById('oldPass').value.trim().length > 0;
             document.getElementById('btnSavePass').disabled = !(newPassOk && oldPassOk);
 
-            // Pin Btn
+            // 3. PIN Button
+            // PIN mới phải Xanh & PIN cũ phải nhập đủ 8 số
             const newPinOk = document.getElementById('newPin').classList.contains('input-success');
             const oldPinOk = document.getElementById('oldPin').value.trim().length === 8;
             document.getElementById('btnSavePin').disabled = !(newPinOk && oldPinOk);
         }
 
-        // --- UI UTILS ---
-        function togglePass(id) { const el = document.getElementById(id); el.type = el.type === 'password' ? 'text' : 'password'; }
-        function toggleModal(id) { 
-            const m = document.getElementById(id); m.classList.toggle('hidden'); 
-            if(!m.classList.contains('hidden')) checkBtns(); 
+        // --- API CALLS ---
+        async function postData(url, data) {
+            const formData = new FormData(); for(const k in data) formData.append(k, data[k]);
+            try { const res = await fetch(url, { method: 'POST', body: formData }); return await res.json(); }
+            catch (e) { return { status: 'error', msg: 'Lỗi kết nối server!' }; }
         }
-        function switchPinView(mode) {
-            if(mode === 'forgot') { document.getElementById('viewChangePin').classList.add('hidden'); document.getElementById('viewForgotPin').classList.remove('hidden'); }
-            else { document.getElementById('viewForgotPin').classList.add('hidden'); document.getElementById('viewChangePin').classList.remove('hidden'); }
-        }
-        function setBtnLoading(id, text) { const b=document.getElementById(id); b.disabled=true; b.dataset.old=b.innerHTML; b.innerHTML=`<svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-white inline-block" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></path><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> ${text}`; }
-        function setBtnNormal(id) { const b=document.getElementById(id); b.disabled=false; if(b.dataset.old) b.innerHTML=b.dataset.old; }
 
-        // --- API ---
-        async function postData(url, data) { const fd = new FormData(); for(const k in data) fd.append(k, data[k]); try { const r = await fetch(url, {method:'POST', body:fd}); return await r.json(); } catch(e){ return {status:'error', msg:'Lỗi mạng'}; } }
         function handleRes(res, modalId, btnId) {
-            setBtnNormal(btnId);
-            if(res.status === 'ok') Swal.fire({icon:'success', title:'Thành công', text:res.msg}).then(()=>location.reload());
-            else Swal.fire({icon:'error', title:'Lỗi', text:res.msg});
+            if (btnId) setBtnNormal(btnId);
+            if(res.status === 'ok') {
+                Swal.fire({ icon: 'success', title: 'Thành công', text: res.msg }).then(() => location.reload());
+                toggleModal(modalId);
+            } else {
+                Swal.fire({ icon: 'error', title: 'Thất bại', text: res.msg });
+            }
         }
 
-        async function doiPass() { setBtnLoading('btnSavePass','Lưu...'); handleRes(await postData('/api/user/change-pass', {pass_cu:document.getElementById('oldPass').value, pass_moi:document.getElementById('newPass').value}), 'modalPass', 'btnSavePass'); }
-        async function capNhatThongTin() { setBtnLoading('btnSaveInfo','Lưu...'); handleRes(await postData('/api/user/update-info', {ho_ten:document.getElementById('newName').value, dien_thoai:iti.getNumber(), ngay_sinh:document.getElementById('newDob').value, gioi_tinh:document.getElementById('newGender').value}), 'modalInfo', 'btnSaveInfo'); }
-        async function doiPin() { setBtnLoading('btnSavePin','Lưu...'); handleRes(await postData('/api/user/change-pin', {pin_cu:document.getElementById('oldPin').value, pin_moi:document.getElementById('newPin').value}), 'modalPin', 'btnSavePin'); }
-        async function guiYeuCauResetPin() { setBtnLoading('btnConfirmForgot','Gửi...'); try { const r = await fetch('/api/user/send-otp-pin', {method:'POST'}); handleRes(await r.json(), 'modalPin', 'btnConfirmForgot'); } catch(e){ setBtnNormal('btnConfirmForgot'); } }
+        async function doiPass() {
+            setBtnLoading('btnSavePass', 'Đang lưu...');
+            const res = await postData('/api/user/change-pass', { pass_cu: document.getElementById('oldPass').value, pass_moi: document.getElementById('newPass').value });
+            handleRes(res, 'modalPass', 'btnSavePass');
+        }
+
+        async function capNhatThongTin() {
+            setBtnLoading('btnSaveInfo', 'Đang cập nhật...');
+            const data = {
+                ho_ten: document.getElementById('newName').value,
+                dien_thoai: iti.getNumber(),
+                ngay_sinh: document.getElementById('newDob').value,
+                gioi_tinh: document.getElementById('newGender').value
+            };
+            const res = await postData('/api/user/update-info', data);
+            handleRes(res, 'modalInfo', 'btnSaveInfo');
+        }
+
+        async function doiPin() {
+            setBtnLoading('btnSavePin', 'Đang lưu...');
+            const res = await postData('/api/user/change-pin', { pin_cu: document.getElementById('oldPin').value, pin_moi: document.getElementById('newPin').value });
+            handleRes(res, 'modalPin', 'btnSavePin');
+        }
+
+        async function guiYeuCauResetPin() {
+            setBtnLoading('btnConfirmForgot', 'Đang xử lý...');
+            try {
+                const res = await fetch('/api/user/send-otp-pin', { method: 'POST' });
+                const json = await res.json();
+                handleRes(json, 'modalPin', 'btnConfirmForgot');
+            } catch (e) {
+                setBtnNormal('btnConfirmForgot');
+                Swal.fire({ icon: 'error', title: 'Lỗi', text: 'Không thể kết nối đến server' });
+            }
+        }
     </script>
 {{ end }}

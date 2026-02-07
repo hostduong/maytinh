@@ -9,7 +9,8 @@
         .input-success { border-color: #22c55e !important; background-color: #f0fdf4; }
         .input-normal { border-color: #d1d5db !important; background-color: #fff; }
         button:disabled { opacity: 0.5; cursor: not-allowed; background-color: #9ca3af !important; box-shadow: none; }
-        .error-text { color: #ef4444; font-size: 0.75rem; margin-top: 0.25rem; display: block; }
+        .error-text { color: #ef4444; font-size: 0.75rem; margin-top: 0.25rem; display: none; }
+        .error-text.show { display: block; }
         .hidden { display: none; }
         .iti { width: 100%; }
         input::-ms-reveal, input::-ms-clear { display: none; }
@@ -24,30 +25,23 @@
                         <img src="https://api.dicebear.com/7.x/avataaars/svg?seed={{ .NhanVien.TenDangNhap }}" alt="Avatar" class="w-full h-full object-cover">
                     </div>
                 </div>
-                <h2 class="mt-3 text-3xl font-bold text-gray-800" id="lblHoTen">{{ .NhanVien.TenKhachHang }}</h2>
-                <div class="text-blue-600 font-bold bg-blue-50 inline-block px-4 py-1 rounded-full text-xs mt-2 tracking-widest border border-blue-100">
-                    {{ .NhanVien.ChucVu }}
-                </div>
+                <h2 class="mt-3 text-3xl font-bold text-gray-800">{{ .NhanVien.TenKhachHang }}</h2>
+                <div class="text-blue-600 font-bold bg-blue-50 inline-block px-4 py-1 rounded-full text-xs mt-2 tracking-widest border border-blue-100">{{ .NhanVien.ChucVu }}</div>
             </div>
             
             <div class="flex flex-wrap justify-center gap-3 py-8 px-6">
                 {{ if or (eq .NhanVien.VaiTroQuyenHan "admin_root") (eq .NhanVien.VaiTroQuyenHan "admin") }}
                 <a href="/admin/tong-quan" class="bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2.5 rounded-xl font-semibold shadow-md transition transform hover:-translate-y-0.5 active:scale-95 flex items-center gap-2">
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-4 h-4"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25a2.25 2.25 0 01-2.25 2.25H6a2.25 2.25 0 01-2.25-2.25V6zM3.75 15.75A2.25 2.25 0 016 13.5h2.25a2.25 2.25 0 012.25 2.25V18a2.25 2.25 0 01-2.25 2.25H6A2.25 2.25 0 013.75 18v-2.25zM13.5 6a2.25 2.25 0 012.25-2.25H18A2.25 2.25 0 0120.25 6v2.25A2.25 2.25 0 0118 10.5h-2.25a2.25 2.25 0 01-2.25-2.25V6zM13.5 15.75a2.25 2.25 0 012.25-2.25H18a2.25 2.25 0 012.25 2.25V18A2.25 2.25 0 0118 20.25h-2.25A2.25 2.25 0 0113.5 18v-2.25z" /></svg>
                     Trang Quản Trị
                 </a>
                 {{ end }}
-
                 <button onclick="toggleModal('modalInfo')" class="bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 px-5 py-2.5 rounded-xl font-semibold shadow-sm transition transform hover:-translate-y-0.5 active:scale-95 flex items-center gap-2">
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-4 h-4"><path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.687a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" /></svg>
                     Cập nhật thông tin
                 </button>
                 <button onclick="toggleModal('modalPass')" class="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-xl font-semibold shadow-md transition transform hover:-translate-y-0.5 active:scale-95 flex items-center gap-2">
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-4 h-4"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 5.25a3 3 0 013 3m3 0a6 6 0 01-7.029 5.912c-.563-.097-1.159.026-1.563.43L10.5 17.25H8.25v2.25H6v2.25H2.25v-2.818c0-.597.237-1.17.659-1.591l6.499-6.499c.404-.404.527-1 .43-1.563A6 6 0 1121.75 8.25z" /></svg>
                     Đổi mật khẩu
                 </button>
                 <button onclick="toggleModal('modalPin')" class="bg-purple-600 hover:bg-purple-700 text-white px-5 py-2.5 rounded-xl font-semibold shadow-md transition transform hover:-translate-y-0.5 active:scale-95 flex items-center gap-2">
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-4 h-4"><path stroke-linecap="round" stroke-linejoin="round" d="M4.75 6.75a.75.75 0 01.75-.75h13a.75.75 0 010 1.5H5.5a.75.75 0 01-.75-.75zM4.75 12a.75.75 0 01.75-.75h13a.75.75 0 010 1.5H5.5A.75.75 0 014.75 12zm.75 4.5a.75.75 0 000 1.5h13a.75.75 0 000-1.5H5.5z" /></svg>
                     Đổi mã PIN
                 </button>
             </div>
@@ -64,18 +58,18 @@
                         <div class="text-gray-900 font-semibold bg-gray-50 px-3 py-2 rounded-lg border border-gray-100 italic">{{ .NhanVien.TenDangNhap }}</div>
                     </div>
                     <div>
-                        <label class="text-[10px] text-gray-400 uppercase font-bold tracking-widest block mb-1">Địa chỉ Email</label>
+                        <label class="text-[10px] text-gray-400 uppercase font-bold tracking-widest block mb-1">Email</label>
                         <div class="text-gray-900 font-semibold bg-gray-50 px-3 py-2 rounded-lg border border-gray-100">{{ .NhanVien.Email }}</div>
                     </div>
                 </div>
                 <div class="space-y-6">
                     <div>
                         <label class="text-[10px] text-gray-400 uppercase font-bold tracking-widest block mb-1">Số điện thoại</label>
-                        <div id="txtSdt" class="text-gray-900 font-semibold py-2">{{ if .NhanVien.DienThoai }} {{ .NhanVien.DienThoai }} {{ else }} <span class="text-gray-300 italic font-normal">Chưa cập nhật</span> {{ end }}</div>
+                        <div class="text-gray-900 font-semibold py-2">{{ if .NhanVien.DienThoai }} {{ .NhanVien.DienThoai }} {{ else }} <span class="text-gray-300 italic font-normal">Chưa cập nhật</span> {{ end }}</div>
                     </div>
                     <div>
                         <label class="text-[10px] text-gray-400 uppercase font-bold tracking-widest block mb-1">Ngày sinh</label>
-                        <div id="txtNgaySinh" class="text-gray-900 font-semibold py-2">{{ if .NhanVien.NgaySinh }} {{ .NhanVien.NgaySinh }} {{ else }} <span class="text-gray-300 italic font-normal">--/--/----</span> {{ end }}</div>
+                        <div class="text-gray-900 font-semibold py-2">{{ if .NhanVien.NgaySinh }} {{ .NhanVien.NgaySinh }} {{ else }} <span class="text-gray-300 italic font-normal">--/--/----</span> {{ end }}</div>
                     </div>
                 </div>
             </div>
@@ -88,12 +82,12 @@
             <div class="space-y-4">
                 <div class="relative">
                     <input type="password" id="oldPass" placeholder="Mật khẩu hiện tại" class="w-full p-3.5 pr-10 border border-gray-300 rounded-xl outline-none transition">
-                    <button type="button" onclick="togglePass('oldPass')" class="absolute inset-y-0 right-0 pr-3.5 flex items-center text-gray-400 hover:text-blue-600"><svg id="eye_oldPass" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5"><path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" /><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg></button>
+                    <button type="button" onclick="togglePass('oldPass')" class="absolute inset-y-0 right-0 pr-3.5 flex items-center text-gray-400"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg></button>
                 </div>
                 <div class="relative">
-                    <input type="password" id="newPass" placeholder="Mật khẩu mới (8-30 ký tự)" class="w-full p-3.5 pr-10 border border-gray-300 rounded-xl outline-none input-normal transition">
-                    <button type="button" onclick="togglePass('newPass')" class="absolute inset-y-0 right-0 pr-3.5 flex items-center text-gray-400 hover:text-blue-600"><svg id="eye_newPass" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5"><path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" /><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg></button>
-                    <p id="err_newPass" class="error-text hidden"></p>
+                    <input type="password" id="newPass" placeholder="Mật khẩu mới (8-30 ký tự)" class="w-full p-3.5 pr-10 border border-gray-300 rounded-xl outline-none transition input-normal">
+                    <button type="button" onclick="togglePass('newPass')" class="absolute inset-y-0 right-0 pr-3.5 flex items-center text-gray-400"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg></button>
+                    <p id="err_newPass" class="error-text">8-30 ký tự (Chữ, số, ký tự đặc biệt). Không khoảng trắng.</p>
                 </div>
             </div>
             <div class="mt-8 flex justify-end gap-3 border-t pt-5">
@@ -110,12 +104,12 @@
                 <div>
                     <label class="text-xs font-bold text-gray-400 uppercase mb-1 block">Họ và tên đầy đủ</label>
                     <input type="text" id="newName" value="{{ .NhanVien.TenKhachHang }}" class="w-full p-3.5 border border-gray-300 rounded-xl outline-none input-normal transition">
-                    <p id="err_newName" class="error-text hidden"></p>
+                    <p id="err_newName" class="error-text">Họ tên 6-50 ký tự, không chứa số/ký tự lạ.</p>
                 </div>
                 <div>
                     <label class="text-xs font-bold text-gray-400 uppercase mb-1 block">Số điện thoại</label>
                     <input type="tel" id="newPhone" value="{{ .NhanVien.DienThoai }}" class="w-full p-3.5 border border-gray-300 rounded-xl outline-none input-normal transition">
-                    <p id="err_newPhone" class="error-text hidden"></p>
+                    <p id="err_newPhone" class="error-text">SĐT không hợp lệ.</p>
                 </div>
                 <div class="grid grid-cols-2 gap-4">
                     <div>
@@ -146,12 +140,12 @@
             <div id="viewChangePin" class="space-y-4 pt-4">
                 <div class="relative">
                     <input type="password" id="oldPin" maxlength="8" placeholder="Mã PIN hiện tại" class="w-full p-3.5 pr-10 border border-gray-300 rounded-xl outline-none transition">
-                    <button type="button" onclick="togglePass('oldPin')" class="absolute inset-y-0 right-0 pr-3.5 flex items-center text-gray-400 hover:text-purple-600"><svg id="eye_oldPin" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5"><path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" /><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg></button>
+                    <button type="button" onclick="togglePass('oldPin')" class="absolute inset-y-0 right-0 pr-3.5 flex items-center text-gray-400"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg></button>
                 </div>
                 <div class="relative">
                     <input type="password" id="newPin" maxlength="8" placeholder="Mã PIN mới (8 số)" class="w-full p-3.5 pr-10 border border-gray-300 rounded-xl outline-none input-normal transition">
-                    <button type="button" onclick="togglePass('newPin')" class="absolute inset-y-0 right-0 pr-3.5 flex items-center text-gray-400 hover:text-purple-600"><svg id="eye_newPin" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5"><path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" /><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg></button>
-                    <p id="err_newPin" class="error-text hidden"></p>
+                    <button type="button" onclick="togglePass('newPin')" class="absolute inset-y-0 right-0 pr-3.5 flex items-center text-gray-400"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg></button>
+                    <p id="err_newPin" class="error-text">Mã PIN phải đúng 8 chữ số.</p>
                 </div>
                 <div class="text-right">
                     <button onclick="switchPinView('forgot')" class="text-xs text-blue-600 hover:underline font-bold">Quên mã PIN?</button>
@@ -166,16 +160,11 @@
                 <div class="bg-blue-50 p-4 rounded-2xl text-xs text-blue-700 leading-relaxed border border-blue-100">
                     Hệ thống sẽ <b>tạo mã PIN mới</b> và gửi trực tiếp tới Email đăng ký của bạn. Mã PIN cũ sẽ bị hủy ngay lập tức.
                 </div>
-                
                 <button id="btnConfirmForgot" onclick="guiYeuCauResetPin()" class="w-full bg-blue-600 text-white py-3.5 rounded-xl font-bold shadow-lg hover:bg-blue-700 transition transform active:scale-95 flex items-center justify-center gap-2">
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5"><path stroke-linecap="round" stroke-linejoin="round" d="M6 12L3.269 3.126A59.768 59.768 0 0121.485 12 59.77 59.77 0 013.27 20.876L5.999 12zm0 0h7.5" /></svg>
                     XÁC NHẬN RESET VÀ GỬI EMAIL
                 </button>
-
                 <div class="mt-8 flex justify-start items-center border-t pt-5">
-                    <button onclick="switchPinView('change')" class="text-gray-400 text-sm font-bold hover:text-gray-600 transition flex items-center gap-1">
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-4 h-4"><path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" /></svg> Quay lại
-                    </button>
+                    <button onclick="switchPinView('change')" class="text-gray-400 text-sm font-bold hover:text-gray-600 transition flex items-center gap-1">Quay lại</button>
                 </div>
             </div>
         </div>
@@ -183,169 +172,99 @@
 
     <script>
         const inputPhone = document.querySelector("#newPhone");
-        const iti = window.intlTelInput(inputPhone, {
-            initialCountry: "vn", separateDialCode: true,
-            utilsScript: "https://cdn.jsdelivr.net/npm/intl-tel-input@18.2.1/build/js/utils.js",
+        const iti = window.intlTelInput(inputPhone, { initialCountry: "vn", separateDialCode: true, utilsScript: "https://cdn.jsdelivr.net/npm/intl-tel-input@18.2.1/build/js/utils.js" });
+
+        // --- VALIDATION HELPERS ---
+        const regexName = { char: /[^\p{L}\s]/u, full: /^[\p{L}\s]{6,50}$/u };
+        const regexPass = { char: /[^a-zA-Z0-9!@#$%^&*()\-+_.,?]/, full: /^[a-zA-Z0-9!@#$%^&*()\-+_.,?]{8,30}$/ };
+        const regexPin  = { char: /[^0-9]/, full: /^\d{8}$/ };
+
+        function setError(id, errId, isError) {
+            const input = document.getElementById(id); const msg = document.getElementById(errId);
+            if (isError) { input.classList.add('input-error'); input.classList.remove('input-success', 'input-normal'); msg.classList.add('show'); }
+            else { input.classList.remove('input-error'); if(input.value.trim()!=="") input.classList.add('input-success'); else input.classList.add('input-normal'); msg.classList.remove('show'); }
+            checkBtns();
+        }
+
+        function handleInput(id, rules, errId) {
+            const val = document.getElementById(id).value;
+            if (val !== "" && rules.char.test(val)) setError(id, errId, true);
+            else { 
+                document.getElementById(id).classList.remove('input-error', 'input-success'); 
+                document.getElementById(id).classList.add('input-normal'); 
+                document.getElementById(errId).classList.remove('show');
+                checkBtns(); // Check but don't show error yet
+            }
+        }
+        function handleBlur(id, rules, errId) {
+            const val = document.getElementById(id).value.trim();
+            if (val === "") return;
+            if (!rules.full.test(val)) setError(id, errId, true); else setError(id, errId, false);
+        }
+
+        // --- MAP EVENTS ---
+        const fields = [
+            { id: 'newName', rule: regexName, err: 'err_newName' },
+            { id: 'newPass', rule: regexPass, err: 'err_newPass' },
+            { id: 'newPin', rule: regexPin, err: 'err_newPin' }
+        ];
+        fields.forEach(f => {
+            const el = document.getElementById(f.id);
+            el.addEventListener('input', () => handleInput(f.id, f.rule, f.err));
+            el.addEventListener('blur', () => handleBlur(f.id, f.rule, f.err));
         });
 
-        // Helper function for loading state
-        function setBtnLoading(id, text) {
-            const btn = document.getElementById(id);
-            btn.disabled = true;
-            btn.dataset.oldText = btn.innerHTML;
-            btn.innerHTML = `<svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-white inline-block" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> ${text}`;
-        }
-        
-        function setBtnNormal(id) {
-            const btn = document.getElementById(id);
-            btn.disabled = false;
-            btn.innerHTML = btn.dataset.oldText;
+        // Phone Validation
+        inputPhone.addEventListener('blur', () => {
+            const val = inputPhone.value.trim();
+            if (val !== "") {
+                if (!iti.isValidNumber()) { inputPhone.classList.add('input-error'); document.getElementById('err_newPhone').classList.add('show'); }
+                else { inputPhone.classList.add('input-success'); inputPhone.classList.remove('input-error'); document.getElementById('err_newPhone').classList.remove('show'); }
+            } else { inputPhone.classList.remove('input-error', 'input-success'); document.getElementById('err_newPhone').classList.remove('show'); }
+            checkBtns();
+        });
+
+        function checkBtns() {
+            // Info Btn
+            const nameOk = document.getElementById('newName').classList.contains('input-success') || (document.getElementById('newName').value === "{{ .NhanVien.TenKhachHang }}" && !document.getElementById('newName').classList.contains('input-error'));
+            const phoneOk = (inputPhone.value.trim() === "" || iti.isValidNumber());
+            document.getElementById('btnSaveInfo').disabled = !(nameOk && phoneOk);
+
+            // Pass Btn
+            const newPassOk = document.getElementById('newPass').classList.contains('input-success');
+            const oldPassOk = document.getElementById('oldPass').value.trim().length > 0;
+            document.getElementById('btnSavePass').disabled = !(newPassOk && oldPassOk);
+
+            // Pin Btn
+            const newPinOk = document.getElementById('newPin').classList.contains('input-success');
+            const oldPinOk = document.getElementById('oldPin').value.trim().length === 8;
+            document.getElementById('btnSavePin').disabled = !(newPinOk && oldPinOk);
         }
 
-        function togglePass(id) {
-            const input = document.getElementById(id);
-            const eyeIcon = document.getElementById('eye_' + id);
-            if (input.type === "password") {
-                input.type = "text";
-                eyeIcon.innerHTML = `<path stroke-linecap="round" stroke-linejoin="round" d="M3.98 8.223A10.477 10.477 0 001.934 12C3.226 16.338 7.244 19.5 12 19.5c.993 0 1.953-.138 2.863-.395M6.228 6.228A10.45 10.45 0 0112 4.5c4.756 0 8.773 3.162 10.065 7.498a10.523 10.523 0 01-4.293 5.774M6.228 6.228L3 3m3.228 3.228l3.65 3.65m7.894 7.894L21 21m-3.228-3.228l-3.65-3.65m0 0a3 3 0 10-4.243-4.243m4.242 4.242L9.88 9.88" />`;
-            } else {
-                input.type = "password";
-                eyeIcon.innerHTML = `<path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" /><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />`;
-            }
+        // --- UI UTILS ---
+        function togglePass(id) { const el = document.getElementById(id); el.type = el.type === 'password' ? 'text' : 'password'; }
+        function toggleModal(id) { 
+            const m = document.getElementById(id); m.classList.toggle('hidden'); 
+            if(!m.classList.contains('hidden')) checkBtns(); 
         }
-
-        function toggleModal(id) {
-            const modal = document.getElementById(id);
-            if (modal.classList.contains('hidden')) {
-                modal.classList.remove('hidden');
-                if(id === 'modalInfo') checkInfoButton();
-            } else {
-                modal.classList.add('hidden');
-            }
-        }
-
         function switchPinView(mode) {
-            const vChange = document.getElementById('viewChangePin');
-            const vForgot = document.getElementById('viewForgotPin');
-            if(mode === 'forgot') {
-                vChange.classList.add('hidden'); vForgot.classList.remove('hidden');
-            } else {
-                vForgot.classList.add('hidden'); vChange.classList.remove('hidden');
-            }
+            if(mode === 'forgot') { document.getElementById('viewChangePin').classList.add('hidden'); document.getElementById('viewForgotPin').classList.remove('hidden'); }
+            else { document.getElementById('viewForgotPin').classList.add('hidden'); document.getElementById('viewChangePin').classList.remove('hidden'); }
         }
+        function setBtnLoading(id, text) { const b=document.getElementById(id); b.disabled=true; b.dataset.old=b.innerHTML; b.innerHTML=`<svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-white inline-block" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></path><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> ${text}`; }
+        function setBtnNormal(id) { const b=document.getElementById(id); b.disabled=false; if(b.dataset.old) b.innerHTML=b.dataset.old; }
 
-        const RULES = {
-            newName: { not_allowed: /[^a-zA-ZÀ-ỹ\s]/, validate: /^[a-zA-ZÀ-ỹ\s]{6,50}$/, msg_forbidden: "Không chứa số hoặc ký tự lạ.", msg_invalid: "Tên phải từ 6 - 50 ký tự." },
-            newPass: { not_allowed: /[\s'"<>\`]/, validate: /^[^'"<>\` \s]{8,30}$/, msg_forbidden: "Không chứa khoảng trắng hoặc ký tự cấm.", msg_invalid: "Mật khẩu từ 8 - 30 ký tự." },
-            newPin: { not_allowed: /[^0-9]/, validate: /^\d{8}$/, msg_forbidden: "Chỉ được nhập số.", msg_invalid: "PIN phải đúng 8 chữ số." }
-        };
-
-        function showError(id, msg) {
-            const el = document.getElementById(id); const err = document.getElementById('err_' + id);
-            el.classList.add('input-error'); el.classList.remove('input-success', 'input-normal');
-            err.innerText = msg; err.classList.remove('hidden');
-        }
-
-        function showNormal(id) {
-            const el = document.getElementById(id); const err = document.getElementById('err_' + id);
-            el.classList.add('input-normal'); el.classList.remove('input-error', 'input-success');
-            err.classList.add('hidden');
-        }
-
-        function showSuccess(id) {
-            const el = document.getElementById(id); const err = document.getElementById('err_' + id);
-            el.classList.add('input-success'); el.classList.remove('input-error', 'input-normal');
-            err.classList.add('hidden');
-        }
-
-        function setupValidation(inputId, btnId, ruleKey) {
-            const input = document.getElementById(inputId); const btn = document.getElementById(btnId);
-            const rule = RULES[ruleKey || inputId];
-            input.addEventListener('input', function() {
-                if (rule.not_allowed.test(this.value)) { showError(inputId, rule.msg_forbidden); btn.disabled = true; }
-                else { showNormal(inputId); btn.disabled = !rule.validate.test(this.value); }
-            });
-            input.addEventListener('blur', function() {
-                if(this.value === "") return;
-                if (!rule.validate.test(this.value)) { showError(inputId, rule.not_allowed.test(this.value) ? rule.msg_forbidden : rule.msg_invalid); btn.disabled = true; }
-                else { showSuccess(inputId); btn.disabled = false; }
-            });
-        }
-
-        function checkInfoButton() {
-            const nameEl = document.getElementById('newName'); const phoneEl = document.getElementById('newPhone');
-            const btn = document.getElementById('btnSaveInfo'); const ruleName = RULES.newName;
-            const nameOk = !ruleName.not_allowed.test(nameEl.value) && ruleName.validate.test(nameEl.value);
-            const phoneOk = phoneEl.value.trim() === "" || iti.isValidNumber();
-            btn.disabled = !(nameOk && phoneOk);
-        }
-
-        setupValidation('newPass', 'btnSavePass');
-        setupValidation('newPin', 'btnSavePin');
-        
-        document.getElementById('newName').addEventListener('input', checkInfoButton);
-        document.getElementById('newName').addEventListener('blur', function() {
-            if(this.value !== "" && !RULES.newName.validate.test(this.value)) showError('newName', RULES.newName.msg_invalid);
-            else if(this.value !== "") showSuccess('newName');
-            checkInfoButton();
-        });
-        document.getElementById('newPhone').addEventListener('blur', function() {
-            const err = document.getElementById('err_newPhone');
-            if(this.value.trim() !== "" && !iti.isValidNumber()) { this.classList.add('input-error'); err.innerText = "SĐT không hợp lệ."; err.classList.remove('hidden'); }
-            else { this.classList.remove('input-error'); if(this.value.trim() !== "") this.classList.add('input-success'); err.classList.add('hidden'); }
-            checkInfoButton();
-        });
-
-        async function postData(url, data) {
-            const formData = new FormData(); for(const k in data) formData.append(k, data[k]);
-            try { const res = await fetch(url, { method: 'POST', body: formData }); return await res.json(); }
-            catch (e) { return { status: 'error', msg: 'Lỗi kết nối server!' }; }
-        }
-
+        // --- API ---
+        async function postData(url, data) { const fd = new FormData(); for(const k in data) fd.append(k, data[k]); try { const r = await fetch(url, {method:'POST', body:fd}); return await r.json(); } catch(e){ return {status:'error', msg:'Lỗi mạng'}; } }
         function handleRes(res, modalId, btnId) {
-            if (btnId) setBtnNormal(btnId);
-            if(res.status === 'ok') {
-                Swal.fire({ icon: 'success', title: 'Thành công', text: res.msg }).then(() => location.reload());
-                toggleModal(modalId);
-            } else {
-                Swal.fire({ icon: 'error', title: 'Thất bại', text: res.msg });
-            }
+            setBtnNormal(btnId);
+            if(res.status === 'ok') Swal.fire({icon:'success', title:'Thành công', text:res.msg}).then(()=>location.reload());
+            else Swal.fire({icon:'error', title:'Lỗi', text:res.msg});
         }
 
-        async function doiPass() {
-            setBtnLoading('btnSavePass', 'Đang lưu...');
-            const res = await postData('/api/user/change-pass', { pass_cu: document.getElementById('oldPass').value, pass_moi: document.getElementById('newPass').value });
-            handleRes(res, 'modalPass', 'btnSavePass');
-        }
-
-        async function capNhatThongTin() {
-            setBtnLoading('btnSaveInfo', 'Đang cập nhật...');
-            const data = {
-                ho_ten: document.getElementById('newName').value,
-                dien_thoai: iti.getNumber(),
-                ngay_sinh: document.getElementById('newDob').value,
-                gioi_tinh: document.getElementById('newGender').value
-            };
-            const res = await postData('/api/user/update-info', data);
-            handleRes(res, 'modalInfo', 'btnSaveInfo');
-        }
-
-        async function doiPin() {
-            setBtnLoading('btnSavePin', 'Đang lưu...');
-            const res = await postData('/api/user/change-pin', { pin_cu: document.getElementById('oldPin').value, pin_moi: document.getElementById('newPin').value });
-            handleRes(res, 'modalPin', 'btnSavePin');
-        }
-
-        async function guiYeuCauResetPin() {
-            setBtnLoading('btnConfirmForgot', 'Đang xử lý...');
-            try {
-                const res = await fetch('/api/user/send-otp-pin', { method: 'POST' });
-                const json = await res.json();
-                handleRes(json, 'modalPin', 'btnConfirmForgot');
-            } catch (e) {
-                setBtnNormal('btnConfirmForgot');
-                Swal.fire({ icon: 'error', title: 'Lỗi', text: 'Không thể kết nối đến server' });
-            }
-        }
+        async function doiPass() { setBtnLoading('btnSavePass','Lưu...'); handleRes(await postData('/api/user/change-pass', {pass_cu:document.getElementById('oldPass').value, pass_moi:document.getElementById('newPass').value}), 'modalPass', 'btnSavePass'); }
+        async function capNhatThongTin() { setBtnLoading('btnSaveInfo','Lưu...'); handleRes(await postData('/api/user/update-info', {ho_ten:document.getElementById('newName').value, dien_thoai:iti.getNumber(), ngay_sinh:document.getElementById('newDob').value, gioi_tinh:document.getElementById('newGender').value}), 'modalInfo', 'btnSaveInfo'); }
+        async function doiPin() { setBtnLoading('btnSavePin','Lưu...'); handleRes(await postData('/api/user/change-pin', {pin_cu:document.getElementById('oldPin').value, pin_moi:document.getElementById('newPin').value}), 'modalPin', 'btnSavePin'); }
+        async function guiYeuCauResetPin() { setBtnLoading('btnConfirmForgot','Gửi...'); try { const r = await fetch('/api/user/send-otp-pin', {method:'POST'}); handleRes(await r.json(), 'modalPin', 'btnConfirmForgot'); } catch(e){ setBtnNormal('btnConfirmForgot'); } }
     </script>
 {{ end }}

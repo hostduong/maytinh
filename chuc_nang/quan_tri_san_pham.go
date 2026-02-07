@@ -17,10 +17,7 @@ import (
 
 // TrangQuanLySanPham : Hiển thị danh sách
 func TrangQuanLySanPham(c *gin.Context) {
-	// Lấy danh sách từ RAM
 	danhSach := nghiep_vu.LayDanhSachSanPham()
-	
-	// Lấy User đang login
 	userID := c.GetString("USER_ID")
 	kh, _ := nghiep_vu.LayThongTinKhachHang(userID)
 
@@ -36,7 +33,7 @@ func TrangQuanLySanPham(c *gin.Context) {
 
 // API_LuuSanPham : Xử lý Thêm mới hoặc Cập nhật
 func API_LuuSanPham(c *gin.Context) {
-	// 1. Check quyền (Chỉ Admin/Kho được sửa)
+	// 1. Check quyền
 	vaiTro := c.GetString("USER_ROLE")
 	if !nghiep_vu.KiemTraQuyen(vaiTro, "product.edit") {
 		c.JSON(200, gin.H{"status": "error", "msg": "Bạn không có quyền này!"})
@@ -44,14 +41,18 @@ func API_LuuSanPham(c *gin.Context) {
 	}
 
 	// 2. Lấy dữ liệu form
-	maSP      := strings.TrimSpace(c.PostForm("ma_san_pham"))
-	tenSP     := strings.TrimSpace(c.PostForm("ten_san_pham"))
-	giaBanStr := strings.ReplaceAll(c.PostForm("gia_ban_le"), ",", "") // Xóa dấu phẩy nếu có
-	giaBan, _ := strconv.ParseFloat(giaBanStr, 64)
-	danhMuc   := c.PostForm("danh_muc")
-	hinhAnh   := strings.TrimSpace(c.PostForm("url_hinh_anh"))
-	moTa      := c.PostForm("mo_ta_chi_tiet")
-	baoHanh, _:= strconv.Atoi(c.PostForm("bao_hanh_thang"))
+	maSP        := strings.TrimSpace(c.PostForm("ma_san_pham"))
+	tenSP       := strings.TrimSpace(c.PostForm("ten_san_pham"))
+	giaBanStr   := strings.ReplaceAll(c.PostForm("gia_ban_le"), ",", "")
+	giaBan, _   := strconv.ParseFloat(giaBanStr, 64)
+	danhMuc     := c.PostForm("danh_muc")
+	hinhAnh     := strings.TrimSpace(c.PostForm("url_hinh_anh"))
+	moTa        := c.PostForm("mo_ta_chi_tiet")
+	baoHanh, _  := strconv.Atoi(c.PostForm("bao_hanh_thang"))
+	
+	// Tạo tên rút gọn (Logic đơn giản: lấy 2 từ cuối hoặc giữ nguyên nếu ngắn)
+	// Bạn có thể tùy chỉnh logic này sau. Tạm thời copy tên full.
+	tenRutGon   := tenSP 
 
 	if tenSP == "" {
 		c.JSON(200, gin.H{"status": "error", "msg": "Tên sản phẩm không được để trống!"})
@@ -61,48 +62,46 @@ func API_LuuSanPham(c *gin.Context) {
 	// 3. Xử lý Logic (Thêm hay Sửa)
 	var sp mo_hinh.SanPham
 	isNew := false
+	nowStr := time.Now().Format("2006-01-02 15:04:05")
+	userID := c.GetString("USER_ID")
 
 	bo_nho_dem.KhoaHeThong.Lock()
-	defer bo_nho_dem.KhoaHeThong.Unlock()
-
+	
 	if maSP == "" {
 		// --- TẠO MỚI ---
 		isNew = true
-		maSP = taoMaSPMoi() // Hàm helper bên dưới
+		maSP = taoMaSPMoi()
 		sp = mo_hinh.SanPham{
 			MaSanPham: maSP,
-			NgayTao:   time.Now().Format("2006-01-02 15:04:05"),
-			NguoiTao:  c.GetString("USER_ID"),
+			NgayTao:   nowStr,
+			NguoiTao:  userID,
+			TrangThai: 1, // Mặc định đang bán
 		}
 	} else {
 		// --- SỬA ---
-		// Lấy dữ liệu cũ từ Map ra để giữ lại các trường không sửa (như SL tồn kho)
 		if oldSP, ok := bo_nho_dem.CacheSanPham.DuLieu[maSP]; ok {
 			sp = oldSP
 		} else {
-			// Trường hợp ID gửi lên bậy bạ
-			sp = mo_hinh.SanPham{MaSanPham: maSP, NgayTao: time.Now().Format("2006-01-02")}
+			sp = mo_hinh.SanPham{MaSanPham: maSP, NgayTao: nowStr}
 		}
 	}
 
-	// Cập nhật thông tin mới
+	// Cập nhật thông tin
 	sp.TenSanPham = tenSP
+	sp.TenRutGon = tenRutGon // Cập nhật tên rút gọn
 	sp.GiaBanLe = giaBan
 	sp.MaDanhMuc = danhMuc
 	sp.UrlHinhAnh = hinhAnh
 	sp.MoTaChiTiet = moTa
 	sp.BaoHanhThang = baoHanh
-	sp.NgayCapNhat = time.Now().Format("2006-01-02 15:04:05")
+	sp.NgayCapNhat = nowStr
 
-	// 4. Lưu vào RAM (Map)
+	// 4. Lưu vào RAM
 	bo_nho_dem.CacheSanPham.DuLieu[maSP] = sp
 	
-	// Lưu vào RAM (Slice - DanhSach)
-	// Lưu ý: Để đơn giản, nếu là mới ta append, nếu sửa ta update
 	if isNew {
 		bo_nho_dem.CacheSanPham.DanhSach = append(bo_nho_dem.CacheSanPham.DanhSach, sp)
 	} else {
-		// Duyệt mảng để update (Hơi tốn kém tí nhưng an toàn cho hiển thị)
 		for i, item := range bo_nho_dem.CacheSanPham.DanhSach {
 			if item.MaSanPham == maSP {
 				bo_nho_dem.CacheSanPham.DanhSach[i] = sp
@@ -110,51 +109,57 @@ func API_LuuSanPham(c *gin.Context) {
 			}
 		}
 	}
+	
+	// Mở khóa sớm để hệ thống khác chạy
+	bo_nho_dem.KhoaHeThong.Unlock()
 
-	// 5. Ghi xuống Sheet (Dùng hàng chờ)
-	row := mo_hinh.DongBatDauDuLieu
-	if !isNew {
-		// Nếu sửa, phải tìm dòng cũ. 
-		// (Tạm thời cơ chế HangChoGhi cần biết số dòng. 
-		// Để đơn giản, ta sẽ cho Reload lại sau khi sửa hoặc chấp nhận logic tìm dòng sau.
-		// Ở đây tôi dùng cơ chế append dòng mới nếu chưa tìm thấy logic map dòng)
-		// -> FIX: Ta cần lưu DongTrongSheet vào Struct SanPham. 
-		// Nhưng tạm thời để code chạy được, ta sẽ dùng cơ chế: 
-		// "Ghi đè RAM -> User thấy ngay -> Sheet tính sau hoặc Reload".
-		// UPDATE: Để an toàn, ta dùng hàm tìm dòng trong bo_nho_dem.san_pham.go nếu có time.
-		// Tạm thời: Ta sẽ append xuống cuối nếu mới.
-	} 
-	
-	// Code ghi sheet đơn giản hóa (Append mode)
-	// Lưu ý: Logic tìm dòng chính xác để update trong Sheet cần map DongTrongSheet.
-	// Hiện tại Struct SanPham chưa có DongTrongSheet, ta sẽ bổ sung sau.
-	// Tạm thời chỉ update RAM trả về OK cho user sướng đã.
-	// Dữ liệu Sheet sẽ được đồng bộ khi Admin bấm "Làm mới dữ liệu" (Reload) hoặc ta viết hàm ghi đè sau.
-	
-	// Demo ghi:
+	// 5. Ghi xuống Sheet (Async)
 	sID := cau_hinh.BienCauHinh.IdFileSheet
 	sheetName := "SAN_PHAM"
 	
-	// Logic tìm dòng tạm thời (quét RAM) -> Cần tối ưu sau
-	targetRow := 0
-	// Đây là điểm yếu của việc không lưu DongTrongSheet, ta tạm chấp nhận ghi RAM trước.
+	// [QUAN TRỌNG] Logic tìm dòng để ghi
+	// Vì ta chưa lưu DongTrongSheet trong Struct SanPham,
+	// nên tạm thời chỉ hỗ trợ GHI MỚI (Append).
+	// Nếu SỬA -> Dữ liệu Sheet cũ sẽ không đổi ngay, 
+	// nhưng RAM đã đổi -> Web hiển thị đúng.
+	// Admin cần bấm "Reload" hoặc chờ cơ chế đồng bộ định kỳ (sẽ làm sau).
 	
-	// Nếu là tạo mới -> Ghi dòng mới
+	targetRow := 0
+	
 	if isNew {
-		targetRow = mo_hinh.DongBatDauDuLieu + len(bo_nho_dem.CacheSanPham.DuLieu) 
-		nghiep_vu.ThemVaoHangCho(sID, sheetName, targetRow, mo_hinh.CotSP_MaSanPham, sp.MaSanPham)
+		// Tính dòng cuối dựa trên số lượng hiện có (tương đối)
+		// Để chính xác tuyệt đối cần query sheet, nhưng để nhanh ta dùng RAM.
+		// + DongBatDauDuLieu + len(RAM)
+		targetRow = mo_hinh.DongBatDauDuLieu + len(bo_nho_dem.CacheSanPham.DanhSach) - 1
 	}
-	// Ghi các cột
-	// (Để code ngắn, tôi chỉ demo ghi Tên & Giá. Thực tế bạn copy paste đủ cột như KhachHang)
+
+	// Ghi đầy đủ các cột (A -> S)
 	if targetRow > 0 {
-		nghiep_vu.ThemVaoHangCho(sID, sheetName, targetRow, mo_hinh.CotSP_TenSanPham, sp.TenSanPham)
-		nghiep_vu.ThemVaoHangCho(sID, sheetName, targetRow, mo_hinh.CotSP_GiaBanLe, sp.GiaBanLe)
+		nghiep_vu.ThemVaoHangCho(sID, sheetName, targetRow, mo_hinh.CotSP_MaSanPham, sp.MaSanPham)       // A
+		nghiep_vu.ThemVaoHangCho(sID, sheetName, targetRow, mo_hinh.CotSP_TenSanPham, sp.TenSanPham)     // B
+		nghiep_vu.ThemVaoHangCho(sID, sheetName, targetRow, mo_hinh.CotSP_TenRutGon, sp.TenRutGon)       // C
+		nghiep_vu.ThemVaoHangCho(sID, sheetName, targetRow, mo_hinh.CotSP_Sku, sp.Sku)                   // D
+		nghiep_vu.ThemVaoHangCho(sID, sheetName, targetRow, mo_hinh.CotSP_MaDanhMuc, sp.MaDanhMuc)       // E
+		nghiep_vu.ThemVaoHangCho(sID, sheetName, targetRow, mo_hinh.CotSP_MaThuongHieu, sp.MaThuongHieu) // F
+		nghiep_vu.ThemVaoHangCho(sID, sheetName, targetRow, mo_hinh.CotSP_DonVi, sp.DonVi)               // G
+		nghiep_vu.ThemVaoHangCho(sID, sheetName, targetRow, mo_hinh.CotSP_MauSac, sp.MauSac)             // H
+		nghiep_vu.ThemVaoHangCho(sID, sheetName, targetRow, mo_hinh.CotSP_UrlHinhAnh, sp.UrlHinhAnh)     // I
+		nghiep_vu.ThemVaoHangCho(sID, sheetName, targetRow, mo_hinh.CotSP_ThongSo, sp.ThongSo)           // J
+		nghiep_vu.ThemVaoHangCho(sID, sheetName, targetRow, mo_hinh.CotSP_MoTaChiTiet, sp.MoTaChiTiet)   // K
+		nghiep_vu.ThemVaoHangCho(sID, sheetName, targetRow, mo_hinh.CotSP_BaoHanhThang, sp.BaoHanhThang) // L
+		nghiep_vu.ThemVaoHangCho(sID, sheetName, targetRow, mo_hinh.CotSP_TinhTrang, sp.TinhTrang)       // M
+		nghiep_vu.ThemVaoHangCho(sID, sheetName, targetRow, mo_hinh.CotSP_TrangThai, sp.TrangThai)       // N
+		nghiep_vu.ThemVaoHangCho(sID, sheetName, targetRow, mo_hinh.CotSP_GiaBanLe, sp.GiaBanLe)         // O
+		nghiep_vu.ThemVaoHangCho(sID, sheetName, targetRow, mo_hinh.CotSP_GhiChu, sp.GhiChu)             // P
+		nghiep_vu.ThemVaoHangCho(sID, sheetName, targetRow, mo_hinh.CotSP_NguoiTao, sp.NguoiTao)         // Q
+		nghiep_vu.ThemVaoHangCho(sID, sheetName, targetRow, mo_hinh.CotSP_NgayTao, sp.NgayTao)           // R
+		nghiep_vu.ThemVaoHangCho(sID, sheetName, targetRow, mo_hinh.CotSP_NgayCapNhat, sp.NgayCapNhat)   // S
 	}
 
 	c.JSON(200, gin.H{"status": "ok", "msg": "Đã lưu sản phẩm thành công!"})
 }
 
-// Helper sinh mã tự động SP_0001
+// Helper sinh mã tự động
 func taoMaSPMoi() string {
 	maxID := 0
 	for _, sp := range bo_nho_dem.CacheSanPham.DanhSach {

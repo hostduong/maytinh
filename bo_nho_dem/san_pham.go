@@ -9,41 +9,27 @@ func napSanPham(target *KhoSanPhamStore) {
 		if i < (mo_hinh.DongBatDauDuLieu - 1) { continue }
 		if len(r) <= mo_hinh.CotSP_MaSanPham || layString(r, mo_hinh.CotSP_MaSanPham) == "" { continue }
 		item := mo_hinh.SanPham{
-			MaSanPham: layString(r, mo_hinh.CotSP_MaSanPham),
-			TenSanPham: layString(r, mo_hinh.CotSP_TenSanPham),
-			GiaBanLe: layFloat(r, mo_hinh.CotSP_GiaBanLe),
-			UrlHinhAnh: layString(r, mo_hinh.CotSP_UrlHinhAnh),
-			Sku: layString(r, mo_hinh.CotSP_Sku),
-			MaDanhMuc: layString(r, mo_hinh.CotSP_MaDanhMuc),
+			MaSanPham:    layString(r, mo_hinh.CotSP_MaSanPham),
+			TenSanPham:   layString(r, mo_hinh.CotSP_TenSanPham),
+			TenRutGon:    layString(r, mo_hinh.CotSP_TenRutGon),
+			Sku:          layString(r, mo_hinh.CotSP_Sku),
+			MaDanhMuc:    layString(r, mo_hinh.CotSP_MaDanhMuc),
 			MaThuongHieu: layString(r, mo_hinh.CotSP_MaThuongHieu),
+			DonVi:        layString(r, mo_hinh.CotSP_DonVi),
+			MauSac:       layString(r, mo_hinh.CotSP_MauSac),
+			UrlHinhAnh:   layString(r, mo_hinh.CotSP_UrlHinhAnh),
+			ThongSo:      layString(r, mo_hinh.CotSP_ThongSo),
+			MoTaChiTiet:  layString(r, mo_hinh.CotSP_MoTaChiTiet),
 			BaoHanhThang: layInt(r, mo_hinh.CotSP_BaoHanhThang),
-			ThongSo: layString(r, mo_hinh.CotSP_ThongSo),
+			TinhTrang:    layString(r, mo_hinh.CotSP_TinhTrang),
+			TrangThai:    layInt(r, mo_hinh.CotSP_TrangThai),
+			GiaBanLe:     layFloat(r, mo_hinh.CotSP_GiaBanLe),
+			GhiChu:       layString(r, mo_hinh.CotSP_GhiChu),
+			NguoiTao:     layString(r, mo_hinh.CotSP_NguoiTao),
+			NgayTao:      layString(r, mo_hinh.CotSP_NgayTao),
+			NgayCapNhat:  layString(r, mo_hinh.CotSP_NgayCapNhat),
 		}
 		target.DuLieu[item.MaSanPham] = item
 		target.DanhSach = append(target.DanhSach, item)
 	}
-}
-
-func napDanhMuc(target *KhoDanhMucStore) { 
-	raw,_:=loadSheetData("DANH_MUC")
-	for i,r:=range raw{ 
-		if i<10{continue}
-		item:=mo_hinh.DanhMuc{
-			MaDanhMuc:layString(r,mo_hinh.CotDM_MaDanhMuc),
-			TenDanhMuc:layString(r,mo_hinh.CotDM_TenDanhMuc),
-		}
-		target.DuLieu[item.MaDanhMuc]=item 
-	} 
-}
-
-func napThuongHieu(target *KhoThuongHieuStore) { 
-	raw,_:=loadSheetData("THUONG_HIEU")
-	for i,r:=range raw{ 
-		if i<10{continue}
-		item:=mo_hinh.ThuongHieu{
-			MaThuongHieu:layString(r,mo_hinh.CotTH_MaThuongHieu),
-			LogoUrl:layString(r,mo_hinh.CotTH_LogoUrl),
-		}
-		target.DuLieu[item.MaThuongHieu]=item 
-	} 
 }

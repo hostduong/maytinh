@@ -1,206 +1,161 @@
 package nghiep_vu
 
 import (
+	"app/bo_nho_dem" // [MỚI]
 	"app/mo_hinh"
 )
 
+// [THAY ĐỔI QUAN TRỌNG]
+// Thay vì dùng Lock mịn (BoQuanLyKhoa), ta dùng bo_nho_dem.KhoaHeThong.RLock()
+// Để đảm bảo khi Reload (Stop-the-world), tất cả các hàm đọc này đều phải dừng lại chờ.
+
 // =================================================================================
-// NHÓM 1: MASTER DATA (Sản phẩm, Danh mục, Đối tác, Nhân viên...)
+// NHÓM 1: MASTER DATA
 // =================================================================================
 
-// LayDanhSachSanPham : Lấy tất cả sản phẩm
 func LayDanhSachSanPham() []mo_hinh.SanPham {
-	khoa := BoQuanLyKhoa.LayKhoa(CacheSanPham.TenKey)
-	khoa.RLock()
-	defer khoa.RUnlock()
+	bo_nho_dem.KhoaHeThong.RLock()
+	defer bo_nho_dem.KhoaHeThong.RUnlock()
 
-	ketQua := make([]mo_hinh.SanPham, len(CacheSanPham.DanhSach))
-	copy(ketQua, CacheSanPham.DanhSach)
+	ketQua := make([]mo_hinh.SanPham, len(bo_nho_dem.CacheSanPham.DanhSach))
+	copy(ketQua, bo_nho_dem.CacheSanPham.DanhSach)
 	return ketQua
 }
 
-// LayChiTietSanPham : Lấy 1 sản phẩm theo ID
 func LayChiTietSanPham(maSP string) (mo_hinh.SanPham, bool) {
-	khoa := BoQuanLyKhoa.LayKhoa(CacheSanPham.TenKey)
-	khoa.RLock()
-	defer khoa.RUnlock()
-	sp, tonTai := CacheSanPham.DuLieu[maSP]
+	bo_nho_dem.KhoaHeThong.RLock()
+	defer bo_nho_dem.KhoaHeThong.RUnlock()
+	sp, tonTai := bo_nho_dem.CacheSanPham.DuLieu[maSP]
 	return sp, tonTai
 }
 
 func LayDanhSachDanhMuc() map[string]mo_hinh.DanhMuc {
-	khoa := BoQuanLyKhoa.LayKhoa(CacheDanhMuc.TenKey)
-	khoa.RLock()
-	defer khoa.RUnlock()
+	bo_nho_dem.KhoaHeThong.RLock()
+	defer bo_nho_dem.KhoaHeThong.RUnlock()
 	
 	kq := make(map[string]mo_hinh.DanhMuc)
-	for k, v := range CacheDanhMuc.DuLieu { kq[k] = v }
+	for k, v := range bo_nho_dem.CacheDanhMuc.DuLieu { kq[k] = v }
 	return kq
 }
 
 func LayDanhSachThuongHieu() map[string]mo_hinh.ThuongHieu {
-	khoa := BoQuanLyKhoa.LayKhoa(CacheThuongHieu.TenKey)
-	khoa.RLock()
-	defer khoa.RUnlock()
-	
+	bo_nho_dem.KhoaHeThong.RLock()
+	defer bo_nho_dem.KhoaHeThong.RUnlock()
 	kq := make(map[string]mo_hinh.ThuongHieu)
-	for k, v := range CacheThuongHieu.DuLieu { kq[k] = v }
+	for k, v := range bo_nho_dem.CacheThuongHieu.DuLieu { kq[k] = v }
 	return kq
 }
 
 func LayDanhSachNhaCungCap() map[string]mo_hinh.NhaCungCap {
-	khoa := BoQuanLyKhoa.LayKhoa(CacheNhaCungCap.TenKey)
-	khoa.RLock()
-	defer khoa.RUnlock()
-	
+	bo_nho_dem.KhoaHeThong.RLock()
+	defer bo_nho_dem.KhoaHeThong.RUnlock()
 	kq := make(map[string]mo_hinh.NhaCungCap)
-	for k, v := range CacheNhaCungCap.DuLieu { kq[k] = v }
+	for k, v := range bo_nho_dem.CacheNhaCungCap.DuLieu { kq[k] = v }
 	return kq
 }
 
 func LayThongTinKhachHang(maKH string) (*mo_hinh.KhachHang, bool) {
-	khoa := BoQuanLyKhoa.LayKhoa(CacheKhachHang.TenKey)
-	khoa.RLock()
-	defer khoa.RUnlock()
-	
-	// Map DuLieu giờ lưu con trỏ, nên lấy ra dùng luôn
-	kh, tonTai := CacheKhachHang.DuLieu[maKH]
+	bo_nho_dem.KhoaHeThong.RLock()
+	defer bo_nho_dem.KhoaHeThong.RUnlock()
+	kh, tonTai := bo_nho_dem.CacheKhachHang.DuLieu[maKH]
 	return kh, tonTai
 }
 
-
 func LayCauHinhWeb() map[string]mo_hinh.CauHinhWeb {
-	khoa := BoQuanLyKhoa.LayKhoa(CacheCauHinhWeb.TenKey)
-	khoa.RLock()
-	defer khoa.RUnlock()
-	
+	bo_nho_dem.KhoaHeThong.RLock()
+	defer bo_nho_dem.KhoaHeThong.RUnlock()
 	kq := make(map[string]mo_hinh.CauHinhWeb)
-	for k, v := range CacheCauHinhWeb.DuLieu { kq[k] = v }
+	for k, v := range bo_nho_dem.CacheCauHinhWeb.DuLieu { kq[k] = v }
 	return kq
 }
 
 // =================================================================================
-// NHÓM 2: GIAO DỊCH BÁN HÀNG (Phiếu Xuất & Voucher)
+// NHÓM 2: GIAO DỊCH
 // =================================================================================
 
 func LayThongTinDonHang(maPX string) (mo_hinh.PhieuXuat, bool) {
-	khoa := BoQuanLyKhoa.LayKhoa(CachePhieuXuat.TenKey)
-	khoa.RLock()
-	defer khoa.RUnlock()
-	px, tonTai := CachePhieuXuat.DuLieu[maPX]
+	bo_nho_dem.KhoaHeThong.RLock()
+	defer bo_nho_dem.KhoaHeThong.RUnlock()
+	px, tonTai := bo_nho_dem.CachePhieuXuat.DuLieu[maPX]
 	return px, tonTai
 }
 
-// LayChiTietDonHang : Lọc ra các dòng sản phẩm thuộc mã phiếu này
 func LayChiTietDonHang(maPX string) []mo_hinh.ChiTietPhieuXuat {
-	khoa := BoQuanLyKhoa.LayKhoa(CacheChiTietXuat.TenKey)
-	khoa.RLock()
-	defer khoa.RUnlock()
-
+	bo_nho_dem.KhoaHeThong.RLock()
+	defer bo_nho_dem.KhoaHeThong.RUnlock()
 	var ketQua []mo_hinh.ChiTietPhieuXuat
-	for _, ct := range CacheChiTietXuat.DanhSach {
-		if ct.MaPhieuXuat == maPX {
-			ketQua = append(ketQua, ct)
-		}
+	for _, ct := range bo_nho_dem.CacheChiTietXuat.DanhSach {
+		if ct.MaPhieuXuat == maPX { ketQua = append(ketQua, ct) }
 	}
 	return ketQua
 }
 
 func LayThongTinVoucher(maVoucher string) (mo_hinh.KhuyenMai, bool) {
-	khoa := BoQuanLyKhoa.LayKhoa(CacheKhuyenMai.TenKey)
-	khoa.RLock()
-	defer khoa.RUnlock()
-	km, tonTai := CacheKhuyenMai.DuLieu[maVoucher]
+	bo_nho_dem.KhoaHeThong.RLock()
+	defer bo_nho_dem.KhoaHeThong.RUnlock()
+	km, tonTai := bo_nho_dem.CacheKhuyenMai.DuLieu[maVoucher]
 	return km, tonTai
 }
 
-// =================================================================================
-// NHÓM 3: GIAO DỊCH NHẬP KHO (Phiếu Nhập)
-// =================================================================================
-
 func LayThongTinPhieuNhap(maPN string) (mo_hinh.PhieuNhap, bool) {
-	khoa := BoQuanLyKhoa.LayKhoa(CachePhieuNhap.TenKey)
-	khoa.RLock()
-	defer khoa.RUnlock()
-	pn, tonTai := CachePhieuNhap.DuLieu[maPN]
+	bo_nho_dem.KhoaHeThong.RLock()
+	defer bo_nho_dem.KhoaHeThong.RUnlock()
+	pn, tonTai := bo_nho_dem.CachePhieuNhap.DuLieu[maPN]
 	return pn, tonTai
 }
 
 func LayChiTietPhieuNhap(maPN string) []mo_hinh.ChiTietPhieuNhap {
-	khoa := BoQuanLyKhoa.LayKhoa(CacheChiTietNhap.TenKey)
-	khoa.RLock()
-	defer khoa.RUnlock()
-
+	bo_nho_dem.KhoaHeThong.RLock()
+	defer bo_nho_dem.KhoaHeThong.RUnlock()
 	var ketQua []mo_hinh.ChiTietPhieuNhap
-	for _, ct := range CacheChiTietNhap.DanhSach {
-		if ct.MaPhieuNhap == maPN {
-			ketQua = append(ketQua, ct)
-		}
+	for _, ct := range bo_nho_dem.CacheChiTietNhap.DanhSach {
+		if ct.MaPhieuNhap == maPN { ketQua = append(ketQua, ct) }
 	}
 	return ketQua
 }
 
-// =================================================================================
-// NHÓM 4: KHO VẬN & BẢO HÀNH (Serial, Bảo hành)
-// =================================================================================
-
 func TraCuuSerial(imei string) (mo_hinh.SerialSanPham, bool) {
-	khoa := BoQuanLyKhoa.LayKhoa(CacheSerial.TenKey)
-	khoa.RLock()
-	defer khoa.RUnlock()
-	serial, tonTai := CacheSerial.DuLieu[imei]
+	bo_nho_dem.KhoaHeThong.RLock()
+	defer bo_nho_dem.KhoaHeThong.RUnlock()
+	serial, tonTai := bo_nho_dem.CacheSerial.DuLieu[imei]
 	return serial, tonTai
 }
 
 func LayThongTinBaoHanh(maPBH string) (mo_hinh.PhieuBaoHanh, bool) {
-	khoa := BoQuanLyKhoa.LayKhoa(CachePhieuBaoHanh.TenKey)
-	khoa.RLock()
-	defer khoa.RUnlock()
-	pbh, tonTai := CachePhieuBaoHanh.DuLieu[maPBH]
+	bo_nho_dem.KhoaHeThong.RLock()
+	defer bo_nho_dem.KhoaHeThong.RUnlock()
+	pbh, tonTai := bo_nho_dem.CachePhieuBaoHanh.DuLieu[maPBH]
 	return pbh, tonTai
 }
 
-// =================================================================================
-// NHÓM 5: TÀI CHÍNH (Hóa đơn, Thu Chi)
-// =================================================================================
-
 func LayThongTinHoaDon(maHD string) (mo_hinh.HoaDon, bool) {
-	khoa := BoQuanLyKhoa.LayKhoa(CacheHoaDon.TenKey)
-	khoa.RLock()
-	defer khoa.RUnlock()
-	hd, tonTai := CacheHoaDon.DuLieu[maHD]
+	bo_nho_dem.KhoaHeThong.RLock()
+	defer bo_nho_dem.KhoaHeThong.RUnlock()
+	hd, tonTai := bo_nho_dem.CacheHoaDon.DuLieu[maHD]
 	return hd, tonTai
 }
 
 func LayChiTietHoaDon(maHD string) []mo_hinh.HoaDonChiTiet {
-	khoa := BoQuanLyKhoa.LayKhoa(CacheHoaDonChiTiet.TenKey)
-	khoa.RLock()
-	defer khoa.RUnlock()
-
+	bo_nho_dem.KhoaHeThong.RLock()
+	defer bo_nho_dem.KhoaHeThong.RUnlock()
 	var ketQua []mo_hinh.HoaDonChiTiet
-	for _, ct := range CacheHoaDonChiTiet.DanhSach {
-		if ct.MaHoaDon == maHD {
-			ketQua = append(ketQua, ct)
-		}
+	for _, ct := range bo_nho_dem.CacheHoaDonChiTiet.DanhSach {
+		if ct.MaHoaDon == maHD { ketQua = append(ketQua, ct) }
 	}
 	return ketQua
 }
 
 func LayPhieuThuChi(maPTC string) (mo_hinh.PhieuThuChi, bool) {
-	khoa := BoQuanLyKhoa.LayKhoa(CachePhieuThuChi.TenKey)
-	khoa.RLock()
-	defer khoa.RUnlock()
-	ptc, tonTai := CachePhieuThuChi.DuLieu[maPTC]
+	bo_nho_dem.KhoaHeThong.RLock()
+	defer bo_nho_dem.KhoaHeThong.RUnlock()
+	ptc, tonTai := bo_nho_dem.CachePhieuThuChi.DuLieu[maPTC]
 	return ptc, tonTai
 }
 
-// LayDanhSachThuChi : Lấy toàn bộ sổ quỹ
 func LayDanhSachThuChi() []mo_hinh.PhieuThuChi {
-	khoa := BoQuanLyKhoa.LayKhoa(CachePhieuThuChi.TenKey)
-	khoa.RLock()
-	defer khoa.RUnlock()
-
-	ketQua := make([]mo_hinh.PhieuThuChi, len(CachePhieuThuChi.DanhSach))
-	copy(ketQua, CachePhieuThuChi.DanhSach)
+	bo_nho_dem.KhoaHeThong.RLock()
+	defer bo_nho_dem.KhoaHeThong.RUnlock()
+	ketQua := make([]mo_hinh.PhieuThuChi, len(bo_nho_dem.CachePhieuThuChi.DanhSach))
+	copy(ketQua, bo_nho_dem.CachePhieuThuChi.DanhSach)
 	return ketQua
 }

@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"log"
 	"math/big"
 	"net/http"
 	"sync"
@@ -19,7 +18,7 @@ const (
 )
 
 type ThongTinOTP struct { MaCode string; HetHanLuc int64 }
-type BoDemRate struct { LanGuiCuoi int64; SoLanTrong6h int; ResetLuc int64 }
+type BoDemRate struct { LanGuiCuoi int64 } // Rút gọn struct
 
 var CacheOTP = make(map[string]ThongTinOTP)
 var CacheRate = make(map[string]*BoDemRate)
@@ -48,14 +47,26 @@ func TaoMaOTP6So() string {
 	return fmt.Sprintf("%06d", n.Int64())
 }
 
+// [CẬP NHẬT]: Chỉ giới hạn 1 phút 1 lần, bỏ giới hạn 6h
 func KiemTraRateLimit(email string) (bool, string) {
 	mtxOTP.Lock(); defer mtxOTP.Unlock()
 	now := time.Now().Unix()
+	
 	rd, ok := CacheRate[email]
-	if !ok || now > rd.ResetLuc { CacheRate[email] = &BoDemRate{ResetLuc: now + 21600}; rd = CacheRate[email] }
-	if now-rd.LanGuiCuoi < 60 { return false, fmt.Sprintf("Vui lòng đợi %d giây.", 60-(now-rd.LanGuiCuoi)) }
-	if rd.SoLanTrong6h >= 10 { return false, "Vượt quá 10 lần gửi/6h." }
-	rd.LanGuiCuoi = now; rd.SoLanTrong6h++; return true, ""
+	if !ok {
+		// Chưa gửi lần nào -> Tạo mới
+		CacheRate[email] = &BoDemRate{LanGuiCuoi: now}
+		return true, ""
+	}
+
+	// Kiểm tra thời gian chờ (60s)
+	if now - rd.LanGuiCuoi < 60 {
+		return false, fmt.Sprintf("Vui lòng đợi %d giây nữa.", 60-(now-rd.LanGuiCuoi))
+	}
+
+	// Cập nhật thời gian gửi cuối
+	rd.LanGuiCuoi = now
+	return true, ""
 }
 
 func GuiMailXacMinhAPI(email, code string) error {
@@ -66,7 +77,6 @@ func GuiMailThongBaoAPI(email, subject, name, body string) error {
 	return callApi(map[string]string{"type": "sender", "api_key": KEY_API_MAIL, "email": email, "subject": subject, "name": name, "body": body})
 }
 
-// [CẬP NHẬT QUAN TRỌNG]: Lấy đúng field 'messenger' để trả về lỗi
 func callApi(payload interface{}) error {
 	b, _ := json.Marshal(payload)
 	resp, err := http.Post(URL_API_MAIL, "application/json", bytes.NewBuffer(b))
@@ -74,25 +84,11 @@ func callApi(payload interface{}) error {
 	defer resp.Body.Close()
 
 	bodyBytes, _ := io.ReadAll(resp.Body)
-	// log.Printf("📧 [MAIL DEBUG]: %s", string(bodyBytes)) // Bật lên nếu cần debug
-
-	// Cấu trúc hứng phản hồi từ Google Apps Script
-	var r struct { 
-		Status string `json:"status"` 
-		Messenger string `json:"messenger"` 
-	}
 	
-	if err := json.Unmarshal(bodyBytes, &r); err != nil {
-		return fmt.Errorf("Lỗi định dạng phản hồi từ Mail Service")
-	}
+	var r struct { Status string `json:"status"`; Messenger string `json:"messenger"` }
+	if err := json.Unmarshal(bodyBytes, &r); err != nil { return fmt.Errorf("Lỗi định dạng phản hồi") }
 
-	if r.Status == "true" { 
-		return nil 
-	}
-	
-	// Trả về nguyên văn thông báo lỗi từ Google Script (VD: "Email không đúng định dạng", "Sai API Key"...)
-	if r.Messenger != "" {
-		return fmt.Errorf("%s", r.Messenger)
-	}
-	return fmt.Errorf("Gửi mail thất bại (Lỗi không xác định)")
+	if r.Status == "true" { return nil }
+	if r.Messenger != "" { return fmt.Errorf("%s", r.Messenger) }
+	return fmt.Errorf("Gửi mail thất bại")
 }

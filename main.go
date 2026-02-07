@@ -41,7 +41,7 @@ func main() {
 	// Nạp dữ liệu lần đầu (Chạy ngầm để server start nhanh)
 	go func() {
 		log.Println("--- [BOOT] Đang nạp dữ liệu khởi động... ---")
-		// Hàm này giờ đã bao gồm cả nạp PHAN_QUYEN (do bạn đã sửa bo_nho_dem.go)
+		// Hàm này giờ đã bao gồm cả nạp PHAN_QUYEN
 		nghiep_vu.KhoiTaoBoNho() 
 	}()
 	
@@ -96,26 +96,11 @@ func main() {
 	admin := router.Group("/admin")
 	admin.Use(chuc_nang.KiemTraQuyenHan) // Middleware chặn người không phận sự
 	{
-		// Dashboard
-		admin.GET("/tong-quan", func(c *gin.Context) {
-			userID, _ := c.Get("USER_ID")
-			// Lấy lại info user để hiển thị avatar/tên
-			kh, _ := nghiep_vu.TimKhachHangTheoCookie(mustGetCookie(c))
-			
-			c.HTML(http.StatusOK, "quan_tri", gin.H{
-				"TieuDe": "Quản trị", 
-				"NhanVien": kh, 
-				"DaDangNhap": true, 
-				"TenNguoiDung": kh.TenKhachHang, 
-				"QuyenHan": kh.VaiTroQuyenHan, 
-				"UserID": userID,
-			})
-		})
+		// Dashboard [ĐÃ CẬP NHẬT]: Trỏ về hàm xử lý thống kê mới
+		admin.GET("/tong-quan", chuc_nang.TrangTongQuan)
 
-		// [UPDATED] API Nạp lại dữ liệu (Đã được bảo vệ bởi check quyền 'system.reload')
+		// API Quản trị
 		admin.GET("/reload", chuc_nang.API_NapLaiDuLieu)
-
-		// [NEW] API Sửa thành viên (Đã được bảo vệ bởi check quyền 'member.edit')
 		admin.POST("/api/member/update", chuc_nang.API_Admin_SuaThanhVien)
 	}
 
@@ -142,4 +127,5 @@ func main() {
 	log.Println("✅ Server tắt an toàn.")
 }
 
+// Hàm phụ trợ (giữ nguyên để tránh lỗi biên dịch nếu file khác không dùng)
 func mustGetCookie(c *gin.Context) string { cookie, _ := c.Cookie("session_id"); return cookie }

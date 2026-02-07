@@ -5,6 +5,7 @@ import (
 	"sort"
 	"time"
 
+	"app/bo_nho_dem" // [MỚI] Import gói chứa dữ liệu gốc
 	"app/mo_hinh"
 	"app/nghiep_vu"
 
@@ -41,20 +42,23 @@ func TrangTongQuan(c *gin.Context) {
 func tinhToanThongKe() DuLieuDashboard {
 	var kq DuLieuDashboard
 
-	nghiep_vu.KhoaHeThong.RLock()
-	defer nghiep_vu.KhoaHeThong.RUnlock()
+	// [SỬA] Dùng Lock từ bo_nho_dem
+	bo_nho_dem.KhoaHeThong.RLock()
+	defer bo_nho_dem.KhoaHeThong.RUnlock()
 
+	// [SỬA] Truy cập trực tiếp vào bo_nho_dem để đếm
 	// 1. Đếm sản phẩm (Dựa trên danh sách)
-	kq.TongSanPham = len(nghiep_vu.CacheSanPham.DanhSach)
+	kq.TongSanPham = len(bo_nho_dem.CacheSanPham.DanhSach)
 	
 	// 2. Đếm khách hàng (Dựa trên danh sách mới tạo -> ĐẾM ĐÚNG)
-	kq.TongKhachHang = len(nghiep_vu.CacheKhachHang.DanhSach)
+	kq.TongKhachHang = len(bo_nho_dem.CacheKhachHang.DanhSach)
 
 	now := time.Now().Format("2006-01-02")
 	mapDoanhThuNgay := make(map[string]float64)
 	var listPX []mo_hinh.PhieuXuat
 
-	for _, px := range nghiep_vu.CachePhieuXuat.DuLieu {
+	// [SỬA] Duyệt CachePhieuXuat từ bo_nho_dem
+	for _, px := range bo_nho_dem.CachePhieuXuat.DuLieu {
 		listPX = append(listPX, px)
 		
 		if px.TrangThai != "Đã hủy" {
@@ -97,7 +101,8 @@ func API_NapLaiDuLieu(c *gin.Context) {
 		return
 	}
 
-	nghiep_vu.LamMoiHeThong()
+	// [SỬA] Gọi hàm reload từ bo_nho_dem
+	bo_nho_dem.LamMoiHeThong()
 
 	c.JSON(http.StatusOK, gin.H{
 		"trang_thai": "thanh_cong", 

@@ -86,8 +86,7 @@
     </div>
 
     <script>
-        // Dữ liệu từ Server render ra JS để dùng cho nút Sửa
-        const allProducts = {{ .DanhSach }}; 
+
         // Lưu ý: Template Go sẽ render JSON object vào đây. Nếu lỗi, ta sẽ fetch API sau.
         // Để đơn giản cho V1, ta làm fetch API detail hoặc filter mảng JS.
         // Cách tốt nhất: Tạo map JS từ Go template

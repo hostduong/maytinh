@@ -13,7 +13,7 @@ func NapDuLieuPhanQuyen() {
 	raw, err := loadSheetData("PHAN_QUYEN")
 	if err != nil { return }
 
-	// Không cần Lock ở đây vì hàm này được gọi trong luồng Boot/Reload đã được Lock từ bên ngoài
+	// Không cần Lock ở đây vì hàm này được gọi trong luồng Boot/Reload đã được Lock từ bên ngoài.
 	CachePhanQuyen = make(map[string]map[string]bool)
 	roles := []string{"ADMIN", "QUAN_LY", "THU_KHO", "KE_TOAN", "SALE", "CONTENT"}
 	for _, r := range roles { CachePhanQuyen[r] = make(map[string]bool) }
